@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Integrações{% endblock %}
+{% block heading %}Integrações{% endblock %}
+{% block content %}
+{% set labels = {"connected": ("Conectada", "tag-success"), "configured": ("Configurada", "tag-blue"),
+                 "not_configured": ("Não configurada", "tag-muted"), "error": ("Com erro", "tag-danger"),
+                 "planned": ("Planejada", "tag-warning")} %}
+<div class="stack">
+  <p class="muted">Todas as integrações são opcionais. O Shadow System funciona sem nenhuma delas.
+    Credenciais ficam só no <span class="mono">.env</span> e em <span class="mono">instance/</span>, fora do git.</p>
+  <div class="grid grid-auto">
+    {% for s in statuses %}
+      {% set label, css = labels[s.state] %}
+      <section class="panel system-window">
+        <div class="panel-header">
+          <h2>{{ s.name }}</h2>
+          <span class="tag {{ css }}">{{ label }}</span>
+        </div>
+        <p>{{ s.description }}</p>
+        {% if s.detail %}<p class="muted small mono">{{ s.detail }}</p>{% endif %}
+        {% if s.url %}<a class="btn btn-sm" href="{{ s.url }}">Abrir</a>{% endif %}
+      </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

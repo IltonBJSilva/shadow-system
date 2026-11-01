@@ -7,6 +7,8 @@ from flask import Flask
 
 
 def register_integrations(app: Flask) -> None:
-    blueprints: list = []
+    from .routes import bp as integrations_bp
+
+    blueprints = [integrations_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
