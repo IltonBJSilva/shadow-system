@@ -59,7 +59,7 @@ h3 { font-size: 1rem; }
 
 .brand { display: flex; align-items: center; gap: .6rem; margin: 0 .4rem 1.6rem; color: var(--text); }
 .brand:hover { text-decoration: none; }
-.brand-mark { font-size: 1.7rem; color: var(--blue); text-shadow: 0 0 12px var(--blue-glow); }
+.brand-mark { width: 40px; height: 40px; filter: drop-shadow(0 0 8px var(--blue-glow)); }
 .brand-text { font-family: var(--mono); font-weight: 700; letter-spacing: .18em; line-height: 1.1; }
 .brand-text small { display: block; color: var(--purple); font-size: .68rem; letter-spacing: .42em; }
 
@@ -273,7 +273,42 @@ select.input[multiple] { min-height: 130px; }
   border-color: var(--purple); background: rgba(139, 92, 246, 0.16);
   box-shadow: 0 0 22px -6px var(--purple); font-weight: 600;
 }
+.flash-bonus {
+  border-color: rgba(56, 189, 248, 0.6); background: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 18px -6px var(--blue);
+}
+.flash-penalty {
+  border-color: rgba(248, 113, 113, 0.7); background: rgba(127, 29, 29, 0.35);
+  box-shadow: 0 0 24px -6px var(--danger); font-weight: 600;
+}
+.flash-penalty .flash-tag { color: var(--danger); }
+/* Level up e punição aparecem como "janela do sistema" com brilho pulsando */
+.flash-levelup, .flash-penalty { animation: system-pop .45s ease-out, system-pulse 2.4s ease-in-out .45s 2; }
+.flash { cursor: pointer; }
 .flash.is-hidden { opacity: 0; pointer-events: none; }
+@keyframes system-pop {
+  from { opacity: 0; transform: translateY(-8px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes system-pulse {
+  50% { box-shadow: 0 0 34px -4px currentColor; }
+}
+
+/* Avatar do Hunter (imagem pública escolhida pelo usuário) */
+.avatar {
+  width: 78px; height: 78px; border-radius: 12px; object-fit: cover; flex-shrink: 0;
+  border: 2px solid var(--rank-color, var(--purple));
+  box-shadow: 0 0 18px -4px var(--rank-color, var(--purple));
+}
+
+/* Grade holográfica discreta no fundo das janelas de sistema */
+.system-window {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-color: var(--panel);
+}
 .flash-tag { font-family: var(--mono); color: var(--blue); font-size: .78rem; }
 
 /* ---------- Tabelas ---------- */

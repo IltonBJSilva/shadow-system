@@ -17,6 +17,8 @@ class Hunter(TimestampMixin, db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     title: Mapped[str] = mapped_column(String(80), default="", nullable=False)
+    # Link público (https) de uma imagem para o avatar. Vazio = mostra só o rank.
+    avatar_url: Mapped[str] = mapped_column(String(500), default="", server_default="", nullable=False)
     # Soma de todos os XpEvent. Guardada aqui para não somar o histórico a cada página.
     total_xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

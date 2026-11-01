@@ -108,3 +108,20 @@ def test_add_rank_via_form(client):
     services.get_hunter()
     client.post("/hunter/ranks", data={"code": "god", "name": "Deus", "min_level": 999, "color": "#ffffff"})
     assert any(r.code == "GOD" for r in services.list_ranks())
+
+
+def test_avatar_must_be_public_https_link(client):
+    client.post("/hunter/", data={"name": "Ilton", "title": "", "avatar_url": "https://exemplo.com/eu.png"})
+    assert services.get_status().avatar_url == "https://exemplo.com/eu.png"
+    assert "eu.png" in client.get("/hunter/").get_data(as_text=True)
+    client.post("/hunter/", data={"name": "Ilton", "title": "", "avatar_url": r"C:\fotos\eu.png"})
+    assert services.get_status().avatar_url == "https://exemplo.com/eu.png"
+
+
+def test_flash_messages_carry_sound_category(client):
+    from app.modules.quests import services as quests
+    from app.modules.quests.services import QuestInput
+
+    quest = quests.create_quest(QuestInput(title="Som", xp_reward=150))
+    html = client.post(f"/quests/{quest.id}/complete", follow_redirects=True).get_data(as_text=True)
+    assert 'data-category="levelup"' in html and "sounds.js" in html

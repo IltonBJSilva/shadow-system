@@ -21,7 +21,7 @@ def profile():
 def update_profile():
     form = ProfileForm()
     if form.validate_on_submit():
-        services.update_profile(form.name.data, form.title.data or "")
+        services.update_profile(form.name.data, form.title.data or "", form.avatar_url.data or "")
         flash("Perfil atualizado.", "success")
     else:
         flash("Confira os campos do perfil.", "error")

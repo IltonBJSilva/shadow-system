@@ -3,6 +3,10 @@
 <section class="panel system-window status-window">
   <p class="system-label">[SYSTEM] STATUS</p>
   <div class="status-header">
+    {% if status.avatar_url %}
+      <img class="avatar" src="{{ status.avatar_url }}" alt="Avatar de {{ status.name }}"
+           style="--rank-color: {{ status.rank.color if status.rank else '#8b5cf6' }}" referrerpolicy="no-referrer">
+    {% endif %}
     <div class="rank-badge" style="--rank-color: {{ status.rank.color if status.rank else '#8b5cf6' }}">
       {{ status.rank.code if status.rank else '?' }}
     </div>

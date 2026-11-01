@@ -38,6 +38,7 @@ class RankView:
 class HunterStatus:
     name: str
     title: str
+    avatar_url: str
     progress: progression.LevelProgress
     rank: RankView | None
     next_rank: RankView | None
@@ -96,6 +97,7 @@ def get_status() -> HunterStatus:
     return HunterStatus(
         name=hunter.name,
         title=hunter.title,
+        avatar_url=hunter.avatar_url,
         progress=progress,
         rank=_rank_view(current),
         next_rank=_rank_view(min(upcoming, key=lambda r: r.min_level)) if upcoming else None,
@@ -171,10 +173,14 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
     return result
 
 
-def update_profile(name: str, title: str) -> None:
+def update_profile(name: str, title: str, avatar_url: str = "") -> None:
+    avatar_url = avatar_url.strip()
+    if avatar_url and not avatar_url.startswith("https://"):
+        raise DomainError("O avatar precisa ser um link público começando com https://")
     hunter = get_hunter()
     hunter.name = name.strip() or hunter.name
     hunter.title = title.strip()
+    hunter.avatar_url = avatar_url
     db.session.commit()
 
 

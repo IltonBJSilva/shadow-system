@@ -13,6 +13,8 @@
       {{ profile_form.csrf_token }}
       {{ ui.field(profile_form.name) }}
       {{ ui.field(profile_form.title) }}
+      {{ ui.field(profile_form.avatar_url, class="full", placeholder="https://...") }}
+      <p class="muted small full">Use uma imagem sua ou com licença livre. Imagens do anime são protegidas por direitos autorais.</p>
       <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
     </form>
   </section>
