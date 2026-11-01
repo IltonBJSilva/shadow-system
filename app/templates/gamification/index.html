@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Gamificação{% endblock %}
+{% block heading %}Gamificação{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] BÔNUS</p>
+      <div class="form">
+        <label class="check"><input type="checkbox" name="bonuses_enabled" {% if rules.bonuses_enabled %}checked{% endif %}> Bônus ligados</label>
+        <div class="form-grid">
+          <div class="field"><label class="label">Primeira quest do dia (XP)</label>
+            <input class="input" type="number" min="0" name="first_quest_bonus_xp" value="{{ rules.first_quest_bonus_xp }}"></div>
+          <div class="field"><label class="label">Adiantar o prazo (% do XP)</label>
+            <input class="input" type="number" min="0" name="early_bonus_percent" value="{{ rules.early_bonus_percent }}"></div>
+          <div class="field"><label class="label">Combo de Daily Quests (% do XP do dia)</label>
+            <input class="input" type="number" min="0" name="daily_combo_percent" value="{{ rules.daily_combo_percent }}"></div>
+          <div class="field"><label class="label">Combo mínimo (XP)</label>
+            <input class="input" type="number" min="0" name="daily_combo_min_xp" value="{{ rules.daily_combo_min_xp }}"></div>
+        </div>
+        <p class="label" style="margin: .4rem 0 0">Sequência de hábitos (dias → % extra no check)</p>
+        {% for i in range(3) %}
+          {% set tier = rules.streak_tiers[i] if i < rules.streak_tiers | length else ("", "") %}
+          <div class="row">
+            <input class="input" style="max-width: 110px" type="number" min="1" name="tier_days_{{ i }}" value="{{ tier[0] }}" aria-label="Dias">
+            <span class="muted">dias →</span>
+            <input class="input" style="max-width: 110px" type="number" min="1" name="tier_percent_{{ i }}" value="{{ tier[1] }}" aria-label="Porcentagem">
+            <span class="muted">%</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] PUNIÇÕES · PENALTY ZONE</p>
+      <div class="form">
+        <label class="check"><input type="checkbox" name="penalties_enabled" {% if rules.penalties_enabled %}checked{% endif %}> Punições ligadas</label>
+        <div class="field"><label class="label">XP perdido por quest recorrente não feita (% do XP dela)</label>
+          <input class="input" type="number" min="0" max="100" name="penalty_xp_percent" value="{{ rules.penalty_xp_percent }}"></div>
+        <label class="check"><input type="checkbox" name="penalty_quest_enabled" {% if rules.penalty_quest_enabled %}checked{% endif %}> Gerar Penalty Quest (cumprir no dia devolve o XP)</label>
+        <p class="muted small">A punição nunca faz você perder nível: o máximo que sai é o XP já ganho no nível atual.
+          Quests sem repetição e Penalty Quests não geram punição.</p>
+      </div>
+    </section>
+
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Salvar regras</button></div>
+  </form>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Histórico de bônus e punições</h2></div>
+    {% if history %}
+      <ul class="list">
+        {% for event in history %}
+          <li class="list-item {% if event.amount < 0 %}is-overdue{% endif %}">
+            <div class="item-main">
+              <div class="item-title">{{ event.description }}</div>
+              <div class="item-meta">{{ event.created_at | datetime_br }}</div>
+            </div>
+            <span class="xp-tag">{{ '%+d' % event.amount }} XP</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhum bônus ou punição ainda.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
