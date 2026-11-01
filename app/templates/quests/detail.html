@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}{{ quest.title }}{% endblock %}
+{% block heading %}Quest{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('quests.index') }}">Voltar</a>
+  <a class="btn" href="{{ url_for('quests.edit', quest_id=quest.id) }}">Editar</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] {{ quest.type_label | upper }}</p>
+    <h2 style="color: var(--text); text-transform: none; font-size: 1.3rem">{{ quest.title }}</h2>
+    <div class="item-meta" style="margin-bottom: 1rem">
+      <span class="tag tag-blue">{{ constants.STATUSES[quest.status] }}</span>
+      <span class="tag">{{ constants.PRIORITIES[quest.priority] }}</span>
+      {% if quest.category %}<span class="tag" style="border-color: {{ quest.category_color }}; color: {{ quest.category_color }}">{{ quest.category_name }}</span>{% endif %}
+      {% if quest.recurrence != "none" %}<span class="tag tag-success">↻ {{ constants.RECURRENCES[quest.recurrence] }}</span>{% endif %}
+    </div>
+
+    <table class="table">
+      <tr><th>Recompensa</th><td><span class="xp-tag">+{{ quest.xp_reward }} XP</span>{% if quest.reward %} · {{ quest.reward }}{% endif %}</td></tr>
+      <tr><th>Dificuldade</th><td>{{ quest.difficulty }} / 5</td></tr>
+      <tr><th>Prazo</th><td>{{ quest.due_date | date_br or "Sem prazo" }}{% if quest.is_overdue %} <span class="tag tag-warning">Atrasada</span>{% endif %}</td></tr>
+      <tr><th>Atributos</th><td>{{ attribute_names | join(", ") or "Nenhum" }}</td></tr>
+      {% if quest.completed_at %}<tr><th>Concluída em</th><td>{{ quest.completed_at | datetime_br }}</td></tr>{% endif %}
+    </table>
+
+    {% if quest.description %}<h3 style="margin-top: 1rem">Descrição</h3><p>{{ quest.description }}</p>{% endif %}
+    {% if quest.completion_criteria %}<h3>Critérios de conclusão</h3><p>{{ quest.completion_criteria }}</p>{% endif %}
+
+    <div class="form-actions" style="margin-top: 1rem">
+      {% if quest.status == "pending" %}{{ ui.post_button(url_for('quests.start', quest_id=quest.id) ~ "?next=" ~ request.path, "Iniciar", "btn") }}{% endif %}
+      {% if quest.status in ("pending", "in_progress") %}
+        {{ ui.post_button(url_for('quests.cancel', quest_id=quest.id) ~ "?next=" ~ request.path, "Cancelar", "btn btn-ghost") }}
+        {{ ui.post_button(url_for('quests.complete', quest_id=quest.id) ~ "?next=" ~ request.path, "Concluir quest", "btn btn-success") }}
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Histórico</h2></div>
+    <ul class="list">
+      {% for log in quest.logs %}
+        <li class="list-item">
+          <div class="item-main">
+            <div class="item-title">{{ log.note }}</div>
+            <div class="item-meta">{{ log.created_at | datetime_br }}</div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    <div class="form-actions" style="margin-top: 1rem">
+      {{ ui.post_button(url_for('quests.delete', quest_id=quest.id), "Remover quest", "btn btn-danger btn-sm") }}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{# Linha de quest. Aceita Quest ou QuestView em `q`. `next_url` = para onde voltar após uma ação. #}
+{% import "partials/_macros.html" as ui %}
+{% set active = q.status in ("pending", "in_progress") %}
+<li class="list-item {% if q.status == 'completed' %}is-done{% endif %} {% if q.is_overdue %}is-overdue{% endif %}">
+  {% if active %}
+    <form method="post" action="{{ url_for('quests.complete', quest_id=q.id) }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <button class="check-button" type="submit" title="Concluir quest" aria-label="Concluir {{ q.title }}">✓</button>
+    </form>
+  {% else %}
+    <span class="check-button {% if q.status == 'completed' %}is-checked{% endif %}">{{ '✓' if q.status == 'completed' else '·' }}</span>
+  {% endif %}
+  <div class="item-main">
+    <a class="item-title" href="{{ url_for('quests.detail', quest_id=q.id) }}">{{ q.title }}</a>
+    <div class="item-meta">
+      <span class="tag tag-blue">{{ q.type_label }}</span>
+      {% if q.category_name %}<span class="tag" style="border-color: {{ q.category_color }}; color: {{ q.category_color }}">{{ q.category_name }}</span>{% endif %}
+      {% if q.priority in ("high", "critical") %}<span class="tag tag-{{ 'danger' if q.priority == 'critical' else 'warning' }}">{{ 'Crítica' if q.priority == 'critical' else 'Alta' }}</span>{% endif %}
+      {% if q.status == "in_progress" %}<span class="tag tag-success">Em andamento</span>{% endif %}
+      {% if q.status == "missed" %}<span class="tag tag-muted">Não realizada</span>{% endif %}
+      {% if q.status == "cancelled" %}<span class="tag tag-muted">Cancelada</span>{% endif %}
+      {% if q.due_date %}<span>{% if q.is_overdue %}Atrasada · {% endif %}{{ q.due_date | date_br }}</span>{% endif %}
+    </div>
+  </div>
+  <span class="xp-tag">+{{ q.xp_reward }} XP</span>
+</li>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Editar quest{% endblock %}
+{% block heading %}Editar quest{% endblock %}
+{% block content %}
+  <section class="panel system-window">
+    <form method="post" class="form-grid">
+      {% include "quests/_form_fields.html" %}
+      <div class="form-actions full">
+        <a class="btn btn-ghost" href="{{ url_for('quests.detail', quest_id=quest.id) }}">Cancelar</a>
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

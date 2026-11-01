@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => flash.classList.add("is-hidden"), 6000);
   });
 
+  // Filtros que enviam o formulário ao mudar (evita JS inline, bloqueado pela CSP)
+  document.querySelectorAll("[data-autosubmit]").forEach((input) => {
+    input.addEventListener("change", () => input.form.submit());
+  });
+
   // Abre/fecha painéis com data-toggle="id-do-alvo" (formulários recolhíveis)
   document.querySelectorAll("[data-toggle]").forEach((button) => {
     const target = document.getElementById(button.dataset.toggle);

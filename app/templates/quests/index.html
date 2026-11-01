@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Quests{% endblock %}
+{% block heading %}Quest System{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('quests.categories') }}">Categorias</a>
+  <button class="btn btn-primary" type="button" data-toggle="new-quest">+ Nova quest</button>
+{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel system-window {% if not form.errors %}is-collapsed{% endif %}" id="new-quest">
+    <p class="system-label">[SYSTEM] Nova quest</p>
+    <form method="post" action="{{ url_for('quests.create') }}" class="form-grid">
+      {% include "quests/_form_fields.html" %}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Criar quest</button></div>
+    </form>
+  </section>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-value">{{ stats.active }}</div><div class="kpi-label">Ativas</div></div>
+    <div class="kpi"><div class="kpi-value">{{ stats.overdue }}</div><div class="kpi-label">Atrasadas</div></div>
+    <div class="kpi"><div class="kpi-value">{{ stats.completed }}</div><div class="kpi-label">Concluídas</div></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div class="row">
+        {% for key, label in views.items() %}
+          <a class="btn btn-sm {{ 'btn-primary' if key == current_view else 'btn-ghost' }}"
+             href="{{ url_for('quests.index', view=key, type=current_type) }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <form method="get" class="row">
+        <input type="hidden" name="view" value="{{ current_view }}">
+        <select class="input" name="type" aria-label="Filtrar por tipo" data-autosubmit>
+          <option value="">Todos os tipos</option>
+          {% for key, label in constants.QUEST_TYPES.items() %}
+            <option value="{{ key }}" {% if key == current_type %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <noscript><button class="btn btn-sm" type="submit">Filtrar</button></noscript>
+      </form>
+    </div>
+
+    {% if quests %}
+      <ul class="list">
+        {% for q in quests %}
+          {% with next_url = request.full_path %}{% include "quests/_quest_item.html" %}{% endwith %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhuma quest aqui. Crie a primeira em “+ Nova quest”.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

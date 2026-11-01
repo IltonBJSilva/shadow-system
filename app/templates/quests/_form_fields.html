@@ -1,0 +1,15 @@
+{# Campos do formulário de quest, usados na criação e na edição. #}
+{% import "partials/_macros.html" as ui %}
+{{ form.csrf_token }}
+{{ ui.field(form.title, class="full", placeholder="Ex.: Treinar na academia") }}
+{{ ui.field(form.quest_type) }}
+{{ ui.field(form.category_id) }}
+{{ ui.field(form.priority) }}
+{{ ui.field(form.difficulty) }}
+{{ ui.field(form.due_date, type="date") }}
+{{ ui.field(form.recurrence) }}
+{{ ui.field(form.xp_reward) }}
+{{ ui.field(form.reward, placeholder="Ex.: Episódio novo do anime") }}
+{{ ui.field(form.description, class="full") }}
+{{ ui.field(form.completion_criteria, class="full", placeholder="Ex.: 4 séries de supino + 20 min de cardio") }}
+{{ ui.field(form.attribute_ids, class="full") }}
