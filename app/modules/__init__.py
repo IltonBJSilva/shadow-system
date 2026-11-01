@@ -8,10 +8,11 @@ from flask import Flask
 
 
 def register_modules(app: Flask) -> None:
+    from .calendar import bp as calendar_bp
     from .habits import bp as habits_bp
     from .hunter import bp as hunter_bp
     from .quests import bp as quests_bp
 
-    blueprints = [hunter_bp, quests_bp, habits_bp]
+    blueprints = [hunter_bp, quests_bp, habits_bp, calendar_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)

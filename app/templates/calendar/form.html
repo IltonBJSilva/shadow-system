@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Evento{% endblock %}
+{% block heading %}Evento{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('calendar.index', month=event.start_at.strftime('%Y-%m')) }}">Voltar</a>{% endblock %}
+{% block content %}
+  <section class="panel system-window">
+    {% if event.source == "google" %}
+      <p class="system-label">[SYSTEM] Evento importado do Google Calendar</p>
+      <p class="muted small">Alterações feitas aqui ficam só no Shadow System e são substituídas na próxima sincronização.
+        Edite no Google Calendar para mudar de verdade.</p>
+    {% endif %}
+    {% if quest_title %}<p>Quest vinculada: <a href="{{ url_for('quests.detail', quest_id=event.quest_id) }}">{{ quest_title }}</a></p>{% endif %}
+    <form method="post" class="form-grid">
+      {% include "calendar/_event_fields.html" %}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
+    </form>
+    <div class="form-actions" style="margin-top: 1rem">
+      {{ ui.post_button(url_for('calendar.delete', event_id=event.id), "Remover evento", "btn btn-danger btn-sm") }}
+    </div>
+  </section>
+{% endblock %}

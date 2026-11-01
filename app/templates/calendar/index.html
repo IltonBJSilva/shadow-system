@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Calendário{% endblock %}
+{% block heading %}Calendário{% endblock %}
+{% block actions %}
+  <button class="btn btn-primary" type="button" data-toggle="new-event">+ Novo evento</button>
+{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel system-window is-collapsed" id="new-event">
+    <p class="system-label">[SYSTEM] Novo evento</p>
+    <form method="post" action="{{ url_for('calendar.create') }}" class="form-grid">
+      {% include "calendar/_event_fields.html" %}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Criar evento</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar.index', month=previous) }}">‹ Anterior</a>
+      <h2>{{ month_label }}</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar.index', month=following) }}">Próximo ›</a>
+    </div>
+    <div class="calendar">
+      {% for name in ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] %}<div class="calendar-head">{{ name }}</div>{% endfor %}
+      {% for week in weeks %}
+        {% for cell in week %}
+          <div class="calendar-day {% if not cell.in_month %}is-other{% endif %} {% if cell.is_today %}is-today{% endif %}">
+            <span class="day-number">{{ cell.day.day }}</span>
+            {% for event in cell.events %}
+              <a class="chip {% if event.source == 'google' %}chip-google{% endif %}"
+                 href="{{ url_for('calendar.edit', event_id=event.id) }}"
+                 title="{{ event.title }}">{% if not event.all_day %}{{ event.start_at | hour }} {% endif %}{{ event.title }}</a>
+            {% endfor %}
+            {% for quest in cell.quests %}
+              <a class="chip chip-quest" href="{{ url_for('quests.detail', quest_id=quest.id) }}" title="Quest: {{ quest.title }}">
+                {{ '✓' if quest.status == 'completed' else '⚔' }} {{ quest.title }}
+              </a>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+    <p class="muted small" style="margin-top: .6rem">⚔ quests com prazo · borda verde = evento do Google Calendar</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Próximos 14 dias</h2></div>
+    {% if upcoming %}
+      <ul class="list">
+        {% for event in upcoming %}
+          <li class="list-item">
+            <div class="item-main">
+              <a class="item-title" href="{{ url_for('calendar.edit', event_id=event.id) }}">{{ event.title }}</a>
+              <div class="item-meta">
+                <span>{{ event.start_at | date_br }}{% if not event.all_day %} · {{ event.start_at | hour }}–{{ event.end_at | hour }}{% else %} · dia inteiro{% endif %}</span>
+                <span class="tag">{{ kinds.get(event.kind, event.kind) }}</span>
+                {% if event.source == "google" %}<span class="tag tag-success">Google</span>{% elif event.google_event_id %}<span class="tag tag-success">enviado ao Google</span>{% endif %}
+                {% if event.location %}<span>{{ event.location }}</span>{% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhum evento nos próximos 14 dias.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% import "partials/_macros.html" as ui %}
+{{ form.csrf_token }}
+{{ ui.field(form.title, class="full", placeholder="Ex.: Treino de pernas") }}
+{{ ui.field(form.kind) }}
+{{ ui.field(form.quest_id) }}
+{{ ui.field(form.start_date, type="date") }}
+{{ ui.field(form.start_time, type="time") }}
+{{ ui.field(form.end_date, type="date") }}
+{{ ui.field(form.end_time, type="time") }}
+{{ ui.field(form.all_day) }}
+{{ ui.field(form.location) }}
+{{ ui.field(form.description, class="full") }}
