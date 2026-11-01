@@ -45,5 +45,5 @@ def test_all_widgets_off(client):
 
 def test_build_only_loads_requested_widgets(app):
     data = services.build(["weekly_xp"])
-    assert set(data) == {"widgets", "weekly_xp"}
+    assert set(data) == {"widgets", "system_messages", "weekly_xp"}
     assert len(data["weekly_xp"]["series"]) == 7

@@ -25,8 +25,9 @@ registrada vira **XP**, **níveis**, **ranks** e **atributos**, como a janela de
 **O problema:** tarefas, agenda, hábitos e metas ficam espalhados em apps diferentes, e é difícil enxergar
 evolução ao longo do tempo.
 
-**A ideia:** um lugar só, com uma camada de RPG que incentiva **constância**, não perfeição. Dias
-improdutivos não tiram XP: uma Daily Quest não feita vira "Não realizada" e a de hoje aparece normalmente.
+**A ideia:** um lugar só, com uma camada de RPG que incentiva **constância**. Há bônus (primeira quest do
+dia, combo das Daily Quests, sequência de hábitos) e punições no estilo *Penalty Zone*: uma quest recorrente
+não feita tira um pouco de XP (nunca um nível) e gera uma Penalty Quest que devolve o XP se cumprida.
 
 **Por que foi feito assim:** além de ferramenta, o projeto é meu **manual de desenvolvimento**. O código é
 organizado para ser lido e modificado sem depender de ninguém para entendê-lo, com regras de negócio
@@ -42,6 +43,7 @@ mostra o que está agendado e agenda posts novos, com texto diferente por rede.
 - [x] **Hunter Profile**: nível, rank configurável (E → SS → especiais), XP com curva linear, 8 atributos, histórico de evolução
 - [x] **Quest System**: 8 tipos (Daily, Weekly, Monthly, Main, Side, Habit, Emergency, Custom), categorias, prioridade, dificuldade, prazo, critérios, recompensas, atributos, histórico
 - [x] **Quests recorrentes** (diária, semanal, mensal) sem punição por dia perdido
+- [x] **Gamificação**: bônus, punições configuráveis, Penalty Quests com redenção, sons e janelas do *System*
 - [x] **Hábitos diários**: check-in, streak atual e recorde, correção de dias esquecidos, estorno exato de XP
 - [x] **Calendário interno**: visão mensal, eventos ligados a quests, prazos de quests, aviso de conflito de horário
 - [x] **Dashboard** estilo janela de status, com widgets configuráveis
@@ -196,6 +198,7 @@ shadow-system/
 │   │   ├── hunter/            perfil, XP, níveis, ranks, atributos
 │   │   ├── quests/            quests, categorias, recorrência
 │   │   ├── habits/            hábitos e streaks
+│   │   ├── gamification/      bônus, punições, Penalty Quests (via eventos)
 │   │   └── calendar/          calendário interno
 │   ├── integrations/
 │   │   ├── google_calendar/   OAuth, cliente da API, sincronização
@@ -254,7 +257,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/integrations.md](docs/integrations.md) | Google Calendar, Buffer, como criar novas |
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
 | [docs/deployment.md](docs/deployment.md) | Rodar fora do ambiente de desenvolvimento |
-| [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md) |
+| [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
 | [docs/decisions/architecture-decisions.md](docs/decisions/architecture-decisions.md) | Decisões e seus motivos |
 
 ## Segurança

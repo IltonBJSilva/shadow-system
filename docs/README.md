@@ -21,3 +21,4 @@ Comece por aqui se for mexer no código.
 | Hábitos | [modules/habits.md](modules/habits.md) |
 | Calendário | [modules/calendar.md](modules/calendar.md) |
 | Dashboard | [modules/dashboard.md](modules/dashboard.md) |
+| Gamificação | [modules/gamification.md](modules/gamification.md) |

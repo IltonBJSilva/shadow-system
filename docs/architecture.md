@@ -41,12 +41,20 @@ uma camada extra só repetiria código. Se um módulo crescer muito, as consulta
 6. Sem dependência circular. Hoje o grafo é:
 
 ```
-dashboard ──▶ hunter, quests, habits, calendar, integrations.buffer
+dashboard    ──▶ hunter, quests, habits, calendar, integrations.buffer
+gamification ──▶ hunter, quests   (e assina eventos de quests/habits)
 quests    ──▶ hunter
 habits    ──▶ hunter
 calendar  ──▶ quests
 integrations.google_calendar ──▶ calendar
 ```
+
+### Eventos
+
+Quando um módulo precisa reagir ao que acontece em outro que já depende dele, usa eventos
+(`app/core/events.py`): `quests` publica `quest.completed`/`quest.missed`, `habits` publica
+`habit.checked`/`habit.unchecked`, e `gamification` assina. Quem publica não conhece quem assina,
+então não há dependência circular. Os handlers rodam na mesma transação e podem devolver mensagens.
 
 O banco é central, então tabelas de módulos diferentes podem ter FK entre si (ex.: `quest_attributes`
 aponta para `attributes.id`). Isso é aceitável num monólito; o que não se faz é usar o *modelo* de outro

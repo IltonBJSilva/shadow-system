@@ -9,6 +9,15 @@ from app.modules.quests import recurrence, services
 from app.modules.quests.services import QuestInput
 
 
+@pytest.fixture(autouse=True)
+def no_gamification(app):
+    """Estes testes cobrem só as regras das quests; bônus e punições têm testes próprios."""
+    from app.modules.gamification import services as gamification
+    from app.modules.gamification.rules import Rules
+
+    gamification.save_rules(Rules(bonuses_enabled=False, penalties_enabled=False))
+
+
 def _attr(key: str) -> int:
     return next(a.id for a in hunter.list_attributes() if a.key == key)
 

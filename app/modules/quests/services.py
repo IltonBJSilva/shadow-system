@@ -4,11 +4,11 @@ Funções de leitura para outros módulos (dashboard, calendário) retornam `Que
 não o modelo, para que eles não dependam das tabelas de Quests.
 """
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import delete, func, insert, or_, select
 
-from app.core import time
+from app.core import events, time
 from app.core.errors import DomainError, NotFoundError
 from app.extensions import db
 from app.modules.hunter import progression
@@ -208,6 +208,10 @@ def complete_quest(quest_id: int) -> hunter.AwardResult:
         # Concluir uma ocorrência atrasada hoje conta como a de hoje: a próxima vem depois de hoje.
         base = max(quest.due_date or time.today(), time.today())
         _spawn_next(quest, recurrence.next_due(base, quest.recurrence))
+    db.session.flush()
+    # Outros módulos (ex.: gamificação) reagem aqui, na mesma transação.
+    result.extra.extend(events.publish("quest.completed", quest=_view(quest, time.today()),
+                                       completed_at=quest.completed_at))
     db.session.commit()
     return result
 
@@ -229,12 +233,19 @@ def delete_quest(quest_id: int) -> None:
 
 
 def roll_over_recurring(today: date | None = None) -> int:
-    """Fecha ocorrências recorrentes vencidas e cria a próxima. Retorna quantas foram roladas.
+    """Fecha ocorrências recorrentes vencidas e cria a próxima. Retorna quantas foram roladas."""
+    return roll_over_with_messages(today)[0]
 
-    Uma Daily Quest de ontem não feita vira "Não realizada" (sem perda de XP) e a de hoje aparece.
+
+def roll_over_with_messages(today: date | None = None) -> tuple[int, list[tuple[str, str]]]:
+    """Igual a roll_over_recurring, mas devolve também as mensagens (ex.: punições aplicadas).
+
+    Uma Daily Quest de ontem não feita vira "Não realizada" e a de hoje aparece. A quest em si não tira
+    XP; quem decide punições é a gamificação, que recebe o evento "quest.missed".
     É idempotente: rodar duas vezes no mesmo dia não duplica nada.
     """
     today = today or time.today()
+    messages: list[tuple[str, str]] = []
     overdue = list(db.session.scalars(
         select(Quest).where(
             Quest.recurrence != "none",
@@ -244,11 +255,23 @@ def roll_over_recurring(today: date | None = None) -> int:
     ))
     for quest in overdue:
         quest.status = "missed"
-        _log(quest, "missed", "Prazo passou. Sem penalidade: a próxima ocorrência foi criada.")
+        _log(quest, "missed", "Prazo passou: a próxima ocorrência foi criada.")
         _spawn_next(quest, recurrence.next_due_on_or_after(quest.due_date, quest.recurrence, today))
+        db.session.flush()
+        messages.extend(events.publish("quest.missed", quest=_view(quest, today), today=today))
     if overdue:
         db.session.commit()
-    return len(overdue)
+    return len(overdue), messages
+
+
+def completed_on(day: date) -> list[QuestView]:
+    """Quests concluídas no dia (usado para o bônus de combo diário)."""
+    start = datetime.combine(day, datetime.min.time())
+    rows = db.session.scalars(
+        select(Quest).where(Quest.status == "completed", Quest.completed_at >= start,
+                            Quest.completed_at < start + timedelta(days=1))
+    )
+    return [_view(q, day) for q in rows]
 
 
 # ---------- Categorias ----------

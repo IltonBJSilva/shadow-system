@@ -33,7 +33,7 @@ Duplicação evitada por `google_event_id` único e pela marca `shadowEventId` n
 **Motivo:** o Kausa já tem a chave, o upload de imagens (Supabase) e as regras de cada rede. Duplicar
 seria manter dois clientes e duas chaves. Os repositórios continuam independentes.
 
-## ADR-006: Gamificação sem punição (01/11/2026)
+## ADR-006: Gamificação sem punição (01/11/2026) — revista pela ADR-010
 
 **Decisão:** XP nunca é retirado por inatividade; ocorrências recorrentes perdidas viram "Não
 realizada"; estornos só desfazem ações do próprio usuário e nunca deixam o XP negativo.
@@ -58,3 +58,25 @@ pela tela. A integração de leitura do Kausa Social Scheduler foi removida.
 **Motivo:** o Kausa é da empresa (Kausa); as postagens do Shadow System são do perfil pessoal, em outra
 conta do Buffer. As regras por rede já validadas no Kausa foram reaproveitadas no código (sem depender
 dele), e os dois projetos seguem independentes.
+
+## ADR-010: Punições justas e redimíveis (01/11/2026)
+
+**Revê a ADR-006**, a pedido do usuário (quer punições, como no Solo Leveling).
+**Decisão:** quest recorrente não feita tira uma porcentagem pequena do XP (padrão 10%), limitada ao XP
+do nível atual (nunca cai de nível), e gera uma Penalty Quest que devolve o XP se cumprida no dia.
+Tudo configurável e desligável em `/gamification/`. Bônus para primeira quest, prazo adiantado, combo
+diário e sequências de hábito.
+**Motivo:** a pressão do "Penalty Zone" motiva, mas sem espiral de perda: sempre há como recuperar.
+
+## ADR-011: Eventos em processo para regras transversais (01/11/2026)
+
+**Decisão:** `app/core/events.py` (publish/subscribe síncrono). A gamificação reage a quests e hábitos.
+**Motivo:** `gamification` depende de `quests`; se `quests` chamasse `gamification` haveria ciclo. Eventos
+deixam a regra de jogo num lugar só sem acoplar os módulos. Síncrono e na mesma transação: simples e consistente.
+
+## ADR-012: Sons sintetizados e arte original (01/11/2026)
+
+**Decisão:** efeitos sonoros gerados com Web Audio e emblema SVG próprio; avatar por link público escolhido
+pelo usuário.
+**Motivo:** áudios e imagens do anime são protegidos por direitos autorais. Sons sintetizados não pesam no
+repositório e funcionam offline.

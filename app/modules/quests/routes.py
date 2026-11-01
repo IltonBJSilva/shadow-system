@@ -12,7 +12,9 @@ VIEWS = {"active": "Ativas", "completed": "Concluídas", "closed": "Não realiza
 
 @bp.get("/")
 def index():
-    services.roll_over_recurring()
+    _, messages = services.roll_over_with_messages()
+    for message, category in messages:
+        flash(message, category)
     view = request.args.get("view", "active")
     view = view if view in VIEWS else "active"
     quest_type = request.args.get("type") or None

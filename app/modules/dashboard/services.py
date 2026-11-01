@@ -44,8 +44,8 @@ def save_widgets(keys: list[str]) -> None:
 def build(widgets: list[str] | None = None) -> dict[str, Any]:
     """Dados de cada widget ligado. Widgets desligados não fazem consulta nenhuma."""
     widgets = widgets if widgets is not None else enabled_widgets()
-    quests.roll_over_recurring()
-    data: dict[str, Any] = {"widgets": widgets}
+    _, system_messages = quests.roll_over_with_messages()
+    data: dict[str, Any] = {"widgets": widgets, "system_messages": system_messages}
     for key in widgets:
         data[key] = _LOADERS[key]()
     return data
@@ -57,6 +57,9 @@ def _notifications() -> list[tuple[str, str]]:
     quest_stats = quests.stats()
     if quest_stats["overdue"]:
         notes.append((f"{quest_stats['overdue']} quest(s) com prazo vencido.", "warning"))
+    penalties = [q for q in quests.quests_for_today() if q.title.startswith("[PENALTY]")]
+    if penalties:
+        notes.append((f"Penalty Zone: {len(penalties)} Penalty Quest(s) para cumprir hoje e recuperar XP.", "warning"))
     pending_habits = [h for h in habits.list_habits() if not h.done_today]
     if pending_habits:
         notes.append((f"{len(pending_habits)} hábito(s) ainda não marcados hoje.", "info"))

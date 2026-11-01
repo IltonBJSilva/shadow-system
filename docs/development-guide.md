@@ -129,6 +129,8 @@ Flask-WTF em `forms.py`. Um método `to_input()` que converte para o tipo de ent
 - Cores no topo de `static/css/shadow.css` (`--purple`, `--blue`, ...). Mudar ali muda tudo.
 - **Sem JavaScript inline** (a CSP bloqueia). Use atributos e trate em `static/js/shadow.js`:
   `data-toggle="id"` abre/fecha um painel, `data-autosubmit` envia o formulário ao mudar.
+- **Sons**: mensagens com categoria `success`, `bonus`, `levelup`, `penalty`, `error` ou `info` tocam um som
+  (`static/js/sounds.js`). Para tocar em outro momento: `ShadowSound.play("notify")`.
 - Widget novo no dashboard: chave em `WIDGETS` e loader em `_LOADERS`
   (`app/modules/dashboard/services.py`) + `templates/dashboard/widgets/<chave>.html`.
 

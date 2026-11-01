@@ -10,6 +10,7 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Hunter Profile: XP, níveis, ranks configuráveis, atributos, histórico
 - [x] Quest System: tipos, categorias, prioridade, dificuldade, prazos, recorrência, histórico
 - [x] Hábitos diários com streaks
+- [x] Gamificação: bônus, punições configuráveis, Penalty Quests, sons e janelas do System
 - [x] Calendário interno com conflitos e quests com prazo
 - [x] Dashboard configurável
 - [x] Camada de integrações e tela de status

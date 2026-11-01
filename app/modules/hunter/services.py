@@ -57,6 +57,8 @@ class AwardResult:
     new_level: int
     new_rank: RankView | None = None
     attribute_names: list[str] = field(default_factory=list)
+    # Mensagens extras de quem reagiu ao ganho (ex.: bônus da gamificação).
+    extra: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def leveled_up(self) -> bool:
@@ -121,8 +123,35 @@ def list_ranks() -> list[Rank]:
     return _ranks()
 
 
-def recent_events(limit: int = 10) -> list[XpEvent]:
-    return list(db.session.scalars(select(XpEvent).order_by(XpEvent.created_at.desc(), XpEvent.id.desc()).limit(limit)))
+def recent_events(limit: int = 10, sources: list[str] | None = None) -> list[XpEvent]:
+    query = select(XpEvent)
+    if sources:
+        query = query.where(XpEvent.source.in_(sources))
+    return list(db.session.scalars(query.order_by(XpEvent.created_at.desc(), XpEvent.id.desc()).limit(limit)))
+
+
+def count_events_on(day: date, source: str) -> int:
+    """Quantos eventos de XP positivos daquela origem aconteceram no dia (ex.: quests concluídas hoje)."""
+    start = datetime.combine(day, datetime.min.time())
+    return db.session.scalar(
+        select(func.count(XpEvent.id)).where(
+            XpEvent.source == source, XpEvent.amount > 0,
+            XpEvent.created_at >= start, XpEvent.created_at < start + timedelta(days=1),
+        )
+    ) or 0
+
+
+def revert_events(source: str, source_id: int, description: str) -> int:
+    """Estorna a soma do XP já dado por (source, source_id). Retorna o XP estornado.
+
+    Usado para desfazer bônus quando a ação que os gerou é desfeita (ex.: desmarcar um hábito).
+    """
+    total = db.session.scalar(
+        select(func.coalesce(func.sum(XpEvent.amount), 0)).where(XpEvent.source == source, XpEvent.source_id == source_id)
+    ) or 0
+    if total > 0:
+        award_xp(-total, source=source, source_id=source_id, description=description)
+    return total
 
 
 def xp_by_day(end: date, days: int = 7) -> list[tuple[date, int]]:
@@ -222,7 +251,7 @@ def delete_rank(rank_id: int) -> None:
 def award_messages(result: AwardResult) -> list[tuple[str, str]]:
     """Mensagens (texto, categoria do flash) para mostrar depois de um ganho de XP."""
     if result.amount <= 0:
-        return []
+        return list(result.extra)
     messages = [(f"+{result.amount} XP"
                  + (f" · {', '.join(result.attribute_names)} aumentou" if result.attribute_names else ""),
                  "success")]
@@ -230,7 +259,7 @@ def award_messages(result: AwardResult) -> list[tuple[str, str]]:
         messages.append((f"LEVEL UP! Você alcançou o nível {result.new_level}.", "levelup"))
     if result.new_rank:
         messages.append((f"Novo rank desbloqueado: {result.new_rank.name}.", "levelup"))
-    return messages
+    return messages + result.extra
 
 
 # ---------- Internos ----------

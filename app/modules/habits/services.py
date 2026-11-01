@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from sqlalchemy import delete, insert, select
 
-from app.core import time
+from app.core import events, time
 from app.core.errors import DomainError, NotFoundError
 from app.extensions import db
 from app.modules.hunter import services as hunter
@@ -97,7 +97,8 @@ def check_in(habit_id: int, day: date | None = None) -> hunter.AwardResult:
         raise DomainError("Hábito arquivado. Reative para marcar.")
     if _log_for(habit_id, day):
         raise DomainError("Este dia já está marcado.")
-    db.session.add(HabitLog(habit_id=habit_id, day=day, xp_awarded=habit.xp_per_check))
+    log = HabitLog(habit_id=habit_id, day=day, xp_awarded=habit.xp_per_check)
+    db.session.add(log)
     result = hunter.award_xp(
         habit.xp_per_check,
         source="habit",
@@ -106,6 +107,10 @@ def check_in(habit_id: int, day: date | None = None) -> hunter.AwardResult:
         attribute_ids=attribute_ids_for(habit),
         attribute_points=1,
     )
+    db.session.flush()
+    streak = streaks.current_streak({entry.day for entry in habit.logs} | {day}, today)
+    result.extra.extend(events.publish("habit.checked", habit_id=habit.id, habit_name=habit.name,
+                                       log_id=log.id, streak=streak, base_xp=habit.xp_per_check))
     db.session.commit()
     return result
 
@@ -125,6 +130,7 @@ def undo_check_in(habit_id: int, day: date | None = None) -> None:
         attribute_ids=attribute_ids_for(habit),
         attribute_points=1,
     )
+    events.publish("habit.unchecked", habit_id=habit.id, log_id=log.id)  # ex.: estorna bônus de sequência
     db.session.delete(log)
     db.session.commit()
 

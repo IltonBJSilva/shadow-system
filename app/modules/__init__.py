@@ -10,10 +10,11 @@ from flask import Flask
 def register_modules(app: Flask) -> None:
     from .calendar import bp as calendar_bp
     from .dashboard import bp as dashboard_bp
+    from .gamification import bp as gamification_bp
     from .habits import bp as habits_bp
     from .hunter import bp as hunter_bp
     from .quests import bp as quests_bp
 
-    blueprints = [dashboard_bp, hunter_bp, quests_bp, habits_bp, calendar_bp]
+    blueprints = [dashboard_bp, hunter_bp, quests_bp, habits_bp, calendar_bp, gamification_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)

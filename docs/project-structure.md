@@ -13,6 +13,7 @@ shadow-system/
 │   │   ├── time.py              now(), today(), conversões de fuso
 │   │   ├── errors.py            DomainError, NotFoundError, páginas 404/500
 │   │   ├── http.py              redirect_back(): volta para `next` interno
+│   │   ├── events.py            publish/subscribe entre módulos
 │   │   ├── security.py          login opcional, cabeçalhos HTTP, `flask security hash-password`
 │   │   ├── routes.py            /health
 │   │   ├── template_helpers.py  filtros (date_br, datetime_br, hour) e menu lateral
@@ -23,6 +24,7 @@ shadow-system/
 │   │   ├── hunter/              progression.py, defaults.py, models, services, forms, routes, cli
 │   │   ├── quests/              constants.py, recurrence.py, models, services, forms, routes, cli
 │   │   ├── habits/              streaks.py, models, services, forms, routes
+│   │   ├── gamification/        rules.py, handlers.py (eventos), services, routes
 │   │   ├── calendar/            models, services, forms, routes
 │   │   └── dashboard/           services (widgets), routes
 │   │
@@ -42,8 +44,9 @@ shadow-system/
 │   │
 │   └── static/
 │       ├── css/shadow.css       tema (variáveis de cor no topo)
-│       ├── js/shadow.js         menu mobile, colapsáveis, autosubmit
-│       └── img/favicon.svg
+│       ├── js/shadow.js         menu mobile, colapsáveis, autosubmit, som das mensagens
+│       ├── js/sounds.js         efeitos sonoros (Web Audio, sintetizados)
+│       └── img/                 favicon.svg, emblem.svg (arte original)
 │
 ├── migrations/
 │   ├── env.py, alembic.ini, script.py.mako

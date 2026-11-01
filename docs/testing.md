@@ -16,6 +16,7 @@
 | `test_quests.py` | Recorrência, XP por dificuldade, herança de atributos, conclusão, rollover sem punição, rotas |
 | `test_habits.py` | Streaks, check-in, duplicidade, estorno exato, limites de data, arquivamento |
 | `test_calendar.py` | Duração padrão, dia inteiro, conflitos, grade do mês, upsert sem duplicar |
+| `test_gamification.py` | Bônus (primeira quest, prazo, combo, sequência + estorno), punição sem perder nível, Penalty Quest e redenção, tela |
 | `test_dashboard.py` | Renderização, dados reais, notificações, widgets configuráveis |
 | `test_google_calendar.py` | Conversões, importação/remoção, envio sem duplicar, OAuth (URL e `state`), telas |
 | `test_buffer.py` | Regras por rede, token (conferido, mascarado, vencimento), posts, agendamento por canal, confirmação, telas |

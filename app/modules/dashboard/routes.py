@@ -5,7 +5,11 @@ from . import bp, services
 
 @bp.get("/")
 def index():
-    return render_template("dashboard/index.html", **services.build())
+    data = services.build()
+    # Punições aplicadas agora (quests recorrentes que venceram) aparecem como janela do sistema.
+    for message, category in data.pop("system_messages"):
+        flash(message, category)
+    return render_template("dashboard/index.html", **data)
 
 
 @bp.route("/dashboard/settings", methods=["GET", "POST"])
