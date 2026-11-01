@@ -7,7 +7,7 @@ templates/dashboard/widgets/<chave>.html.
 from typing import Any, Callable
 
 from app.core import settings, time
-from app.integrations import kausa_scheduler
+from app.integrations import buffer
 from app.modules.calendar import services as calendar
 from app.modules.habits import services as habits
 from app.modules.hunter import services as hunter
@@ -25,7 +25,7 @@ WIDGETS: dict[str, str] = {
     "upcoming_events": "Próximos eventos",
     "weekly_xp": "Evolução semanal (XP por dia)",
     "recent_activity": "Atividades recentes",
-    "scheduled_content": "Conteúdos agendados (Kausa / Buffer)",
+    "scheduled_content": "Conteúdos agendados (Buffer)",
 }
 DEFAULT_WIDGETS = list(WIDGETS)
 
@@ -75,8 +75,8 @@ def _weekly_xp() -> dict[str, Any]:
 
 
 def _scheduled_content() -> dict[str, Any]:
-    posts, error = kausa_scheduler.scheduled_posts_safe(limit=5)
-    return {"configured": kausa_scheduler.is_configured(), "posts": posts, "error": error}
+    posts, error = buffer.scheduled_posts_safe(limit=5)
+    return {"configured": buffer.is_configured(), "posts": posts, "error": error}
 
 
 def _status() -> dict[str, Any]:

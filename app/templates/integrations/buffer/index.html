@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Buffer{% endblock %}
+{% block heading %}Buffer{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('buffer.token') }}">Token</a>
+  <a class="btn btn-primary" href="{{ url_for('buffer.new_post') }}">+ Novo post</a>
+{% endblock %}
+{% block content %}
+<div class="stack">
+  {% if token.level in ("warning", "expired") %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Token {{ "vencido" if token.level == "expired" else "perto de vencer" }}</p>
+      <p>{% if token.level == "expired" %}O token venceu em {{ token.expires_at | date_br }}.{% else %}Faltam {{ token.days_left }} dia(s) para o token vencer.{% endif %}
+        <a href="{{ url_for('buffer.token') }}">Cadastrar um novo</a>.</p>
+    </section>
+  {% endif %}
+
+  {% if error %}
+    <section class="panel system-window"><p class="system-label">[SYSTEM] Erro</p><p>{{ error }}</p></section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-header"><h2>Canais</h2></div>
+    {% if channels %}
+      <div class="row">
+        {% for ch in channels %}
+          <span class="tag {{ 'tag-success' if ch.usable else 'tag-muted' }}" title="{{ ch.id }}">
+            {{ ch.name }} · {{ ch.service }}{% if ch.disconnected %} · desconectado{% endif %}{% if ch.queue_paused %} · fila pausada{% endif %}
+          </span>
+        {% endfor %}
+      </div>
+    {% elif not error %}
+      {{ ui.empty("Nenhum canal conectado. Conecte suas redes no Buffer.") }}
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div class="row">
+        {% for key, label in tabs.items() %}
+          <a class="btn btn-sm {{ 'btn-primary' if key == tab else 'btn-ghost' }}" href="{{ url_for('buffer.index', status=key) }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <span class="muted small">{{ posts | length }} post(s)</span>
+    </div>
+    {% if posts %}
+      <ul class="list">
+        {% for post in posts %}
+          <li class="list-item">
+            {% if post.thumbnail %}<img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover">{% endif %}
+            <div class="item-main">
+              <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
+              <div class="item-meta">
+                <span class="tag tag-blue">{{ post.channel_name }}</span>
+                <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
+                {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% elif not error %}
+      {{ ui.empty("Nenhum post nesta aba.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ Todas são **opcionais**. Sem nenhuma configurada, o Shadow System funciona norm
 | Integração | Pasta | Estado |
 |---|---|---|
 | Google Calendar | `app/integrations/google_calendar/` | OAuth 2.0, importar/enviar eventos, disponibilidade |
-| Kausa Social Scheduler (e Buffer, por meio dele) | `app/integrations/kausa_scheduler/` | Leitura de canais e posts agendados |
+| Buffer (conta pessoal) | `app/integrations/buffer/` | Token pela tela, canais, posts, novo agendamento |
 | Shadow AI | — | Planejada (ver `ROADMAP.md`) |
 
 A tela `/integrations/` mostra a situação de cada uma (`app/integrations/registry.py`).
@@ -16,7 +16,7 @@ A tela `/integrations/` mostra a situação de cada uma (`app/integrations/regis
   não conhece os modelos dos módulos.
 - Os módulos podem usar integrações; integrações podem chamar a API pública dos módulos
   (`services.py`) para gravar dados. Integrações nunca importam `models.py` de módulos.
-- Erros externos viram uma exceção própria da integração (ex.: `KausaSchedulerError`) com mensagem
+- Erros externos viram uma exceção própria da integração (ex.: `BufferError`) com mensagem
   para o usuário. Telas que mostram dados externos usam versões "safe" que nunca quebram a página.
 - Credenciais só no `.env` ou em `instance/` (fora do git). Nunca no código, nunca em log.
 - Testes nunca chamam serviços reais: usam `httpx.MockTransport` ou objetos falsos.
@@ -97,48 +97,75 @@ Nenhum endpoint é montado à mão.
 
 ---
 
-## Kausa Social Scheduler
+## Buffer (conta pessoal)
 
-O Kausa é um projeto separado (`E:\Repositorio\kausa-social-scheduler`, Flask + Buffer GraphQL +
-Supabase Storage). Ele continua responsável por publicar; o Shadow System **lê** o que está agendado.
+Integração direta com o **seu** Buffer, para os seus perfis pessoais (LinkedIn, Instagram...).
+Substitui o leitor do Kausa Social Scheduler, que é da Kausa e continua separado e intocado.
 
-### Análise do projeto (feita em 01/11/2026, sem alterar nada nele)
-
-| Item | Encontrado |
+| Arquivo | Responsabilidade |
 |---|---|
-| Stack | Python, Flask 3, httpx, waitress, pytest. Sem banco: estado no Buffer e em `instance/settings.json`. |
-| Estrutura | `app/buffer.py` (cliente GraphQL do Buffer), `publisher.py` (motor de agendamento), `storage.py` (upload no Supabase), `routes.py` (telas e API), `cli.py` (`flask agendar <pasta>`), `auth.py` (login opcional). |
-| Buffer | API GraphQL `https://api.buffer.com`, chave pessoal que vence a cada 90 dias. Imagens precisam de link público (por isso o Supabase). Mais de uma imagem vira carrossel no Instagram. |
-| API | `GET /saude`, `GET /api/canais`, `GET /api/posts?status=`, `POST /api/posts` (multipart com imagens), `GET/POST /api/chave`. |
-| Porta | 5000 (o Shadow System usa 5050 para não conflitar). |
+| `client.py` | `BufferClient`: GraphQL em `https://api.buffer.com` (organização, canais, posts, `createPost`) |
+| `posting.py` | Regras por rede: metadados do Instagram/Facebook, limite de hashtags e de texto, `dueAt` em UTC |
+| `token_store.py` | Token salvo pela tela em `instance/buffer_token.json`, mascarado, aviso de vencimento |
+| `storage.py` | Hospedagem opcional das imagens enviadas do computador (Supabase Storage) |
+| `__init__.py` | Funções de alto nível: `save_token`, `channels`, `posts`, `schedule`, `scheduled_posts_safe` |
+| `routes.py` | `/integrations/buffer/` (posts por status), `/token`, `/new` |
 
-### O que a integração faz
+### Cadastrar o token (pela tela)
 
-- `GET /saude`: mostra se o Kausa está no ar.
-- `GET /api/canais`: lista as redes conectadas no Buffer.
-- `GET /api/posts?status=scheduled`: posts agendados, mostrados em `/integrations/kausa` e no dashboard.
+1. No Buffer da sua conta pessoal, abra https://publish.buffer.com/settings/api e crie um token com
+   todas as permissões.
+2. No Shadow System: menu **Postagens** (ou Integrações > Buffer) > **Token**, cole o token e a data de criação.
+3. O token é **conferido no Buffer antes de salvar**. Fica em `instance/buffer_token.json` (fora do git),
+   nunca aparece de novo na tela (só `••••` + 4 últimos caracteres) e nunca vai para log.
+4. Tokens do Buffer vencem em **90 dias**: a tela e a integração avisam 15 dias antes.
 
-Configure com `KAUSA_SCHEDULER_URL=http://localhost:5000` no `.env` e rode os dois apps.
+Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da tela tem prioridade.
 
-### Limitações encontradas
+### Novo post
 
-- **Login do Kausa**: quando `AUTH_ENABLED=true` no Kausa, a API dele exige a sessão do navegador
-  (cookie). Não existe token para outro app. Hoje a integração só funciona com o login do Kausa
-  desligado (uso local). Plano proposto, **não aplicado** no Kausa: aceitar um cabeçalho
-  `Authorization: Bearer <KAUSA_API_TOKEN>` em `auth.require_login` para rotas `/api/`.
-- **Criar posts pelo Shadow System**: `POST /api/posts` exige enviar as imagens (multipart). É possível,
-  mas o fluxo de criação já existe e funciona no painel do Kausa; por isso o Shadow System só abre o
-  painel por enquanto, sem recriar a funcionalidade.
-- **Stories**: o Kausa monta posts de imagem/carrossel. Ele não trata Stories, e não foi verificado se a API
-  pública do Buffer agenda Stories do Instagram. Antes de implementar, conferir na documentação oficial do
-  Buffer. Até lá, Stories serão planejamento manual no módulo Social Media (futuro).
-- **Collab e marcação de pessoas no Instagram** não existem na API pública do Buffer (anotado no
-  `CLAUDE.md` do Kausa). Continuam manuais.
-- **Métricas**: o Kausa não consulta métricas; a integração não tem de onde lê-las.
-- O cliente devolve no máximo os 30 posts que o Kausa pede ao Buffer (`first: 30` em `buffer.py`).
+- Escolha os canais, um **texto padrão** e, se quiser, um **texto por rede** (ex.: LinkedIn mais longo,
+  Instagram com emojis e hashtags), como nos posts de `E:\Repositorio\postagens`.
+- **Imagens**: links públicos (um por linha, na ordem do carrossel) ou, com hospedagem configurada,
+  arquivos do computador. O Buffer não recebe arquivo: ele baixa a imagem por um link público.
+- **Modo**: data e hora definidas (horário de Brasília), próximo horário da fila ou publicar agora.
+- É preciso marcar a **confirmação** antes de enviar (publicar é uma ação pública).
+- Tudo é validado **antes** de enviar qualquer coisa. Se um canal falhar (ex.: fila cheia do plano
+  gratuito), os outros continuam e cada resultado aparece na tela.
 
-### Buffer direto?
+### Regras por rede (já validadas na API real)
 
-Não. O Buffer é acessado **através do Kausa**, que já tem a chave, o upload das imagens e as regras de
-cada rede (ex.: limite de 5 hashtags no Instagram). Recriar isso no Shadow System duplicaria código
-e credenciais.
+- **Instagram**: `metadata.instagram = {type: "post", shouldShareToFeed: true}`; várias imagens viram
+  carrossel; no máximo 5 hashtags (as extras são removidas, `#PraTodosVerem` sempre fica); até 2.200
+  caracteres; precisa de imagem.
+- **Facebook**: `metadata.facebook = {type: "post"}`.
+- **LinkedIn**: até 3.000 caracteres.
+- **YouTube** não aparece para posts de imagem (pede vídeo).
+
+### Hospedagem das imagens (opcional)
+
+Para enviar imagens do computador, configure um bucket **público** no Supabase Storage:
+
+```
+SUPABASE_URL=https://<projeto>.supabase.co
+SUPABASE_SECRET_KEY=<service role / secret key>
+SUPABASE_BUCKET=<nome do bucket>
+```
+
+Tudo que vai para um bucket público fica acessível por link: não envie nada privado.
+
+### Limitações
+
+- **Stories**: não implementado. Não foi verificado se a API pública do Buffer agenda Stories do
+  Instagram; conferir na documentação oficial antes.
+- **Collab e marcação de pessoas no Instagram** não existem na API pública do Buffer.
+- **Plano gratuito**: limite de posts agendados por canal (a fila enche; o Buffer devolve erro e a tela mostra).
+- **Limite de uso da API**: muitas chamadas seguidas dão erro 429; espere alguns minutos.
+- Editar ou apagar posts já agendados ainda é feito no Buffer.
+- A listagem mostra até 50 posts por status.
+
+### Segurança dos scripts antigos
+
+Os scripts em `E:\Repositorio\postagens` (`check_buffer.js`, `check_posts.js`, `promover_rascunhos.js`)
+têm um token do Buffer escrito no código. Depois de cadastrar um token novo no Shadow System, apague o
+antigo no Buffer e remova-o desses arquivos.

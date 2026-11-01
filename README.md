@@ -32,8 +32,8 @@ improdutivos não tiram XP: uma Daily Quest não feita vira "Não realizada" e a
 organizado para ser lido e modificado sem depender de ninguém para entendê-lo, com regras de negócio
 documentadas e testadas.
 
-Ele trabalha junto com o **Kausa Social Scheduler** (outro projeto meu, que agenda posts no Buffer): o
-Shadow System lê o que está agendado lá, sem misturar os dois repositórios.
+Ele também cuida das **minhas postagens pessoais**: conecta direto no meu Buffer (LinkedIn, Instagram...),
+mostra o que está agendado e agenda posts novos, com texto diferente por rede.
 
 ## Funcionalidades
 
@@ -46,7 +46,7 @@ Shadow System lê o que está agendado lá, sem misturar os dois repositórios.
 - [x] **Calendário interno**: visão mensal, eventos ligados a quests, prazos de quests, aviso de conflito de horário
 - [x] **Dashboard** estilo janela de status, com widgets configuráveis
 - [x] **Google Calendar**: OAuth 2.0, importar e enviar eventos sem duplicar, disponibilidade (opcional)
-- [x] **Kausa Social Scheduler**: leitura de canais e posts agendados no Buffer (opcional)
+- [x] **Postagens (Buffer pessoal)**: token cadastrado pela tela, canais, posts agendados/rascunhos/enviados, novo post com texto por rede, carrossel no Instagram (opcional)
 - [x] Login opcional do dono, CSRF, cabeçalhos de segurança, backup do SQLite
 
 ### Planejado
@@ -58,7 +58,6 @@ Shadow System lê o que está agendado lá, sem misturar os dois repositórios.
 - [ ] Career System (pipeline de candidaturas)
 - [ ] Hobbies (Gaming, Música, Game Dev, Writing e personalizados)
 - [ ] Social Media e Instagram Stories (planejamento de sequências, calendário editorial)
-- [ ] Criação de posts pelo Kausa a partir do Shadow System
 - [ ] Shadow AI (objetivos → quests, relatórios, sugestões)
 - [ ] Automações agendadas e relatórios semanais
 
@@ -123,7 +122,10 @@ flask --app wsgi run --debug --port 5050
 2. **Quests** → *Categorias*: crie categorias (Treino, Estudos, Finanças...) e ligue cada uma aos atributos que ela desenvolve.
 3. **Quests** → *+ Nova quest*: crie suas Daily Quests com repetição diária.
 4. **Hábitos** → *+ Novo hábito*: hábitos pequenos e diários.
-5. Volte ao **Dashboard** e conclua quests e hábitos direto de lá.
+5. **Postagens** → cole o token da API do seu Buffer (gerado em https://publish.buffer.com/settings/api).
+   O token é conferido no Buffer antes de salvar e nunca é mostrado de novo. Depois disso você vê os posts
+   agendados e cria posts novos, com texto diferente para LinkedIn e Instagram.
+6. Volte ao **Dashboard** e conclua quests e hábitos direto de lá.
 
 ## Configuração
 
@@ -136,7 +138,8 @@ Tudo fica no `.env` (veja os comentários no [.env.example](.env.example)).
 | `TIMEZONE` | Fuso de "hoje" e dos prazos (padrão `America/Sao_Paulo`) | Não |
 | `AUTH_ENABLED`, `OWNER_USERNAME`, `OWNER_PASSWORD_HASH` | Login do dono | Não (ligue antes de expor em rede) |
 | `GOOGLE_CLIENT_SECRETS_FILE`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_ID` | Google Calendar | Não |
-| `KAUSA_SCHEDULER_URL` | Kausa Social Scheduler (ex.: `http://localhost:5000`) | Não |
+| `BUFFER_API_KEY`, `BUFFER_KEY_CREATED_AT` | Alternativa ao token cadastrado pela tela (Postagens > Token) | Não |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_BUCKET` | Hospedar imagens enviadas do computador para o Buffer | Não |
 
 **Integrações são opcionais.** Sem nenhuma, o app funciona por completo. Como configurar cada uma:
 [docs/integrations.md](docs/integrations.md). A Shadow AI ainda não foi implementada, então não há
@@ -154,7 +157,7 @@ responsabilidades separadas.
 | Flask-Migrate (Alembic) | Migrations |
 | SQLite / PostgreSQL | SQLite local; PostgreSQL suportado via `DATABASE_URL` |
 | Flask-WTF | Formulários, validação e CSRF |
-| httpx | Cliente HTTP do Kausa |
+| httpx | Cliente HTTP do Buffer (GraphQL) |
 | google-auth-oauthlib, google-api-python-client | Google Calendar |
 | HTML, CSS e JavaScript puros | Interface, sem framework de frontend nem CDN |
 | pytest | Testes |
@@ -170,7 +173,7 @@ responsabilidades separadas.
                  │ módulos: dashboard → hunter, quests, habits,  │
                  │          calendar     (via services.py)       │
                  │                                               │
-                 │ integrations: google_calendar, kausa_scheduler│ ──▶ APIs externas
+                 │ integrations: google_calendar, buffer         │ ──▶ APIs externas
                  └───────────────────────────────────────────────┘
 ```
 
@@ -196,7 +199,7 @@ shadow-system/
 │   │   └── calendar/          calendário interno
 │   ├── integrations/
 │   │   ├── google_calendar/   OAuth, cliente da API, sincronização
-│   │   └── kausa_scheduler/   cliente HTTP do Kausa
+│   │   └── buffer/            token, cliente GraphQL, regras por rede, agendamento
 │   ├── templates/             Jinja2, uma pasta por módulo
 │   └── static/                css/shadow.css, js/shadow.js, img/
 ├── migrations/                Alembic (uma migration por feature)
@@ -229,10 +232,10 @@ commit por feature concluída, com testes passando e documentação atualizada.
 
 ## Roadmap
 
-1. ✅ MVP: estrutura, Hunter, Quests, Hábitos, Calendário, Dashboard, Google Calendar, Kausa (leitura)
+1. ✅ MVP: estrutura, Hunter, Quests, Hábitos, Calendário, Dashboard, Google Calendar, Postagens no Buffer
 2. ⏭ University + Study (provas, trabalhos, notas configuráveis, quests de revisão geradas)
 3. Fitness e Financial
-4. Social Media / Instagram Stories e criação de posts pelo Kausa
+4. Social Media / Instagram Stories e calendário editorial
 5. Career e Hobbies
 6. Shadow AI e automações agendadas
 
@@ -248,7 +251,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/database.md](docs/database.md) | Tabelas, relações, migrations, PostgreSQL |
 | [docs/development-guide.md](docs/development-guide.md) | Como criar módulo, rota, serviço, modelo, tela |
 | [docs/testing.md](docs/testing.md) | Como os testes são organizados e rodados |
-| [docs/integrations.md](docs/integrations.md) | Google Calendar, Kausa, Buffer, como criar novas |
+| [docs/integrations.md](docs/integrations.md) | Google Calendar, Buffer, como criar novas |
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
 | [docs/deployment.md](docs/deployment.md) | Rodar fora do ambiente de desenvolvimento |
 | [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md) |

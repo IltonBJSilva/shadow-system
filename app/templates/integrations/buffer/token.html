@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Token do Buffer{% endblock %}
+{% block heading %}Buffer · Token da API{% endblock %}
+{% block actions %}
+  {% if token.configured %}<a class="btn btn-ghost" href="{{ url_for('buffer.index') }}">Voltar ao Buffer</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] {{ "Trocar token" if token.configured else "Cadastrar token" }}</p>
+
+    {% if token.configured %}
+      <table class="table" style="margin-bottom: 1rem">
+        <tr><th>Token atual</th><td class="mono">{{ token.masked }}</td></tr>
+        <tr><th>Origem</th><td>{{ "cadastrado nesta tela" if token.source == "tela" else "arquivo .env" }}</td></tr>
+        {% if token.expires_at %}
+          <tr><th>Vence em</th><td>{{ token.expires_at | date_br }}
+            {% if token.level == "expired" %}<span class="tag tag-danger">vencido</span>
+            {% elif token.level == "warning" %}<span class="tag tag-warning">{{ token.days_left }} dia(s)</span>
+            {% else %}<span class="tag tag-success">{{ token.days_left }} dia(s)</span>{% endif %}</td></tr>
+        {% endif %}
+      </table>
+    {% endif %}
+
+    <form method="post" class="form" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="label" for="api_key">Token da API do Buffer</label>
+        <input class="input mono" id="api_key" name="api_key" type="password" required minlength="20"
+               autocomplete="off" spellcheck="false" placeholder="Cole aqui o token">
+      </div>
+      <div class="field">
+        <label class="label" for="created_at">Data em que o token foi criado</label>
+        <input class="input" id="created_at" name="created_at" type="date" value="{{ today.isoformat() }}">
+        <small class="muted">Tokens do Buffer valem {{ valid_days }} dias. O Shadow System avisa antes de vencer.</small>
+      </div>
+      <p class="muted small">Antes de salvar, o token é conferido no Buffer. Ele fica em
+        <span class="mono">instance/buffer_token.json</span> (fora do git) e nunca é mostrado de novo.</p>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Conferir e salvar</button></div>
+    </form>
+
+    {% if token.configured and token.source == "tela" %}
+      <div class="form-actions" style="margin-top: 1rem">
+        {{ ui.post_button(url_for('buffer.delete_token'), "Remover token", "btn btn-danger btn-sm") }}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Como gerar o token</h2></div>
+    <ol>
+      <li>Entre no Buffer com a sua conta pessoal.</li>
+      <li>Abra <a href="{{ tokens_url }}" target="_blank" rel="noopener">{{ tokens_url }}</a>.</li>
+      <li>Crie um token novo (ex.: nome <span class="mono">shadow-system</span>) e marque <strong>todas as permissões</strong>,
+        principalmente leitura de conta, leitura e escrita de posts.</li>
+      <li>Copie o token e cole ao lado. Anote a data de hoje como data de criação.</li>
+    </ol>
+    <p class="muted small">Se o token antigo estiver escrito em scripts (como em <span class="mono">E:\Repositorio\postagens</span>),
+      apague-o no Buffer depois de cadastrar o novo aqui.</p>
+  </section>
+</div>
+{% endblock %}

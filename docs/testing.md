@@ -18,7 +18,7 @@
 | `test_calendar.py` | Duração padrão, dia inteiro, conflitos, grade do mês, upsert sem duplicar |
 | `test_dashboard.py` | Renderização, dados reais, notificações, widgets configuráveis |
 | `test_google_calendar.py` | Conversões, importação/remoção, envio sem duplicar, OAuth (URL e `state`), telas |
-| `test_kausa_scheduler.py` | Parsing dos posts, fuso, erros (offline, login, 500), telas |
+| `test_buffer.py` | Regras por rede, token (conferido, mascarado, vencimento), posts, agendamento por canal, confirmação, telas |
 | `test_migrations.py` | Aplica todas as migrations num banco vazio e confere que todo modelo tem tabela |
 
 ## Princípios
@@ -27,7 +27,7 @@
 - **Serviços** são testados com o banco em memória (fixture `app`).
 - **Rotas** com `client`; o CSRF fica desligado em `TestingConfig` para simplificar os POSTs
   (ele é testado pelo próprio Flask-WTF).
-- **Serviços externos nunca são chamados**: o Kausa é simulado com `httpx.MockTransport` e o Google com um
+- **Serviços externos nunca são chamados**: o Buffer é simulado com `httpx.MockTransport` e o Google com um
   `FakeService` que imita o objeto do `google-api-python-client`. Nenhum teste precisa de credencial.
 - Para variar a configuração num teste: `create_app("testing", {"AUTH_ENABLED": True, ...})`.
 

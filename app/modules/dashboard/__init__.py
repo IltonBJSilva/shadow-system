@@ -1,6 +1,6 @@
 """Dashboard principal: janela de status e widgets configuráveis.
 
-Só lê a API pública de hunter, quests, habits, calendar e da integração com o Kausa.
+Só lê a API pública de hunter, quests, habits, calendar e da integração com o Buffer.
 """
 from flask import Blueprint
 

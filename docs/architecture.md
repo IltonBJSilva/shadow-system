@@ -10,7 +10,7 @@ para crescer módulo a módulo.
 app/
 ├── core/          compartilhado, não conhece os módulos
 ├── modules/       domínio (hunter, quests, habits, calendar, dashboard)
-└── integrations/  serviços externos (google_calendar, kausa_scheduler)
+└── integrations/  serviços externos (google_calendar, buffer)
 ```
 
 ## Camadas de um módulo
@@ -37,11 +37,11 @@ uma camada extra só repetiria código. Se um módulo crescer muito, as consulta
    vazar, ex.: `QuestView`, `HabitView`, `HunterStatus`.
 4. Integrações podem chamar `services.py` dos módulos (para gravar), nunca `models.py`.
 5. Módulos podem usar integrações por funções "safe" que não quebram a página (ex.:
-   `kausa_scheduler.scheduled_posts_safe`).
+   `buffer.scheduled_posts_safe`).
 6. Sem dependência circular. Hoje o grafo é:
 
 ```
-dashboard ──▶ hunter, quests, habits, calendar, integrations.kausa_scheduler
+dashboard ──▶ hunter, quests, habits, calendar, integrations.buffer
 quests    ──▶ hunter
 habits    ──▶ hunter
 calendar  ──▶ quests

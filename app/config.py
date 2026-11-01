@@ -3,6 +3,7 @@
 Cada classe é um ambiente. `create_app` escolhe uma delas; os testes usam `TestingConfig`.
 """
 import os
+import tempfile
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -57,7 +58,16 @@ class Config:
     GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "primary")
     GOOGLE_TOKEN_FILE = str(INSTANCE_DIR / "google_token.json")
 
-    KAUSA_SCHEDULER_URL = os.getenv("KAUSA_SCHEDULER_URL", "").strip().rstrip("/")
+    # Buffer: o token normalmente é cadastrado pela tela (instance/buffer_token.json).
+    # BUFFER_API_KEY no .env é a alternativa, e vale só quando não há token salvo pela tela.
+    BUFFER_API_KEY = os.getenv("BUFFER_API_KEY", "").strip()
+    BUFFER_KEY_CREATED_AT = os.getenv("BUFFER_KEY_CREATED_AT", "").strip()
+    BUFFER_TOKEN_FILE = str(INSTANCE_DIR / "buffer_token.json")
+
+    # Hospedagem opcional das imagens enviadas do computador (Supabase Storage, bucket público).
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
+    SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "").strip()
 
     BACKUP_DIR = str(INSTANCE_DIR / "backups")
 
@@ -77,7 +87,15 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     AUTH_ENABLED = False
     GOOGLE_CLIENT_SECRETS_FILE = ""
-    KAUSA_SCHEDULER_URL = ""
+    # Tokens dos testes nunca apontam para instance/: um token real salvo pela tela não é usado.
+    _TEST_DIR = Path(tempfile.mkdtemp(prefix="shadow-tests-"))
+    GOOGLE_TOKEN_FILE = str(_TEST_DIR / "google_token.json")
+    BUFFER_TOKEN_FILE = str(_TEST_DIR / "buffer_token.json")
+    BUFFER_API_KEY = ""
+    BUFFER_KEY_CREATED_AT = ""
+    SUPABASE_URL = ""
+    SUPABASE_SECRET_KEY = ""
+    SUPABASE_BUCKET = ""
 
 
 CONFIGS = {

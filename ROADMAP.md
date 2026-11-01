@@ -14,7 +14,7 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Dashboard configurável
 - [x] Camada de integrações e tela de status
 - [x] Google Calendar (OAuth 2.0, importar/enviar, disponibilidade)
-- [x] Kausa Social Scheduler (leitura de canais e posts agendados)
+- [x] Postagens no Buffer pessoal: token pela tela, canais, posts, novo agendamento com texto por rede
 - [x] Login opcional, CSRF, cabeçalhos de segurança, backup
 - [x] Documentação técnica
 
@@ -42,8 +42,9 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 - [ ] **Instagram Stories**: sequências ordenadas por campanha, roteiros, mídias, status (planejamento manual)
 - [ ] Conferir na documentação oficial do Buffer o que pode ser agendado para Stories antes de automatizar
 - [ ] Calendário editorial unificado com o calendário interno
-- [ ] Criar posts no Kausa a partir do Shadow System (`POST /api/posts`), com confirmação antes de enviar
-- [ ] Propor ao Kausa autenticação por token para a API (plano em `docs/integrations.md`)
+- [ ] Editar e apagar posts agendados do Buffer pela tela
+- [ ] Importar lotes de posts (texto por rede + imagens), como os de `E:\Repositorio\postagens`
+- [ ] Daily Quest de conteúdo concluída automaticamente quando o post é agendado
 - [ ] **Content Creator**: canais/projetos separados, roteiros, thumbnails, métricas quando disponíveis
 
 ## Fase 5: Carreira, hobbies e desenvolvimento pessoal

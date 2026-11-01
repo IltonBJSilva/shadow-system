@@ -27,7 +27,7 @@ fusos, migrar para UTC + conversão na apresentação.
 **Motivo:** o app funciona sem internet e sem credenciais, e os módulos consultam um lugar só.
 Duplicação evitada por `google_event_id` único e pela marca `shadowEventId` no Google.
 
-## ADR-005: Buffer só através do Kausa Social Scheduler (01/11/2026)
+## ADR-005: Buffer só através do Kausa Social Scheduler (01/11/2026) — substituída pela ADR-009
 
 **Decisão:** o Shadow System não chama o Buffer; lê o Kausa por HTTP.
 **Motivo:** o Kausa já tem a chave, o upload de imagens (Supabase) e as regras de cada rede. Duplicar
@@ -49,3 +49,12 @@ ser trocada sem impacto.
 
 **Decisão:** Jinja2 + CSS/JS próprios, CSP restritiva.
 **Motivo:** menos dependências, funciona offline, fácil de entender. Interatividade pontual em `shadow.js`.
+
+## ADR-009: Buffer pessoal direto, sem o Kausa (01/11/2026)
+
+**Substitui a ADR-005.**
+**Decisão:** o Shadow System fala direto com o Buffer da conta pessoal do usuário, com token cadastrado
+pela tela. A integração de leitura do Kausa Social Scheduler foi removida.
+**Motivo:** o Kausa é da empresa (Kausa); as postagens do Shadow System são do perfil pessoal, em outra
+conta do Buffer. As regras por rede já validadas no Kausa foram reaproveitadas no código (sem depender
+dele), e os dois projetos seguem independentes.

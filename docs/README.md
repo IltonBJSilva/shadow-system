@@ -7,7 +7,7 @@ Comece por aqui se for mexer no código.
 3. [development-guide.md](development-guide.md): receitas (novo módulo, rota, serviço, modelo, migration, tela)
 4. [database.md](database.md): tabelas e migrations
 5. [testing.md](testing.md): testes
-6. [integrations.md](integrations.md): Google Calendar, Kausa Social Scheduler, Buffer
+6. [integrations.md](integrations.md): Google Calendar, Buffer
 7. [security.md](security.md): credenciais, login, backups
 8. [deployment.md](deployment.md): rodar fora do modo desenvolvimento
 9. [decisions/architecture-decisions.md](decisions/architecture-decisions.md): por que as coisas são como são

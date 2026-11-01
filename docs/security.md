@@ -9,6 +9,8 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 - O `.env.example` vai para o git **sem valores**.
 - Nada de chave ou senha no código, em teste ou em log.
 - `SECRET_KEY` precisa ser aleatória (o `run.ps1` gera uma). Se vazar, troque: as sessões abertas caem.
+- Token do Buffer: `instance/buffer_token.json`, cadastrado pela tela, nunca exibido (só os 4 últimos
+  caracteres). Vence em 90 dias; para invalidar, apague-o no Buffer.
 - Token do Google: `instance/google_token.json` contém o refresh token em texto. Proteja a pasta;
   para revogar, *Desconectar* no app e https://myaccount.google.com/permissions.
 
@@ -42,7 +44,8 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 
 - **Google Calendar**: só quando você conecta e clica em sincronizar/enviar. Vai título, descrição, local e
   horário dos eventos locais.
-- **Kausa**: o Shadow System só lê; nada é enviado.
+- **Buffer**: só quando você envia um post (texto, links das imagens, horário), depois de marcar a confirmação.
+- **Supabase Storage** (se configurado): as imagens enviadas do computador ficam com link público.
 - **IA (futuro)**: nenhum dado pessoal será enviado a um provedor sem configuração explícita e aviso.
 
 ## Backups e recuperação

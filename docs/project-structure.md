@@ -29,9 +29,9 @@ shadow-system/
 │   ├── integrations/
 │   │   ├── __init__.py          register_integrations()
 │   │   ├── registry.py          IntegrationStatus e lista de integrações
-│   │   ├── routes.py            /integrations/, /integrations/kausa
+│   │   ├── routes.py            /integrations/
 │   │   ├── google_calendar/     oauth.py, client.py, sync.py, routes.py
-│   │   └── kausa_scheduler/     client.py
+│   │   └── buffer/              client.py, posting.py, token_store.py, storage.py, routes.py
 │   │
 │   ├── templates/
 │   │   ├── base.html            layout com sidebar

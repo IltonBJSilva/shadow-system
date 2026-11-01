@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Novo post{% endblock %}
+{% block heading %}Buffer · Novo post{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('buffer.index') }}">Voltar</a>{% endblock %}
+{% block content %}
+{% if not channels %}
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM]</p>
+    <p>Nenhum canal disponível para posts com imagem. Conecte suas redes no Buffer e recarregue.</p>
+  </section>
+{% else %}
+<form method="post" enctype="multipart/form-data" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Onde publicar</p>
+    <div class="row">
+      {% for ch in channels %}
+        <label class="check tag tag-blue" style="padding: .35rem .7rem">
+          <input type="checkbox" name="channels" value="{{ ch.id }}"> {{ ch.name }} · {{ ch.service }}
+        </label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Texto</h2></div>
+    <div class="form">
+      <div class="field">
+        <label class="label" for="text">Texto padrão (usado nas redes sem texto próprio)</label>
+        <textarea class="input" id="text" name="text" rows="7"></textarea>
+      </div>
+      {% for service in services %}
+        <div class="field">
+          <label class="label" for="text_{{ service }}">Texto só para {{ service }} (opcional)</label>
+          <textarea class="input" id="text_{{ service }}" name="text_{{ service }}" rows="5"></textarea>
+          {% if service == "instagram" %}<small class="muted">Instagram: máximo de 5 hashtags (as extras são removidas; #PraTodosVerem sempre fica), até 2.200 caracteres e pelo menos uma imagem.</small>{% endif %}
+          {% if service == "linkedin" %}<small class="muted">LinkedIn: até 3.000 caracteres.</small>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Imagens</h2><span class="muted small">até 10 · várias imagens viram carrossel no Instagram</span></div>
+    <div class="form">
+      <div class="field">
+        <label class="label" for="image_urls">Links públicos das imagens (um por linha, na ordem do carrossel)</label>
+        <textarea class="input mono" id="image_urls" name="image_urls" rows="3" placeholder="https://..."></textarea>
+        <small class="muted">O Buffer baixa a imagem pelo link; ele precisa ser público e não expirar.</small>
+      </div>
+      {% if storage_enabled %}
+        <div class="field">
+          <label class="label" for="images">Ou envie do computador (JPG, PNG, WEBP, GIF)</label>
+          <input class="input" id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+          <small class="muted">As imagens enviadas ficam com link público na hospedagem configurada.</small>
+        </div>
+      {% else %}
+        <p class="muted small">Envio de imagens do computador desligado: configure SUPABASE_URL, SUPABASE_SECRET_KEY e
+          SUPABASE_BUCKET no .env (ver docs/integrations.md).</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Quando</h2></div>
+    <div class="form-grid">
+      <div class="field full">
+        <label class="label" for="mode">Modo</label>
+        <select class="input" id="mode" name="mode">
+          {% for key, label in modes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="due_date">Data (horário de Brasília)</label>
+        <input class="input" id="due_date" name="due_date" type="date" value="{{ today.isoformat() }}">
+      </div>
+      <div class="field">
+        <label class="label" for="due_time">Hora</label>
+        <input class="input" id="due_time" name="due_time" type="time" value="08:00">
+      </div>
+      <small class="muted full">Data e hora só valem no modo "Data e hora definidas".</small>
+    </div>
+  </section>
+
+  <section class="panel system-window">
+    <label class="check"><input type="checkbox" name="confirm" value="yes">
+      Confirmo: conferi canais, textos, imagens e horário. Publicar/agendar é uma ação pública.</label>
+    <div class="form-actions" style="margin-top: .8rem">
+      <button class="btn btn-primary" type="submit">Enviar ao Buffer</button>
+    </div>
+  </section>
+</form>
+{% endif %}
+{% endblock %}

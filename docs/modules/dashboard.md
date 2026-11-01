@@ -7,7 +7,7 @@ Janela de status inspirada no *System* de Solo Leveling, montada com dados reais
 | Pasta | `app/modules/dashboard/` |
 | URL | `/` e `/dashboard/settings` |
 | Tabelas | nenhuma (a escolha de widgets fica em `app_settings`, chave `dashboard.widgets`) |
-| Depende de | `hunter`, `quests`, `habits`, `calendar`, `integrations.kausa_scheduler` |
+| Depende de | `hunter`, `quests`, `habits`, `calendar`, `integrations.buffer` |
 
 ## Widgets
 
@@ -21,7 +21,7 @@ Janela de status inspirada no *System* de Solo Leveling, montada com dados reais
 | `upcoming_events` | Próximos 7 dias | `calendar.upcoming_events` |
 | `weekly_xp` | XP por dia nos últimos 7 dias | `hunter.xp_by_day` |
 | `recent_activity` | Últimos ganhos de XP | `hunter.recent_events` |
-| `scheduled_content` | Posts agendados no Buffer (via Kausa) | `kausa_scheduler.scheduled_posts_safe` |
+| `scheduled_content` | Posts agendados no seu Buffer | `buffer.scheduled_posts_safe` |
 
 Widgets desligados não fazem consulta. Ao abrir o dashboard, `quests.roll_over_recurring()` roda
 para que as Daily Quests do dia já apareçam.

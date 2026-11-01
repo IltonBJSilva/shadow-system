@@ -14,10 +14,11 @@ bp = Blueprint("security", __name__)
 
 PUBLIC_ENDPOINTS = {"security.login", "static", "core.health"}
 
-# Política de conteúdo: só recursos do próprio app. 'unsafe-inline' em estilos é necessário
+# Política de conteúdo: scripts e estilos só do próprio app. 'unsafe-inline' em estilos é necessário
 # para larguras de barras de progresso definidas no template (style="width: 40%").
+# Imagens HTTPS externas são permitidas para as miniaturas dos posts do Buffer.
 CSP = (
-    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
     "script-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
 )
 
