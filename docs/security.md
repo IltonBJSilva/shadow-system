@@ -11,6 +11,7 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 - `SECRET_KEY` precisa ser aleatória (o `run.ps1` gera uma). Se vazar, troque: as sessões abertas caem.
 - Token do Buffer: `instance/buffer_token.json`, cadastrado pela tela, nunca exibido (só os 4 últimos
   caracteres). Vence em 90 dias; para invalidar, apague-o no Buffer.
+- Tokens do Notion e do WhatsApp: `instance/credentials/<nome>.json`, cadastrados pela tela, mascarados.
 - Token do Google: `instance/google_token.json` contém o refresh token em texto. Proteja a pasta;
   para revogar, *Desconectar* no app e https://myaccount.google.com/permissions.
 
@@ -45,6 +46,10 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 - **Google Calendar**: só quando você conecta e clica em sincronizar/enviar. Vai título, descrição, local e
   horário dos eventos locais.
 - **Buffer**: só quando você envia um post (texto, links das imagens, horário), depois de marcar a confirmação.
+- **Gmail**: só leitura; nada é enviado ao Gmail.
+- **Notion**: só leitura; nada é escrito no Notion.
+- **WhatsApp**: o resumo do dia (nível, títulos de quests/hábitos/eventos de hoje) vai para o **seu**
+  número, só quando você clica em enviar.
 - **Supabase Storage** (se configurado): as imagens enviadas do computador ficam com link público.
 - **IA (futuro)**: nenhum dado pessoal será enviado a um provedor sem configuração explícita e aviso.
 

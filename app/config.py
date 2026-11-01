@@ -64,6 +64,9 @@ class Config:
     BUFFER_KEY_CREATED_AT = os.getenv("BUFFER_KEY_CREATED_AT", "").strip()
     BUFFER_TOKEN_FILE = str(INSTANCE_DIR / "buffer_token.json")
 
+    # Tokens do Notion, WhatsApp etc. cadastrados pela tela (um JSON por integração).
+    CREDENTIALS_DIR = str(INSTANCE_DIR / "credentials")
+
     # Hospedagem opcional das imagens enviadas do computador (Supabase Storage, bucket público).
     SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
     SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
@@ -91,6 +94,7 @@ class TestingConfig(Config):
     _TEST_DIR = Path(tempfile.mkdtemp(prefix="shadow-tests-"))
     GOOGLE_TOKEN_FILE = str(_TEST_DIR / "google_token.json")
     BUFFER_TOKEN_FILE = str(_TEST_DIR / "buffer_token.json")
+    CREDENTIALS_DIR = str(_TEST_DIR / "credentials")
     BUFFER_API_KEY = ""
     BUFFER_KEY_CREATED_AT = ""
     SUPABASE_URL = ""

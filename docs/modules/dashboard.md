@@ -21,6 +21,7 @@ Janela de status inspirada no *System* de Solo Leveling, montada com dados reais
 | `upcoming_events` | Próximos 7 dias | `calendar.upcoming_events` |
 | `weekly_xp` | XP por dia nos últimos 7 dias | `hunter.xp_by_day` |
 | `recent_activity` | Últimos ganhos de XP | `hunter.recent_events` |
+| `emails` | Não lidos do Gmail | `gmail.unread_safe` |
 | `scheduled_content` | Posts agendados no seu Buffer | `buffer.scheduled_posts_safe` |
 
 Widgets desligados não fazem consulta. Ao abrir o dashboard, `quests.roll_over_recurring()` roda

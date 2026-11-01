@@ -1,0 +1,26 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>E-mails</h2>
+    <a class="small" href="{{ url_for('gmail.index') }}">Gmail →</a>
+  </div>
+  {% if not emails.authorized %}
+    <p class="muted small">Gmail não autorizado. <a href="{{ url_for('gmail.index') }}">Conectar</a>.</p>
+  {% elif emails.error %}
+    <p class="muted small">{{ emails.error }}</p>
+  {% elif emails.emails %}
+    <p class="muted small">{{ emails.unread }} não lido(s) na caixa de entrada</p>
+    <ul class="list">
+      {% for mail in emails.emails %}
+        <li class="list-item">
+          <div class="item-main">
+            <a class="item-title" href="{{ mail.url }}" target="_blank" rel="noopener">{{ mail.subject }}</a>
+            <div class="item-meta"><span>{{ mail.sender }}</span><span>{{ mail.received_at | datetime_br }}</span></div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Inbox Zero. Nenhum e-mail não lido.") }}
+  {% endif %}
+</section>

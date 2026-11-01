@@ -33,6 +33,10 @@ shadow-system/
 │   │   ├── registry.py          IntegrationStatus e lista de integrações
 │   │   ├── routes.py            /integrations/
 │   │   ├── google_calendar/     oauth.py, client.py, sync.py, routes.py
+│   │   ├── credentials.py       tokens cadastrados pela tela (instance/credentials/)
+│   │   ├── gmail/               client.py, routes.py (usa o OAuth do Google)
+│   │   ├── notion/              client.py, routes.py
+│   │   ├── whatsapp/            client.py, routes.py
 │   │   └── buffer/              client.py, posting.py, token_store.py, storage.py, routes.py
 │   │
 │   ├── templates/

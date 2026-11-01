@@ -15,6 +15,7 @@ def app(tmp_path):
     app = create_app("testing", {
         "GOOGLE_TOKEN_FILE": str(tmp_path / "google_token.json"),
         "BUFFER_TOKEN_FILE": str(tmp_path / "buffer_token.json"),
+        "CREDENTIALS_DIR": str(tmp_path / "credentials"),
     })
     with app.app_context():
         _db.create_all()

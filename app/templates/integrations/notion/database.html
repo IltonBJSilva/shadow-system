@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Notion · banco{% endblock %}
+{% block heading %}Notion · Importar como quests{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('notion.index') }}">Voltar</a>{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] Escolha as páginas que viram quests</p>
+  <p class="muted small">O título vira o título da quest e a primeira data da página vira o prazo. Páginas já importadas não duplicam.</p>
+  {% if pages %}
+    <form method="post" action="{{ url_for('notion.import_selected', database_id=database_id) }}" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <ul class="list">
+        {% for page in pages %}
+          <li class="list-item {% if page.id in imported %}is-done{% endif %}">
+            <label class="check item-main">
+              <input type="checkbox" name="pages" value="{{ page.id }}" {% if page.id in imported %}disabled{% endif %}>
+              <span class="item-title">{{ page.title }}</span>
+            </label>
+            <div class="item-meta">
+              {% if page.status %}<span class="tag">{{ page.status }}</span>{% endif %}
+              {% if page.due %}<span>{{ page.due | date_br }}</span>{% endif %}
+              {% if page.id in imported %}<span class="tag tag-success">importada</span>{% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Importar selecionadas</button></div>
+    </form>
+  {% else %}
+    {{ ui.empty("Este banco não tem páginas.") }}
+  {% endif %}
+</section>
+{% endblock %}

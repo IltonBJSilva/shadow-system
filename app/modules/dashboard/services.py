@@ -7,7 +7,7 @@ templates/dashboard/widgets/<chave>.html.
 from typing import Any, Callable
 
 from app.core import settings, time
-from app.integrations import buffer
+from app.integrations import buffer, gmail
 from app.modules.calendar import services as calendar
 from app.modules.habits import services as habits
 from app.modules.hunter import services as hunter
@@ -26,6 +26,7 @@ WIDGETS: dict[str, str] = {
     "weekly_xp": "Evolução semanal (XP por dia)",
     "recent_activity": "Atividades recentes",
     "scheduled_content": "Conteúdos agendados (Buffer)",
+    "emails": "E-mails não lidos (Gmail)",
 }
 DEFAULT_WIDGETS = list(WIDGETS)
 
@@ -82,6 +83,11 @@ def _scheduled_content() -> dict[str, Any]:
     return {"configured": buffer.is_configured(), "posts": posts, "error": error}
 
 
+def _emails() -> dict[str, Any]:
+    unread, emails, error = gmail.unread_safe(limit=5)
+    return {"authorized": gmail.is_authorized(), "unread": unread, "emails": emails, "error": error}
+
+
 def _status() -> dict[str, Any]:
     return {
         "status": hunter.get_status(),
@@ -100,4 +106,5 @@ _LOADERS: dict[str, Callable[[], Any]] = {
     "weekly_xp": _weekly_xp,
     "recent_activity": lambda: hunter.recent_events(limit=8),
     "scheduled_content": _scheduled_content,
+    "emails": _emails,
 }

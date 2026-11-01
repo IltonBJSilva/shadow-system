@@ -21,11 +21,17 @@ class IntegrationStatus:
 
 def all_statuses() -> list[IntegrationStatus]:
     from .buffer import status as buffer_status
+    from .gmail import status as gmail_status
     from .google_calendar import status as google_status
+    from .notion import status as notion_status
+    from .whatsapp import status as whatsapp_status
 
     return [
         google_status(),
+        gmail_status(),
         buffer_status(),
+        notion_status(),
+        whatsapp_status(),
         IntegrationStatus(
             key="ai",
             name="Shadow AI",

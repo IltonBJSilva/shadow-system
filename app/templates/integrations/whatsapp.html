@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}WhatsApp{% endblock %}
+{% block heading %}WhatsApp{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">Integrações</a>{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] {{ "Conectado" if configured else "Cadastrar WhatsApp Cloud API" }}</p>
+    {% if configured %}
+      <table class="table" style="margin-bottom: 1rem">
+        <tr><th>Remetente</th><td>{{ data.sender }}{% if data.verified_name %} · {{ data.verified_name }}{% endif %}</td></tr>
+        <tr><th>Seu número</th><td class="mono">{{ data.my_number }}</td></tr>
+        <tr><th>Token</th><td class="mono">{{ masked }}</td></tr>
+      </table>
+    {% endif %}
+    <form method="post" action="{{ url_for('whatsapp.save_settings') }}" class="form" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="label" for="token">Token de acesso{% if configured %} (vazio = manter o atual){% endif %}</label>
+        <input class="input mono" id="token" name="token" type="password" autocomplete="off" {% if not configured %}required{% endif %}>
+      </div>
+      <div class="field">
+        <label class="label" for="phone_number_id">Phone number ID</label>
+        <input class="input mono" id="phone_number_id" name="phone_number_id" inputmode="numeric" required value="{{ data.phone_number_id or '' }}">
+      </div>
+      <div class="field">
+        <label class="label" for="my_number">Seu número (recebe as mensagens)</label>
+        <input class="input mono" id="my_number" name="my_number" required placeholder="5511999999999" value="{{ data.my_number or '' }}">
+      </div>
+      <p class="muted small">Conferido na API antes de salvar. Fica em <span class="mono">instance/credentials/whatsapp.json</span>.
+        As mensagens só vão para o seu número e só quando você clicar em enviar.</p>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Conferir e salvar</button></div>
+    </form>
+    {% if configured %}
+      <div class="form-actions" style="margin-top: .8rem">{{ ui.post_button(url_for('whatsapp.delete_settings'), "Remover credenciais", "btn btn-danger btn-sm") }}</div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    {% if configured %}
+      <div class="panel-header"><h2>Resumo do dia</h2></div>
+      <pre class="mono small" style="white-space: pre-wrap; margin: 0 0 1rem">{{ summary }}</pre>
+      <div class="row">
+        {{ ui.post_button(url_for('whatsapp.summary'), "Enviar resumo para mim", "btn btn-primary") }}
+        {{ ui.post_button(url_for('whatsapp.test'), "Enviar teste (template)", "btn") }}
+      </div>
+      <p class="muted small" style="margin-top: .8rem">Regra do WhatsApp: texto livre só chega se você mandou mensagem
+        para o número da empresa nas últimas 24h. Se não chegar, mande um "oi" para o número de teste e tente de novo,
+        ou use o botão de teste (template aprovado).</p>
+    {% else %}
+      <div class="panel-header"><h2>Como gerar o token</h2></div>
+      <ol>
+        <li>Em <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a>, crie um app do tipo <strong>Empresa</strong> e adicione o produto <strong>WhatsApp</strong>.</li>
+        <li>Em <strong>WhatsApp > Configuração da API</strong>: copie o <strong>token de acesso</strong> e o <strong>Phone number ID</strong> do número de teste.</li>
+        <li>Na mesma tela, adicione o seu número em <strong>Para</strong> (lista de destinatários) e confirme o código recebido.</li>
+        <li>O token temporário vale 24h. Para um permanente: Configurações do negócio > Usuários do sistema > gerar token com <span class="mono">whatsapp_business_messaging</span>.</li>
+        <li>Cole aqui o token, o Phone number ID e o seu número com DDI.</li>
+      </ol>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -20,6 +20,7 @@
 | `test_dashboard.py` | Renderização, dados reais, notificações, widgets configuráveis |
 | `test_google_calendar.py` | Conversões, importação/remoção, envio sem duplicar, OAuth (URL e `state`), telas |
 | `test_buffer.py` | Regras por rede, token (conferido, mascarado, vencimento), posts, agendamento por canal, confirmação, telas |
+| `test_gmail_notion_whatsapp.py` | Escopo do Gmail, não lidos, e-mail → quest; token do Notion, parsing e importação sem duplicar; WhatsApp: validação, só para o seu número, template |
 | `test_migrations.py` | Aplica todas as migrations num banco vazio e confere que todo modelo tem tabela |
 
 ## Princípios

@@ -45,9 +45,13 @@ def index():
 
 @bp.get("/connect")
 def connect():
-    url, state, code_verifier = oauth.authorization_url()
+    """?gmail=1 pede também acesso de leitura ao Gmail (além do Calendar)."""
+    scopes = oauth.SCOPES + ([oauth.GMAIL_SCOPE] if request.args.get("gmail") or oauth.has_scope(oauth.GMAIL_SCOPE) else [])
+    url, state, code_verifier = oauth.authorization_url(scopes)
     session["google_oauth_state"] = state
     session["google_code_verifier"] = code_verifier
+    session["google_scopes"] = scopes
+    session["google_return_to"] = "/integrations/gmail/" if request.args.get("gmail") else "/integrations/google/"
     return redirect(url)
 
 
@@ -55,14 +59,16 @@ def connect():
 def callback():
     state = session.pop("google_oauth_state", None)
     code_verifier = session.pop("google_code_verifier", None)
+    scopes = session.pop("google_scopes", None)
+    return_to = session.pop("google_return_to", "/integrations/google/")
     if not state or request.args.get("state") != state:
         abort(400)  # protege contra CSRF no retorno do OAuth
     if request.args.get("error"):
         flash("Conexão com o Google cancelada.", "info")
         return redirect(url_for("google_calendar.index"))
-    oauth.exchange_code(request.url, state, code_verifier)
-    flash("Google Calendar conectado.", "success")
-    return redirect(url_for("google_calendar.index"))
+    oauth.exchange_code(request.url, state, code_verifier, scopes)
+    flash("Conta Google conectada.", "success")
+    return redirect(return_to if return_to.startswith("/integrations/") else url_for("google_calendar.index"))
 
 
 @bp.post("/disconnect")

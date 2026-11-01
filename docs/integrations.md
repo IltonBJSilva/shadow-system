@@ -5,7 +5,10 @@ Todas são **opcionais**. Sem nenhuma configurada, o Shadow System funciona norm
 | Integração | Pasta | Estado |
 |---|---|---|
 | Google Calendar | `app/integrations/google_calendar/` | OAuth 2.0, importar/enviar eventos, disponibilidade |
+| Gmail | `app/integrations/gmail/` | Somente leitura: não lidos, e-mail vira quest |
 | Buffer (conta pessoal) | `app/integrations/buffer/` | Token pela tela, canais, posts, novo agendamento |
+| Notion | `app/integrations/notion/` | Token pela tela, bancos de dados, importar páginas como quests |
+| WhatsApp (Cloud API) | `app/integrations/whatsapp/` | Credenciais pela tela, resumo do dia para o seu número |
 | Shadow AI | — | Planejada (ver `ROADMAP.md`) |
 
 A tela `/integrations/` mostra a situação de cada uma (`app/integrations/registry.py`).
@@ -19,6 +22,9 @@ A tela `/integrations/` mostra a situação de cada uma (`app/integrations/regis
 - Erros externos viram uma exceção própria da integração (ex.: `BufferError`) com mensagem
   para o usuário. Telas que mostram dados externos usam versões "safe" que nunca quebram a página.
 - Credenciais só no `.env` ou em `instance/` (fora do git). Nunca no código, nunca em log.
+- **Token só quando você gerar**: nenhuma integração é obrigatória. Cada uma tem uma tela que explica como
+  gerar o token e um campo para colar; o token é conferido na API antes de salvar e nunca volta para a tela.
+  Os de Notion e WhatsApp ficam em `instance/credentials/<nome>.json` (`app/integrations/credentials.py`).
 - Testes nunca chamam serviços reais: usam `httpx.MockTransport` ou objetos falsos.
 
 ## Como adicionar uma integração
@@ -169,3 +175,56 @@ Tudo que vai para um bucket público fica acessível por link: não envie nada p
 Os scripts em `E:\Repositorio\postagens` (`check_buffer.js`, `check_posts.js`, `promover_rascunhos.js`)
 têm um token do Buffer escrito no código. Depois de cadastrar um token novo no Shadow System, apague o
 antigo no Buffer e remova-o desses arquivos.
+
+---
+
+## Gmail (somente leitura)
+
+Usa a **mesma conta e o mesmo cliente OAuth do Google Calendar**. O escopo do Gmail
+(`gmail.readonly`) só é pedido quando você clica em **Autorizar Gmail** em `/integrations/gmail/`.
+
+1. No mesmo projeto do Google Cloud Console, ative a **Gmail API**.
+2. Abra `/integrations/gmail/` > **Autorizar Gmail** (o Google mostra a permissão de leitura).
+
+O que faz: mostra os não lidos da caixa de entrada (também no widget do dashboard) e o botão
+**Virar quest** cria `Responder: <assunto>` com prazo hoje. Não envia, não marca e não apaga e-mails.
+
+API (biblioteca oficial): `users.labels.get` (contagem), `users.messages.list` (`q="is:unread in:inbox"`),
+`users.messages.get` (`format="metadata"`, só remetente/assunto/data e o trecho).
+
+---
+
+## Notion
+
+1. Em https://www.notion.so/my-integrations crie uma integração **interna** com *Read content*.
+2. Copie o **Internal Integration Secret** e cole em `/integrations/notion/` (conferido com `GET /v1/users/me`).
+3. No Notion, em cada banco de dados: **••• > Conexões** > escolha a integração.
+
+O que faz: lista os bancos compartilhados (`POST /v1/search`), mostra as páginas
+(`POST /v1/databases/{id}/query`) e importa as escolhidas como quests: título → título, primeira
+propriedade de data → prazo, link da página na descrição. Páginas já importadas não duplicam (ids em
+`app_settings`, chave `notion.imported_pages`). Versão da API fixada em `2022-06-28`.
+
+Limitações: só leitura (nada é escrito no Notion); até 50 páginas por banco; status da quest não volta
+para o Notion.
+
+---
+
+## WhatsApp (Cloud API da Meta)
+
+1. Em https://developers.facebook.com/apps crie um app **Empresa** e adicione o produto **WhatsApp**.
+2. Em **WhatsApp > Configuração da API**: copie o **token de acesso** e o **Phone number ID** do número
+   de teste, e adicione o seu número na lista de destinatários.
+3. Cole em `/integrations/whatsapp/` com o seu número (DDI + DDD + número). É conferido com
+   `GET /{phone-number-id}`.
+
+O que faz: **Enviar resumo para mim** manda o resumo do dia (nível, quests de hoje, hábitos pendentes,
+agenda) e **Enviar teste** manda o template `hello_world`. Envio por `POST /{phone-number-id}/messages`
+(Graph API `v21.0`).
+
+Regras e segurança:
+- Mensagens só vão para **o seu número cadastrado** e só quando você clica. Nada é enviado sozinho.
+- Texto livre só é entregue se você mandou mensagem para o número da empresa nas **últimas 24h**
+  (regra do WhatsApp). Fora disso, só templates aprovados.
+- O token temporário do painel vale 24h. Para um permanente, gere um token de *usuário do sistema* no
+  Gerenciador de Negócios com a permissão `whatsapp_business_messaging`.

@@ -16,6 +16,7 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Camada de integrações e tela de status
 - [x] Google Calendar (OAuth 2.0, importar/enviar, disponibilidade)
 - [x] Postagens no Buffer pessoal: token pela tela, canais, posts, novo agendamento com texto por rede
+- [x] Gmail (leitura), Notion (importar quests), WhatsApp (resumo do dia), tokens cadastrados pela tela
 - [x] Login opcional, CSRF, cabeçalhos de segurança, backup
 - [x] Documentação técnica
 

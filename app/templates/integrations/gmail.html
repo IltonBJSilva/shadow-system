@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Gmail{% endblock %}
+{% block heading %}Gmail{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">Integrações</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  {% if not configured and not authorized %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Gmail desligado</p>
+      <p>O Gmail usa o mesmo cliente OAuth do Google Calendar. Primeiro configure o Google (veja a tela do
+        <a href="{{ url_for('google_calendar.index') }}">Google Calendar</a>), depois, no Google Cloud Console,
+        ative também a <strong>Gmail API</strong> no mesmo projeto.</p>
+    </section>
+  {% elif not authorized %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Autorizar Gmail</p>
+      <p>Ative a <strong>Gmail API</strong> no seu projeto do Google Cloud Console e clique abaixo. O Google vai pedir
+        permissão de <strong>somente leitura</strong>: o Shadow System não envia, não marca e não apaga e-mails.</p>
+      <a class="btn btn-primary" href="{{ url_for('google_calendar.connect', gmail=1) }}">Autorizar Gmail</a>
+    </section>
+  {% elif error %}
+    <section class="panel system-window"><p class="system-label">[SYSTEM] Erro</p><p>{{ error }}</p></section>
+  {% else %}
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Não lidos na caixa de entrada</h2>
+        <span class="tag tag-blue">{{ unread }}</span>
+      </div>
+      {% if emails %}
+        <ul class="list">
+          {% for mail in emails %}
+            <li class="list-item">
+              <div class="item-main">
+                <a class="item-title" href="{{ mail.url }}" target="_blank" rel="noopener">{{ mail.subject }}</a>
+                <div class="item-meta">
+                  <span>{{ mail.sender }}</span>
+                  <span>{{ mail.received_at | datetime_br }}</span>
+                </div>
+                <div class="item-meta">{{ mail.snippet[:140] }}</div>
+              </div>
+              <form method="post" action="{{ url_for('gmail.to_quest') }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="subject" value="{{ mail.subject }}">
+                <input type="hidden" name="sender" value="{{ mail.sender }}">
+                <input type="hidden" name="url" value="{{ mail.url }}">
+                <button class="btn btn-sm" type="submit">Virar quest</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Caixa de entrada zerada. Inbox Zero desbloqueado.") }}
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

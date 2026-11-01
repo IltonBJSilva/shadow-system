@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Notion{% endblock %}
+{% block heading %}Notion{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">Integrações</a>{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    {% if configured %}
+      <p class="system-label">[SYSTEM] Conectado como {{ bot }}</p>
+      <p class="muted small">Token <span class="mono">{{ masked }}</span>. Para trocar, cole um novo abaixo.</p>
+    {% else %}
+      <p class="system-label">[SYSTEM] Cadastrar token do Notion</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('notion.token') }}" class="form" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="label" for="token">Internal Integration Secret</label>
+        <input class="input mono" id="token" name="token" type="password" required minlength="20" autocomplete="off" placeholder="ntn_...">
+      </div>
+      <p class="muted small">Conferido no Notion antes de salvar. Fica em <span class="mono">instance/credentials/notion.json</span> e nunca é mostrado de novo.</p>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Conferir e salvar</button></div>
+    </form>
+    {% if configured %}
+      <div class="form-actions" style="margin-top: .8rem">{{ ui.post_button(url_for('notion.delete_token'), "Remover token", "btn btn-danger btn-sm") }}</div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    {% if configured %}
+      <div class="panel-header"><h2>Bancos de dados compartilhados</h2></div>
+      {% if error %}<p>{{ error }}</p>
+      {% elif databases %}
+        <ul class="list">
+          {% for db in databases %}
+            <li class="list-item">
+              <div class="item-main"><a class="item-title" href="{{ url_for('notion.database', database_id=db.id) }}">{{ db.title }}</a></div>
+              {% if db.url %}<a class="btn btn-ghost btn-sm" href="{{ db.url }}" target="_blank" rel="noopener">Abrir ↗</a>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Nenhum banco compartilhado. No Notion, abra o banco > ••• > Conexões > escolha sua integração.") }}
+      {% endif %}
+    {% else %}
+      <div class="panel-header"><h2>Como gerar o token</h2></div>
+      <ol>
+        <li>Abra <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">notion.so/my-integrations</a> e crie uma integração <strong>interna</strong> (ex.: <span class="mono">Shadow System</span>).</li>
+        <li>Em <em>Capabilities</em>, deixe <strong>Read content</strong> marcado.</li>
+        <li>Copie o <strong>Internal Integration Secret</strong> e cole ao lado.</li>
+        <li>No Notion, em cada banco de dados que quiser usar: <strong>••• > Conexões</strong> > escolha a integração.</li>
+      </ol>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

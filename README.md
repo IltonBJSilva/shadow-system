@@ -48,6 +48,9 @@ mostra o que está agendado e agenda posts novos, com texto diferente por rede.
 - [x] **Calendário interno**: visão mensal, eventos ligados a quests, prazos de quests, aviso de conflito de horário
 - [x] **Dashboard** estilo janela de status, com widgets configuráveis
 - [x] **Google Calendar**: OAuth 2.0, importar e enviar eventos sem duplicar, disponibilidade (opcional)
+- [x] **Gmail** (somente leitura): não lidos no dashboard, e-mail vira quest (opcional)
+- [x] **Notion**: importar páginas de bancos de dados como quests, sem duplicar (opcional)
+- [x] **WhatsApp** (Cloud API): resumo do dia enviado para o seu número (opcional)
 - [x] **Postagens (Buffer pessoal)**: token cadastrado pela tela, canais, posts agendados/rascunhos/enviados, novo post com texto por rede, carrossel no Instagram (opcional)
 - [x] Login opcional do dono, CSRF, cabeçalhos de segurança, backup do SQLite
 
@@ -143,7 +146,8 @@ Tudo fica no `.env` (veja os comentários no [.env.example](.env.example)).
 | `BUFFER_API_KEY`, `BUFFER_KEY_CREATED_AT` | Alternativa ao token cadastrado pela tela (Postagens > Token) | Não |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_BUCKET` | Hospedar imagens enviadas do computador para o Buffer | Não |
 
-**Integrações são opcionais.** Sem nenhuma, o app funciona por completo. Como configurar cada uma:
+**Integrações são opcionais.** Sem nenhuma, o app funciona por completo. Os tokens de Buffer, Notion e
+WhatsApp são cadastrados **pela tela**, só quando você gerar (Integrações > escolha a integração). Como configurar cada uma:
 [docs/integrations.md](docs/integrations.md). A Shadow AI ainda não foi implementada, então não há
 configuração de IA por enquanto.
 
@@ -175,7 +179,8 @@ responsabilidades separadas.
                  │ módulos: dashboard → hunter, quests, habits,  │
                  │          calendar     (via services.py)       │
                  │                                               │
-                 │ integrations: google_calendar, buffer         │ ──▶ APIs externas
+                 │ integrations: google, gmail, buffer, notion,  │ ──▶ APIs externas
+                 │               whatsapp                        │
                  └───────────────────────────────────────────────┘
 ```
 
@@ -202,6 +207,10 @@ shadow-system/
 │   │   └── calendar/          calendário interno
 │   ├── integrations/
 │   │   ├── google_calendar/   OAuth, cliente da API, sincronização
+│   │   ├── gmail/             leitura de não lidos (mesmo OAuth do Google)
+│   │   ├── notion/            bancos de dados → quests
+│   │   ├── whatsapp/          resumo do dia para o seu número
+│   │   ├── credentials.py     tokens cadastrados pela tela (instance/credentials/)
 │   │   └── buffer/            token, cliente GraphQL, regras por rede, agendamento
 │   ├── templates/             Jinja2, uma pasta por módulo
 │   └── static/                css/shadow.css, js/shadow.js, img/
@@ -254,7 +263,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/database.md](docs/database.md) | Tabelas, relações, migrations, PostgreSQL |
 | [docs/development-guide.md](docs/development-guide.md) | Como criar módulo, rota, serviço, modelo, tela |
 | [docs/testing.md](docs/testing.md) | Como os testes são organizados e rodados |
-| [docs/integrations.md](docs/integrations.md) | Google Calendar, Buffer, como criar novas |
+| [docs/integrations.md](docs/integrations.md) | Google Calendar, Gmail, Buffer, Notion, WhatsApp, como criar novas |
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
 | [docs/deployment.md](docs/deployment.md) | Rodar fora do ambiente de desenvolvimento |
 | [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
