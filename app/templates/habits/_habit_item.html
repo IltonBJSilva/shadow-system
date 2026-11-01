@@ -1,0 +1,30 @@
+{# Linha de hábito. Espera `h` (HabitView) e `next_url`. `show_days` mostra a semana clicável. #}
+<li class="list-item">
+  <form method="post" action="{{ url_for('habits.uncheck' if h.done_today else 'habits.check', habit_id=h.id) }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <button class="check-button {% if h.done_today %}is-checked{% endif %}" type="submit"
+            title="{{ 'Desmarcar hoje' if h.done_today else 'Marcar como feito hoje' }}"
+            aria-label="{{ 'Desmarcar' if h.done_today else 'Marcar' }} {{ h.name }}">✓</button>
+  </form>
+  <div class="item-main">
+    <div class="item-title">{{ h.name }}</div>
+    <div class="item-meta">
+      <span>🔥 {{ h.current_streak }} dia{{ '' if h.current_streak == 1 else 's' }}</span>
+      <span>recorde {{ h.best_streak }}</span>
+    </div>
+  </div>
+  {% if show_days %}
+    <div class="days" aria-label="Últimos 7 dias">
+      {% for day, done in h.last_days %}
+        <form method="post" action="{{ url_for('habits.uncheck' if done else 'habits.check', habit_id=h.id) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="day" value="{{ day.isoformat() }}">
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <button type="submit" class="day-dot {% if done %}is-done{% endif %}" title="{{ day | date_br }}">{{ day.day }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <span class="xp-tag">+{{ h.xp_per_check }} XP</span>
+</li>

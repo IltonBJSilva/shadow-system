@@ -227,6 +227,15 @@ h3 { font-size: 1rem; }
 .check-button:hover { border-color: var(--success); color: var(--success); }
 .check-button.is-checked { background: rgba(52, 211, 153, 0.16); border-color: var(--success); color: var(--success); }
 
+.days { display: flex; gap: 4px; }
+.day-dot {
+  width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
+  border: 1px solid rgba(124, 92, 255, 0.25); background: transparent;
+  color: var(--muted); font: .7rem var(--mono);
+}
+.day-dot:hover { border-color: var(--success); }
+.day-dot.is-done { background: rgba(52, 211, 153, 0.2); border-color: var(--success); color: var(--text); }
+
 /* ---------- Formulários ---------- */
 .form { display: flex; flex-direction: column; gap: .8rem; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1rem; }

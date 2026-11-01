@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Hábitos{% endblock %}
+{% block heading %}Hábitos{% endblock %}
+{% block actions %}<button class="btn btn-primary" type="button" data-toggle="new-habit">+ Novo hábito</button>{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel system-window is-collapsed" id="new-habit">
+    <p class="system-label">[SYSTEM] Novo hábito diário</p>
+    <form method="post" action="{{ url_for('habits.create') }}" class="form-grid">
+      {{ form.csrf_token }}
+      {{ ui.field(form.name, placeholder="Ex.: Beber 2L de água") }}
+      {{ ui.field(form.xp_per_check) }}
+      {{ ui.field(form.description, class="full") }}
+      {{ ui.field(form.attribute_ids, class="full") }}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Criar hábito</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Ativos</h2>
+      <span class="muted small">Clique no ✓ para hoje, ou num dia da semana para corrigir um dia esquecido.</span>
+    </div>
+    {% if habits %}
+      <ul class="list">
+        {% for h in habits %}
+          {% with next_url = request.path, show_days = true %}{% include "habits/_habit_item.html" %}{% endwith %}
+          <li class="row" style="justify-content: flex-end; margin-top: -.3rem">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('habits.edit', habit_id=h.id) }}">Editar</a>
+            {{ ui.post_button(url_for('habits.archive', habit_id=h.id), "Arquivar") }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhum hábito ainda. Comece com algo pequeno: 10 minutos de leitura, 2L de água, alongar.") }}
+    {% endif %}
+  </section>
+
+  {% if archived %}
+    <section class="panel">
+      <div class="panel-header"><h2>Arquivados</h2></div>
+      <ul class="list">
+        {% for h in archived %}
+          <li class="list-item is-done">
+            <div class="item-main">
+              <div class="item-title">{{ h.name }}</div>
+              <div class="item-meta">recorde {{ h.best_streak }} dias</div>
+            </div>
+            <div class="item-actions">
+              {{ ui.post_button(url_for('habits.restore', habit_id=h.id), "Reativar") }}
+              {{ ui.post_button(url_for('habits.delete', habit_id=h.id), "Remover", "btn btn-danger btn-sm") }}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
