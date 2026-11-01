@@ -4,6 +4,7 @@ Todas são **opcionais**. Sem nenhuma configurada, o Shadow System funciona norm
 
 | Integração | Pasta | Estado |
 |---|---|---|
+| Google Calendar | `app/integrations/google_calendar/` | OAuth 2.0, importar/enviar eventos, disponibilidade |
 | Kausa Social Scheduler (e Buffer, por meio dele) | `app/integrations/kausa_scheduler/` | Leitura de canais e posts agendados |
 | Shadow AI | — | Planejada (ver `ROADMAP.md`) |
 
@@ -29,6 +30,70 @@ A tela `/integrations/` mostra a situação de cada uma (`app/integrations/regis
 4. Se tiver telas, crie um blueprint e registre em `app/integrations/__init__.py`.
 5. Variáveis novas vão no `.env.example` (vazias) e em `app/config.py`.
 6. Testes em `tests/test_<nome>.py` com a API externa simulada.
+
+---
+
+## Google Calendar
+
+Bibliotecas oficiais: `google-auth-oauthlib` (OAuth) e `google-api-python-client` (Calendar API v3).
+Nenhum endpoint é montado à mão.
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `oauth.py` | Fluxo OAuth 2.0 (Authorization Code + PKCE), salvar/renovar token |
+| `client.py` | `GoogleCalendarClient`: `calendars`, `list_events`, `insert_event`, `patch_event`, `delete_event`, `busy_periods`, `find_by_shadow_id` |
+| `sync.py` | Importar eventos do Google e enviar eventos locais, sem duplicar |
+| `routes.py` | `/integrations/google/` (conectar, sincronizar, desconectar) |
+
+### Configurar (uma vez)
+
+1. Acesse https://console.cloud.google.com/ e crie um projeto (ex.: `shadow-system`).
+2. **APIs e serviços > Biblioteca**: ative a **Google Calendar API**.
+3. **Tela de consentimento OAuth**: tipo *Externo*, deixe em *Teste* e adicione seu e-mail em
+   *Usuários de teste*.
+4. **Credenciais > Criar credenciais > ID do cliente OAuth**, tipo **Aplicativo da Web**.
+   Em *URIs de redirecionamento autorizados* coloque exatamente:
+   `http://localhost:5050/integrations/google/callback`
+5. Baixe o JSON e salve como `instance/google_client_secret.json` (a pasta `instance/` não vai para o git).
+6. No `.env`:
+   ```
+   GOOGLE_CLIENT_SECRETS_FILE=instance/google_client_secret.json
+   GOOGLE_REDIRECT_URI=http://localhost:5050/integrations/google/callback
+   GOOGLE_CALENDAR_ID=primary
+   ```
+7. Reinicie o app, abra `/integrations/google/` e clique em **Conectar conta Google**.
+
+> Abra o app por `http://localhost:5050` (não `127.0.0.1`) para o cookie da sessão sobreviver ao retorno
+> do Google, já que a URI de redirecionamento usa `localhost`.
+
+### Como funciona
+
+- **Escopos**: `calendar.events` (ler/criar/editar/excluir eventos) e `calendar.readonly` (listar
+  calendários e consultar disponibilidade).
+- **Token**: `instance/google_token.json`, com refresh token. É uma credencial: não compartilhe e não
+  suba para o git. *Desconectar* apaga o arquivo; para revogar no Google use
+  https://myaccount.google.com/permissions.
+- **HTTP em localhost**: o `oauthlib` exige HTTPS; liberamos HTTP (`OAUTHLIB_INSECURE_TRANSPORT`)
+  somente quando a URI de redirecionamento é `http://localhost` ou `http://127.0.0.1`.
+- **Proteção do retorno**: o `state` do OAuth fica na sessão e é conferido no callback.
+
+### Sincronização sem duplicar
+
+- **Importar** (Google → Shadow): eventos de 7 dias atrás até 60 dias à frente, com recorrentes
+  expandidos. O id do Google é a chave (`calendar_events.google_event_id`, único): importar de novo
+  atualiza. Eventos apagados ou cancelados no Google somem do calendário interno.
+- **Enviar** (Shadow → Google): cada evento local enviado leva `extendedProperties.private.shadowEventId`.
+  Antes de criar, o Shadow procura essa marca no Google; se achar, só vincula. Eventos com essa marca
+  são ignorados na importação (já existem aqui).
+- Editar no Shadow um evento que veio do Google só muda a cópia local; a próxima importação traz a
+  versão do Google de novo. Remover um evento local **não** apaga no Google (escolha segura).
+
+### Limitações
+
+- Sincronização manual (botão *Sincronizar agora*). Agendar automático é parte da camada de automações
+  (ver `ROADMAP.md`).
+- Um calendário por vez (`GOOGLE_CALENDAR_ID`).
+- Eventos importados entram com tipo "Outro"; vincular a quests é feito no Shadow.
 
 ---
 

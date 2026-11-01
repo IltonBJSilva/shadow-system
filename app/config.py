@@ -18,6 +18,14 @@ def _bool(value: str | None) -> bool:
     return (value or "").strip().lower() in ("1", "true", "yes", "sim", "on")
 
 
+def _project_path(value: str) -> str:
+    """Caminhos relativos no .env são relativos à raiz do projeto, não à pasta de onde se roda."""
+    if not value:
+        return ""
+    path = Path(value)
+    return str(path if path.is_absolute() else ROOT_DIR / path)
+
+
 def _database_url() -> str:
     url = os.getenv("DATABASE_URL", "").strip()
     if not url:
@@ -42,7 +50,7 @@ class Config:
     OWNER_USERNAME = os.getenv("OWNER_USERNAME", "hunter")
     OWNER_PASSWORD_HASH = os.getenv("OWNER_PASSWORD_HASH", "")
 
-    GOOGLE_CLIENT_SECRETS_FILE = os.getenv("GOOGLE_CLIENT_SECRETS_FILE", "").strip()
+    GOOGLE_CLIENT_SECRETS_FILE = _project_path(os.getenv("GOOGLE_CLIENT_SECRETS_FILE", "").strip())
     GOOGLE_REDIRECT_URI = os.getenv(
         "GOOGLE_REDIRECT_URI", "http://localhost:5050/integrations/google/callback"
     )

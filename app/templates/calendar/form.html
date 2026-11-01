@@ -16,6 +16,10 @@
       <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
     </form>
     <div class="form-actions" style="margin-top: 1rem">
+      {% if google_connected and event.source == "local" %}
+        {{ ui.post_button(url_for('google_calendar.push_one', event_id=event.id),
+                          "Atualizar no Google" if event.google_event_id else "Enviar ao Google Calendar", "btn btn-sm") }}
+      {% endif %}
       {{ ui.post_button(url_for('calendar.delete', event_id=event.id), "Remover evento", "btn btn-danger btn-sm") }}
     </div>
   </section>

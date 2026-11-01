@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Google Calendar{% endblock %}
+{% block heading %}Google Calendar{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">Integrações</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  {% if info.state == "not_configured" %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Integração desligada</p>
+      <p>Para conectar o Google Calendar você precisa de um cliente OAuth do Google Cloud (gratuito):</p>
+      <ol>
+        <li>Em <span class="mono">console.cloud.google.com</span>, crie um projeto e ative a <strong>Google Calendar API</strong>.</li>
+        <li>Configure a tela de consentimento OAuth (tipo Externo, modo Teste) e adicione seu e-mail como usuário de teste.</li>
+        <li>Crie uma credencial <strong>ID do cliente OAuth</strong> do tipo <strong>Aplicativo da Web</strong>, com a URI de redirecionamento:
+          <br><span class="mono">{{ redirect_uri }}</span></li>
+        <li>Baixe o JSON, salve em <span class="mono">instance/google_client_secret.json</span>.</li>
+        <li>No <span class="mono">.env</span>: <span class="mono">GOOGLE_CLIENT_SECRETS_FILE=instance/google_client_secret.json</span> e reinicie.</li>
+      </ol>
+      <p class="muted small">Passo a passo detalhado em docs/integrations.md.</p>
+    </section>
+  {% elif info.state == "configured" %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Pronto para conectar</p>
+      <p>O Shadow System vai pedir permissão para ler e editar eventos do seu Google Calendar.
+        O token fica só neste computador, em <span class="mono">instance/google_token.json</span>.</p>
+      <a class="btn btn-primary" href="{{ url_for('google_calendar.connect') }}">Conectar conta Google</a>
+    </section>
+  {% else %}
+    <section class="panel system-window">
+      <div class="panel-header"><h2>Conectado</h2><span class="tag tag-success">{{ calendar_id }}</span></div>
+      <p>Sincronizar importa os eventos do Google (7 dias atrás até 60 dias à frente) para o calendário interno
+        e envia os eventos criados aqui que ainda não estão no Google ({{ pending }} pendente{{ '' if pending == 1 else 's' }}).</p>
+      <div class="row">
+        {{ ui.post_button(url_for('google_calendar.sync_now'), "Sincronizar agora", "btn btn-primary") }}
+        {{ ui.post_button(url_for('google_calendar.disconnect'), "Desconectar", "btn btn-danger") }}
+      </div>
+    </section>
+
+    <div class="grid grid-2">
+      <section class="panel">
+        <div class="panel-header"><h2>Ocupado nas próximas 24h</h2></div>
+        {% if busy %}
+          <ul class="list">
+            {% for start, end in busy %}
+              <li class="list-item"><span>{{ start | datetime_br }} – {{ end | hour }}</span></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          {{ ui.empty("Livre nas próximas 24 horas.") }}
+        {% endif %}
+      </section>
+      <section class="panel">
+        <div class="panel-header"><h2>Seus calendários</h2></div>
+        <p class="muted small">Para usar outro, copie o id para GOOGLE_CALENDAR_ID no .env.</p>
+        <ul class="list">
+          {% for cal in calendars %}
+            <li class="list-item">
+              <div class="item-main">
+                <div class="item-title">{{ cal.summary }}{% if cal.primary %} <span class="tag">principal</span>{% endif %}</div>
+                <div class="item-meta mono">{{ cal.id }}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

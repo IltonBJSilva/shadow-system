@@ -23,9 +23,11 @@ class IntegrationStatus:
 
 def all_statuses(check_remote: bool = True) -> list[IntegrationStatus]:
     """check_remote=False evita chamadas de rede (ex.: renderização rápida do dashboard)."""
+    from .google_calendar import status as google_status
     from .kausa_scheduler import status as kausa_status
 
     return [
+        google_status(),
         kausa_status(check_remote=check_remote),
         IntegrationStatus(
             key="buffer",
