@@ -88,6 +88,20 @@ def test_gmail_page_and_dashboard_widget(client, gmail_authorized):
     assert "7 não lido(s)" in client.get("/").get_data(as_text=True)
 
 
+def test_gmail_disabled_api_has_clear_message():
+    from googleapiclient.errors import HttpError
+    from httplib2 import Response
+
+    from app.integrations.gmail.client import GmailClient, GmailError
+
+    class Failing:
+        def execute(self):
+            raise HttpError(Response({"status": "403"}), b'{"error": {"errors": [{"reason": "accessNotConfigured"}]}}')
+
+    with pytest.raises(GmailError, match="Gmail API está desativada"):
+        GmailClient._run(Failing())
+
+
 def test_gmail_page_without_google(client):
     assert "Gmail desligado" in client.get("/integrations/gmail/").get_data(as_text=True)
 

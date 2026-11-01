@@ -72,6 +72,12 @@ class GmailClient:
             return request.execute() or {}
         except HttpError as exc:
             status = str(getattr(exc.resp, "status", "?"))
+            body = (exc.content or b"").decode("utf-8", "replace") + str(exc)
+            if status == "403" and ("accessNotConfigured" in body or "SERVICE_DISABLED" in body):
+                raise GmailError(
+                    "A Gmail API está desativada no seu projeto do Google Cloud. Ative em "
+                    "APIs e serviços → Biblioteca → Gmail API → Ativar, espere alguns minutos e recarregue."
+                ) from exc
             if status in ("401", "403"):
                 raise GmailError("Sem permissão no Gmail. Autorize o Gmail de novo e confira se a Gmail API está ativa.") from exc
             raise GmailError(f"O Gmail respondeu com erro {status}.") from exc

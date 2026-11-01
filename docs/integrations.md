@@ -192,6 +192,14 @@ O que faz: mostra os não lidos da caixa de entrada (também no widget do dashbo
 API (biblioteca oficial): `users.labels.get` (contagem), `users.messages.list` (`q="is:unread in:inbox"`),
 `users.messages.get` (`format="metadata"`, só remetente/assunto/data e o trecho).
 
+Problemas comuns:
+
+- **"A Gmail API está desativada no seu projeto"** (HTTP 403 `accessNotConfigured`): a autorização
+  funcionou, mas a API não foi ativada. Ative em *APIs e serviços > Biblioteca > Gmail API > Ativar*,
+  espere alguns minutos e recarregue. Não precisa autorizar de novo.
+- **Erro 403 `access_denied` na tela do Google**: o e-mail não está em *Google Auth Platform >
+  Público-alvo > Usuários de teste*. Adicione-o (vale também para o Calendar).
+
 ---
 
 ## Notion
