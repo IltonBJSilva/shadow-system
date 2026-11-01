@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Ranks{% endblock %}
+{% block heading %}Ranks{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('hunter.profile') }}">Voltar ao perfil</a>{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Ranks configurados</h2></div>
+    <p class="muted small">Cada rank é liberado ao atingir o nível mínimo. Edite livremente.</p>
+    <ul class="list">
+      {% for rank in ranks %}
+        <li class="list-item">
+          <div class="rank-badge" style="--rank-color: {{ rank.color }}; width: 46px; height: 46px; font-size: 1rem">{{ rank.code }}</div>
+          <div class="item-main">
+            <div class="item-title">{{ rank.name }}</div>
+            <div class="item-meta">a partir do nível {{ rank.min_level }}</div>
+          </div>
+          <div class="item-actions">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('hunter.edit_rank', rank_id=rank.id) }}">Editar</a>
+            {% if rank.min_level != 1 %}{{ ui.post_button(url_for('hunter.delete_rank', rank_id=rank.id), "Remover", "btn btn-danger btn-sm") }}{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Novo rank</h2></div>
+    <form method="post" class="form-grid">
+      {{ form.csrf_token }}
+      {{ ui.field(form.code) }}
+      {{ ui.field(form.min_level) }}
+      {{ ui.field(form.name, class="full") }}
+      {{ ui.field(form.color, type="color") }}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Adicionar</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

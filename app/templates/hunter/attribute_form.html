@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Atributo{% endblock %}
+{% block heading %}Atributo · {{ attribute.name }}{% endblock %}
+{% block content %}
+  <section class="panel narrow">
+    <form method="post" class="form">
+      {{ form.csrf_token }}
+      {{ ui.field(form.name) }}
+      {{ ui.field(form.description) }}
+      <p class="muted small">Quais atividades contam para este atributo é definido em cada quest, categoria e hábito.</p>
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{{ url_for('hunter.profile') }}">Cancelar</a>
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

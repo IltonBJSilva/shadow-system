@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Rank{% endblock %}
+{% block heading %}Rank · {{ rank.code }}{% endblock %}
+{% block content %}
+  <section class="panel narrow">
+    <form method="post" class="form">
+      {{ form.csrf_token }}
+      {{ ui.field(form.code) }}
+      {{ ui.field(form.name) }}
+      {{ ui.field(form.min_level) }}
+      {{ ui.field(form.color, type="color") }}
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{{ url_for('hunter.ranks') }}">Cancelar</a>
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

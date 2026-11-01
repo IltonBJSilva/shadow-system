@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Hunter{% endblock %}
+{% block heading %}Hunter Profile{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('hunter.ranks') }}">Ranks</a>
+  <button class="btn" type="button" data-toggle="profile-form">Editar perfil</button>
+{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel is-collapsed" id="profile-form">
+    <form method="post" action="{{ url_for('hunter.update_profile') }}" class="form-grid">
+      {{ profile_form.csrf_token }}
+      {{ ui.field(profile_form.name) }}
+      {{ ui.field(profile_form.title) }}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
+    </form>
+  </section>
+
+  {% include "hunter/_status_window.html" %}
+
+  <div class="grid grid-2">
+    <section class="panel">
+      <div class="panel-header"><h2>Atributos</h2></div>
+      <p class="muted small">
+        Atributos são indicadores da sua evolução a partir das atividades que você registra.
+        Não são diagnóstico nem avaliação da sua capacidade.
+      </p>
+      <ul class="list">
+        {% for attribute in status.attributes %}
+          <li class="list-item">
+            <div class="item-main">
+              <div class="item-title">{{ attribute.name }} <span class="xp-tag">{{ attribute.points }} pts</span></div>
+              <div class="item-meta">{{ attribute.description or 'Sem descrição.' }}</div>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('hunter.edit_attribute', attribute_id=attribute.id) }}">Editar</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Histórico de evolução</h2></div>
+      {% if events %}
+        <ul class="list">
+          {% for event in events %}
+            <li class="list-item">
+              <div class="item-main">
+                <div class="item-title">{{ event.description }}</div>
+                <div class="item-meta">
+                  <span>{{ event.created_at | datetime_br }}</span>
+                  {% for gain in event.gains %}<span class="tag">{{ gain.attribute.name }} {{ '%+d' % gain.points }}</span>{% endfor %}
+                </div>
+              </div>
+              <span class="xp-tag">{{ '%+d' % event.amount }} XP</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Nenhum XP ainda. Conclua uma quest ou marque um hábito para começar.") }}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

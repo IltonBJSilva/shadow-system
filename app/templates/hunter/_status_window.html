@@ -1,0 +1,41 @@
+{# Janela de status do Hunter. Espera `status` (hunter.services.HunterStatus). Usada no perfil e no dashboard. #}
+{% import "partials/_macros.html" as ui %}
+<section class="panel system-window status-window">
+  <p class="system-label">[SYSTEM] STATUS</p>
+  <div class="status-header">
+    <div class="rank-badge" style="--rank-color: {{ status.rank.color if status.rank else '#8b5cf6' }}">
+      {{ status.rank.code if status.rank else '?' }}
+    </div>
+    <div class="item-main">
+      <p class="hunter-name">{{ status.name }}</p>
+      <div class="hunter-title">{{ status.title or '—' }} · {{ status.rank.name if status.rank else 'Sem rank' }}</div>
+    </div>
+    <div class="level"><small>LEVEL</small>{{ status.progress.level }}</div>
+  </div>
+
+  <div class="stack" style="margin-top: 1rem">
+    <div>
+      <div class="stat-line">
+        <span class="stat-name">XP</span>
+        <span class="stat-value">{{ status.progress.xp_into_level }} / {{ status.progress.xp_for_next }}</span>
+      </div>
+      {{ ui.progress(status.progress.xp_into_level, status.progress.xp_for_next, "xp") }}
+      <div class="stat-line small muted" style="margin-top: .3rem">
+        <span>Total acumulado: {{ status.progress.total_xp }} XP</span>
+        {% if status.next_rank %}<span>Próximo rank: {{ status.next_rank.code }} no nível {{ status.next_rank.min_level }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      {% for attribute in status.attributes %}
+        <div class="stat">
+          <div class="stat-line">
+            <span class="stat-name">{{ attribute.name }}</span>
+            <span class="stat-value">{{ attribute.points }}</span>
+          </div>
+          {{ ui.progress(attribute.points, status.max_attribute_points, "thin") }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

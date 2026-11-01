@@ -8,6 +8,8 @@ from flask import Flask
 
 
 def register_modules(app: Flask) -> None:
-    blueprints: list = []
+    from .hunter import bp as hunter_bp
+
+    blueprints = [hunter_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
