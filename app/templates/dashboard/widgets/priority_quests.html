@@ -1,0 +1,13 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header"><h2>Prioridades</h2></div>
+  {% if priority_quests %}
+    <ul class="list">
+      {% for q in priority_quests %}
+        {% with next_url = "/" %}{% include "quests/_quest_item.html" %}{% endwith %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Sem quests de prioridade alta, Main ou Emergency.") }}
+  {% endif %}
+</section>

@@ -1,0 +1,16 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel system-window">
+  <div class="panel-header">
+    <h2>Daily Quest</h2>
+    <a class="small" href="{{ url_for('quests.index') }}">todas →</a>
+  </div>
+  {% if today_quests %}
+    <ul class="list">
+      {% for q in today_quests %}
+        {% with next_url = "/" %}{% include "quests/_quest_item.html" %}{% endwith %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nenhuma missão para hoje. Crie uma Daily Quest em Quests.") }}
+  {% endif %}
+</section>

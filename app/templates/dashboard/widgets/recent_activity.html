@@ -1,0 +1,22 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>Atividades recentes</h2>
+    <a class="small" href="{{ url_for('hunter.profile') }}">histórico →</a>
+  </div>
+  {% if recent_activity %}
+    <ul class="list">
+      {% for event in recent_activity %}
+        <li class="list-item">
+          <div class="item-main">
+            <div class="item-title">{{ event.description }}</div>
+            <div class="item-meta">{{ event.created_at | datetime_br }}</div>
+          </div>
+          <span class="xp-tag">{{ '%+d' % event.amount }} XP</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nenhuma atividade registrada ainda.") }}
+  {% endif %}
+</section>

@@ -1,0 +1,24 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>Próximos eventos</h2>
+    <a class="small" href="{{ url_for('calendar.index') }}">calendário →</a>
+  </div>
+  {% if upcoming_events %}
+    <ul class="list">
+      {% for event in upcoming_events %}
+        <li class="list-item">
+          <div class="item-main">
+            <a class="item-title" href="{{ url_for('calendar.edit', event_id=event.id) }}">{{ event.title }}</a>
+            <div class="item-meta">
+              <span>{{ event.start_at | date_br }}{% if not event.all_day %} · {{ event.start_at | hour }}{% endif %}</span>
+              {% if event.source == "google" %}<span class="tag tag-success">Google</span>{% endif %}
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nada nos próximos 7 dias.") }}
+  {% endif %}
+</section>

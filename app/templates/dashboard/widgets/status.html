@@ -1,0 +1,11 @@
+{# `status` aqui é o dict do widget: {status: HunterStatus, quest_stats, best_streak} #}
+{% set panel = status %}
+<div class="span-2 stack">
+  {% with status = panel.status %}{% include "hunter/_status_window.html" %}{% endwith %}
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-value">{{ panel.quest_stats.completed }}</div><div class="kpi-label">Quests concluídas</div></div>
+    <div class="kpi"><div class="kpi-value">{{ panel.quest_stats.active }}</div><div class="kpi-label">Quests ativas</div></div>
+    <div class="kpi"><div class="kpi-value">{{ panel.best_streak }}</div><div class="kpi-label">Maior sequência</div></div>
+    <div class="kpi"><div class="kpi-value">{{ panel.status.progress.total_xp }}</div><div class="kpi-label">XP total</div></div>
+  </div>
+</div>

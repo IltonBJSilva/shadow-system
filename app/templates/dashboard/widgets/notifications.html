@@ -1,0 +1,10 @@
+{% if notifications %}
+  <section class="panel span-2">
+    <p class="system-label">[SYSTEM] NOTIFICAÇÕES</p>
+    <ul class="list">
+      {% for message, level in notifications %}
+        <li class="list-item {% if level == 'warning' %}is-overdue{% endif %}"><span>{{ message }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}

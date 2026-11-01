@@ -1,0 +1,16 @@
+{% set week_names = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>Evolução semanal</h2>
+    <span class="xp-tag">{{ weekly_xp.total }} XP em 7 dias</span>
+  </div>
+  <div class="bars">
+    {% for day, amount in weekly_xp.series %}
+      <div class="bar" title="{{ day | date_br }}: {{ amount }} XP">
+        <span class="bar-value">{{ amount if amount else '' }}</span>
+        <div class="bar-fill" style="height: {{ '%.0f' % (100 * amount / weekly_xp.peak) }}%"></div>
+        <span class="bar-label">{{ week_names[day.weekday()] }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>

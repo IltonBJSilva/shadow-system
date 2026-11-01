@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('dashboard.settings') }}">Personalizar</a>
+  <a class="btn btn-primary" href="{{ url_for('quests.index') }}">Quests</a>
+{% endblock %}
+{% block content %}
+  {% if widgets %}
+    <div class="grid grid-2">
+      {% for key in widgets %}
+        {% include "dashboard/widgets/" ~ key ~ ".html" %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM]</p>
+      <p>Todos os widgets estão desligados. <a href="{{ url_for('dashboard.settings') }}">Escolha o que mostrar</a>.</p>
+    </section>
+  {% endif %}
+{% endblock %}

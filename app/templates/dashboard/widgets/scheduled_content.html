@@ -1,0 +1,25 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>Conteúdos agendados</h2>
+    <a class="small" href="{{ url_for('integrations.kausa') }}">Kausa →</a>
+  </div>
+  {% if not scheduled_content.configured %}
+    {{ ui.empty("Kausa Social Scheduler não configurado (KAUSA_SCHEDULER_URL no .env).") }}
+  {% elif scheduled_content.error %}
+    <p class="muted small">{{ scheduled_content.error }}</p>
+  {% elif scheduled_content.posts %}
+    <ul class="list">
+      {% for post in scheduled_content.posts %}
+        <li class="list-item">
+          <div class="item-main">
+            <div class="item-title">{{ post.text[:80] }}{% if post.text | length > 80 %}…{% endif %}</div>
+            <div class="item-meta"><span class="tag tag-blue">{{ post.channel }}</span><span>{{ post.due_at | datetime_br }}</span></div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nenhum post agendado no Buffer.") }}
+  {% endif %}
+</section>

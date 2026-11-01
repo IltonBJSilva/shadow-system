@@ -1,0 +1,16 @@
+{% import "partials/_macros.html" as ui %}
+<section class="panel">
+  <div class="panel-header">
+    <h2>Hábitos</h2>
+    <a class="small" href="{{ url_for('habits.index') }}">gerenciar →</a>
+  </div>
+  {% if habits %}
+    <ul class="list">
+      {% for h in habits %}
+        {% with next_url = "/", show_days = false %}{% include "habits/_habit_item.html" %}{% endwith %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nenhum hábito cadastrado.") }}
+  {% endif %}
+</section>
