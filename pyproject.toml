@@ -1,0 +1,10 @@
+[project]
+name = "shadow-system"
+version = "0.1.0"
+description = "A personal life management and evolution system inspired by Solo Leveling."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

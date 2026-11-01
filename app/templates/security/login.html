@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block heading %}Acesso{% endblock %}
+{% block content %}
+  <section class="panel system-window narrow">
+    <p class="system-label">[SYSTEM] Identifique-se, Hunter.</p>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="label" for="username">Usuário</label>
+        <input class="input" id="username" name="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label class="label" for="password">Senha</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+    </form>
+  </section>
+{% endblock %}

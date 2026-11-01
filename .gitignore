@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Segredos e dados locais: nunca vão para o GitHub
+.env
+instance/*
+!instance/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+client_secret*.json
+google_token*.json
+backups/
+
+# Editor / SO
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

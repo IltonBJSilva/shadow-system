@@ -1,0 +1,33 @@
+{# Macros reutilizáveis. Importe com: {% import "partials/_macros.html" as ui %} #}
+
+{% macro field(f, class="") %}
+  <div class="field {{ class }} {% if f.errors %}has-error{% endif %}">
+    {% if f.type == "BooleanField" %}
+      <label class="check">{{ f() }} {{ f.label.text }}</label>
+    {% else %}
+      {{ f.label(class="label") }}
+      {{ f(class="input", **kwargs) }}
+    {% endif %}
+    {% if f.description %}<small class="muted">{{ f.description }}</small>{% endif %}
+    {% for error in f.errors %}<small class="error-text">{{ error }}</small>{% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro progress(value, max, variant="") %}
+  {% set pct = (100 * value / max) if max else 0 %}
+  {% set pct = 100 if pct > 100 else pct %}
+  <div class="progress {{ variant }}" role="progressbar" aria-valuenow="{{ value }}" aria-valuemin="0" aria-valuemax="{{ max }}">
+    <div class="progress-fill" style="width: {{ '%.1f' % pct }}%"></div>
+  </div>
+{% endmacro %}
+
+{% macro post_button(url, label, class="btn btn-ghost btn-sm") %}
+  <form method="post" action="{{ url }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="{{ class }}">{{ label }}</button>
+  </form>
+{% endmacro %}
+
+{% macro empty(message) %}
+  <p class="empty">{{ message }}</p>
+{% endmacro %}

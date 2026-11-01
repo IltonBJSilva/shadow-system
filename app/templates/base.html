@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Shadow System{% endblock %} · Shadow System</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/shadow.css') }}">
+  <script src="{{ url_for('static', filename='js/shadow.js') }}" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">◈</span>
+        <span class="brand-text">SHADOW<small>SYSTEM</small></span>
+      </a>
+      <nav class="nav">
+        {% for item in nav_items %}
+          <a class="nav-link {% if item.active %}is-active{% endif %}" href="{{ item.url }}">
+            <span class="nav-icon">{{ item.icon }}</span>{{ item.label }}
+          </a>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        {% if auth_enabled and current_user %}
+          <form method="post" action="{{ url_for('security.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-block" type="submit">Sair</button>
+          </form>
+        {% endif %}
+        <span class="muted small">{{ today | date_br }}</span>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="btn btn-ghost menu-toggle" type="button" data-toggle-sidebar aria-label="Abrir menu">☰</button>
+        <h1 class="page-title">{% block heading %}{% endblock %}</h1>
+        <div class="topbar-actions">{% block actions %}{% endblock %}</div>
+      </header>
+
+      {% include "partials/_flash.html" %}
+
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>
