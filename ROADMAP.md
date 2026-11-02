@@ -18,6 +18,10 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Postagens no Buffer pessoal: token pela tela, canais, posts, novo agendamento com texto por rede
 - [x] Gmail (leitura), Notion (importar quests), WhatsApp (resumo do dia), tokens cadastrados pela tela
 - [x] Login opcional, CSRF, cabeçalhos de segurança, backup
+- [x] Títulos por conquista (nível, XP, quests, sequência de hábito, treinos) e títulos próprios
+- [x] Ações em massa nas quests; busca e filtros no Gmail; Notion pula páginas sem título
+- [x] Hábitos em dias escolhidos da semana (folga não quebra a sequência)
+- [x] Treinos: rotinas prontas, texto ou documento → quests semanais, calendário, hábito e progressão de carga
 - [x] Online de graça: Render + Supabase (`render.yaml`), tokens no banco com RLS, keep-alive (cron-job.org + GitHub Actions)
 - [x] Documentação técnica
 
@@ -34,7 +38,8 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 
 ## Fase 3: Corpo e dinheiro
 
-- [ ] **Fitness**: exercícios, treinos, séries/reps/cargas, divisões (ABC, ABCD, ABCDE, Full Body, Upper/Lower, custom), peso e medidas, cardio, gráficos de evolução
+- [ ] **Fitness** (continuação dos Treinos): carga por série registrada no treino, peso e medidas, cardio, gráficos de evolução
+- [ ] Converter texto livre em rotina com IA (opcional, por cima do parser atual)
 - [ ] **Finance**: contas, cartões, receitas/despesas, categorias, parcelamentos, recorrentes, orçamento, metas, reserva de emergência, fluxo de caixa (BRL)
 - [ ] Importação de CSV (extratos)
 - [ ] Widgets de treino e resumo financeiro no dashboard
@@ -65,7 +70,7 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 
 ## Melhorias técnicas
 
-- [ ] Hábitos semanais (meta de N vezes por semana)
+- [ ] Hábitos com meta de N vezes por semana em dias livres
 - [ ] Reabrir quest concluída com estorno de XP
 - [ ] Criptografia dos tokens em repouso (`stored_secrets`)
 - [ ] Testes rodando também contra PostgreSQL no CI (hoje as migrations foram validadas à mão num PostgreSQL real)
