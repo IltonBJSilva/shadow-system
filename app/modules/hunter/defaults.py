@@ -30,26 +30,32 @@ DEFAULT_ATTRIBUTES: list[tuple[str, str, str]] = [
     ("charisma", "Charisma", "Carisma: comunicação, música e palco, conteúdo, networking, relações."),
 ]
 
-# Títulos padrão: (key, nome, descrição, regra, limite). Nomes originais, não do anime.
-# Regras "quests_completed", "habit_best_streak" e "workouts_completed" vêm de outros módulos
-# (registradas com hunter.services.register_metric).
-DEFAULT_TITLES: list[tuple[str, str, str, str, int]] = [
-    ("start", "Recém-desperto", "O começo de tudo.", "level", 1),
-    ("first_quest", "Primeiro Passo", "Concluiu a primeira quest.", "quests_completed", 1),
-    ("quests_10", "Cumpridor de Missões", "10 quests concluídas.", "quests_completed", 10),
-    ("quests_50", "Veterano das Missões", "50 quests concluídas.", "quests_completed", 50),
-    ("quests_200", "Incansável", "200 quests concluídas.", "quests_completed", 200),
-    ("streak_7", "Chama Constante", "7 dias seguidos num hábito.", "habit_best_streak", 7),
-    ("streak_30", "Inquebrável", "30 dias seguidos num hábito.", "habit_best_streak", 30),
-    ("streak_100", "Disciplina de Ferro", "100 dias seguidos num hábito.", "habit_best_streak", 100),
-    ("workout_1", "Primeiro Treino", "Concluiu o primeiro treino.", "workouts_completed", 1),
-    ("workout_20", "Corpo em Forja", "20 treinos concluídos.", "workouts_completed", 20),
-    ("workout_100", "Corpo de Aço", "100 treinos concluídos.", "workouts_completed", 100),
-    ("level_10", "Ascendente", "Chegou ao nível 10.", "level", 10),
-    ("level_25", "Caçador Experiente", "Chegou ao nível 25.", "level", 25),
-    ("level_50", "Elite", "Chegou ao nível 50.", "level", 50),
-    ("level_100", "Lenda Viva", "Chegou ao nível 100.", "level", 100),
-    ("xp_10000", "Colecionador de XP", "10.000 XP no total.", "total_xp", 10000),
+# Conquistas padrão: (key, nome do título, descrição, regra, limite, ícone, XP de recompensa).
+# Cada conquista desbloqueia um título com o mesmo nome. Nomes originais, não do anime.
+# Regras "quests_completed", "main_quests_completed", "habit_best_streak" e "workouts_completed" vêm de
+# outros módulos (registradas com hunter.services.register_metric).
+DEFAULT_TITLES: list[tuple[str, str, str, str, int, str, int]] = [
+    ("start", "Recém-desperto", "O começo de tudo.", "level", 1, "🌑", 0),
+    ("first_quest", "Primeiro Passo", "Concluiu a primeira missão.", "quests_completed", 1, "👣", 10),
+    ("level_2", "Despertar", "Subiu de nível pela primeira vez.", "level", 2, "⬆️", 15),
+    ("week_7", "Semana Consistente", "7 dias seguidos evoluindo (com XP).", "evolution_days", 7, "📆", 50),
+    ("quests_10", "Cumpridor de Missões", "10 missões concluídas.", "quests_completed", 10, "⚔️", 25),
+    ("main_1", "Projeto Finalizado", "Concluiu a primeira Main Quest.", "main_quests_completed", 1, "🏁", 50),
+    ("streak_7", "Chama Constante", "7 dias seguidos num hábito.", "habit_best_streak", 7, "🔥", 30),
+    ("workout_1", "Primeiro Treino", "Concluiu o primeiro treino.", "workouts_completed", 1, "🏋️", 15),
+    ("level_10", "Ascendente", "Chegou ao nível 10 (Rank D).", "level", 10, "🛡️", 100),
+    ("days_30", "30 Dias de Evolução", "30 dias seguidos com XP.", "evolution_days", 30, "🌗", 150),
+    ("streak_30", "Inquebrável", "30 dias seguidos num hábito.", "habit_best_streak", 30, "💎", 100),
+    ("workout_20", "Corpo em Forja", "20 treinos concluídos.", "workouts_completed", 20, "⚒️", 60),
+    ("quests_50", "Veterano das Missões", "50 missões concluídas.", "quests_completed", 50, "🎖️", 80),
+    ("quests_100", "Centurião", "100 missões concluídas.", "quests_completed", 100, "💯", 150),
+    ("level_25", "Caçador Experiente", "Chegou ao nível 25.", "level", 25, "🗡️", 200),
+    ("quests_200", "Incansável", "200 missões concluídas.", "quests_completed", 200, "♾️", 250),
+    ("workout_100", "Corpo de Aço", "100 treinos concluídos.", "workouts_completed", 100, "🦾", 250),
+    ("streak_100", "Disciplina de Ferro", "100 dias seguidos num hábito.", "habit_best_streak", 100, "🧱", 300),
+    ("xp_10000", "Colecionador de XP", "10.000 XP no total.", "total_xp", 10000, "💠", 0),
+    ("level_50", "Elite", "Chegou ao nível 50.", "level", 50, "👑", 500),
+    ("level_100", "Lenda Viva", "Chegou ao nível 100.", "level", 100, "🌌", 1000),
 ]
 
 # Como cada regra aparece na tela ("7 / 30 dias seguidos").
@@ -59,6 +65,7 @@ RULE_LABELS: dict[str, str] = {
     "quests_completed": "quests concluídas",
     "habit_best_streak": "dias seguidos (melhor sequência)",
     "workouts_completed": "treinos concluídos",
+    "main_quests_completed": "Main Quests concluídas",
     "evolution_days": "dias seguidos evoluindo (com XP)",
     "custom": "criado por você",
 }

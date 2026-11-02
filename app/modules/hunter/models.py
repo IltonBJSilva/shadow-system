@@ -100,5 +100,11 @@ class Title(db.Model):
     threshold: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     unlocked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Conquista: ícone mostrado na lista e XP dado uma vez, no desbloqueio.
+    icon: Mapped[str] = mapped_column(String(8), default="🏅", server_default="🏅", nullable=False)
+    reward_xp: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
-    __table_args__ = (CheckConstraint("threshold >= 0", name="threshold_non_negative"),)
+    __table_args__ = (
+        CheckConstraint("threshold >= 0", name="threshold_non_negative"),
+        CheckConstraint("reward_xp >= 0", name="reward_xp_non_negative"),
+    )

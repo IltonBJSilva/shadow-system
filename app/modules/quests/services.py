@@ -148,9 +148,12 @@ def completed_between(start: date, end: date) -> int:
         Quest.completed_at < datetime.combine(end + timedelta(days=1), datetime.min.time()))) or 0
 
 
-def completed_count() -> int:
-    """Quantas quests estão concluídas (métrica dos títulos)."""
-    return db.session.scalar(select(func.count(Quest.id)).where(Quest.status == "completed")) or 0
+def completed_count(quest_type: str | None = None) -> int:
+    """Quantas quests estão concluídas, de um tipo ou de todos (métrica das conquistas)."""
+    query = select(func.count(Quest.id)).where(Quest.status == "completed")
+    if quest_type:
+        query = query.where(Quest.quest_type == quest_type)
+    return db.session.scalar(query) or 0
 
 
 def stats() -> dict[str, int]:

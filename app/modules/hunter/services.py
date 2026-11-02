@@ -381,6 +381,8 @@ class TitleView:
     unlocked_at: datetime | None
     is_custom: bool
     is_active: bool
+    icon: str = "🏅"
+    reward_xp: int = 0
 
     @property
     def unlocked(self) -> bool:
@@ -422,12 +424,39 @@ def check_titles() -> list[str]:
     for title in db.session.scalars(select(Title).where(Title.unlocked_at.is_(None))).all():
         if title.rule == "custom" or values.get(title.rule, -1) >= title.threshold:
             title.unlocked_at = time.now()
-            unlocked.append(title.name)
+            label = title.name
+            if title.reward_xp and achievement_rewards_enabled():
+                _grant_reward(title)
+                label += f" (+{title.reward_xp} XP)"
+            unlocked.append(label)
     return unlocked
 
 
+REWARDS_KEY = "hunter.achievement_rewards"
+
+
+def achievement_rewards_enabled() -> bool:
+    from app.core import settings
+
+    return bool(settings.get_setting(REWARDS_KEY, True))
+
+
+def set_achievement_rewards(enabled: bool) -> None:
+    from app.core import settings
+
+    settings.set_setting(REWARDS_KEY, bool(enabled))
+
+
+def _grant_reward(title: Title) -> None:
+    """XP da conquista, direto no histórico. Não passa por award_xp para não verificar conquistas em laço."""
+    hunter = get_hunter()
+    hunter.total_xp += title.reward_xp
+    db.session.add(XpEvent(amount=title.reward_xp, source="achievement", source_id=title.id,
+                           description=f"Conquista: {title.name}"[:200]))
+
+
 def title_unlock_messages(names: list[str]) -> list[tuple[str, str]]:
-    return [(f"Título desbloqueado: {name}. Escolha-o no seu perfil.", "achievement") for name in names]
+    return [(f"Conquista desbloqueada: {name}. O título já pode ser usado no perfil.", "achievement") for name in names]
 
 
 def list_titles() -> list[TitleView]:
@@ -440,7 +469,7 @@ def list_titles() -> list[TitleView]:
         TitleView(id=t.id, name=t.name, description=t.description, rule=t.rule,
                   rule_label=defaults.RULE_LABELS.get(t.rule, t.rule), threshold=t.threshold,
                   current=values.get(t.rule, 0), unlocked_at=t.unlocked_at, is_custom=t.rule == "custom",
-                  is_active=t.name == active)
+                  is_active=t.name == active, icon=t.icon or "🏅", reward_xp=t.reward_xp)
         for t in rows
     ]
 
@@ -465,7 +494,7 @@ def create_custom_title(name: str, description: str = "") -> Title:
         raise DomainError("Já existe um título com esse nome.")
     order = (db.session.scalar(select(func.max(Title.sort_order))) or 0) + 1
     title = Title(name=name, description=description.strip()[:500], rule="custom", threshold=0,
-                  unlocked_at=time.now(), sort_order=order)
+                  unlocked_at=time.now(), sort_order=order, icon="✨", reward_xp=0)
     db.session.add(title)
     db.session.commit()
     return title
@@ -498,14 +527,24 @@ def _seed_missing_attributes() -> None:
 
 def _seed_titles() -> None:
     """Cria os títulos padrão que faltarem (também em bancos antigos). Não faz commit."""
-    existing_keys = set(db.session.scalars(select(Title.key).where(Title.key.is_not(None))))
+    by_key = {t.key: t for t in db.session.scalars(select(Title).where(Title.key.is_not(None)))}
     existing_names = {n.lower() for n in db.session.scalars(select(Title.name))}
     added = False
-    for order, (key, name, description, rule, threshold) in enumerate(defaults.DEFAULT_TITLES):
-        if key in existing_keys or name.lower() in existing_names:
-            continue  # já existe (ou você criou um título com o mesmo nome: fica o seu)
+    for order, (key, name, description, rule, threshold, icon, reward) in enumerate(defaults.DEFAULT_TITLES):
+        if key in by_key:
+            current = by_key[key]
+            if current.icon in ("", "🏅"):  # ainda sem ícone = criado pela versão anterior
+                # Versão anterior não tinha ícone/recompensa/ordem: completa sem mexer no desbloqueio.
+                # A recompensa vale só para desbloqueios futuros (não paga retroativo).
+                current.icon, current.sort_order = icon, order
+                current.reward_xp = reward if current.unlocked_at is None else 0
+                added = True
+            continue
+        if name.lower() in existing_names:
+            continue  # você criou um título com o mesmo nome: fica o seu
         db.session.add(Title(key=key, name=name, description=description, rule=rule, threshold=threshold,
-                             sort_order=order, unlocked_at=time.now() if key == "start" else None))
+                             sort_order=order, icon=icon, reward_xp=reward,
+                             unlocked_at=time.now() if key == "start" else None))
         existing_names.add(name.lower())
         added = True
     # Título escrito à mão na versão antiga (campo livre): vira um título seu, para não sumir.
