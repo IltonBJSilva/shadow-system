@@ -3,6 +3,7 @@
 {% block title %}Hunter{% endblock %}
 {% block heading %}Hunter Profile{% endblock %}
 {% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('hunter.titles') }}">Títulos ({{ unlocked_titles | length }}/{{ titles_total }})</a>
   <a class="btn btn-ghost" href="{{ url_for('hunter.ranks') }}">Ranks</a>
   <button class="btn" type="button" data-toggle="profile-form">Editar perfil</button>
 {% endblock %}
@@ -12,10 +13,24 @@
     <form method="post" action="{{ url_for('hunter.update_profile') }}" class="form-grid">
       {{ profile_form.csrf_token }}
       {{ ui.field(profile_form.name) }}
-      {{ ui.field(profile_form.title) }}
-      {{ ui.field(profile_form.avatar_url, class="full", placeholder="https://...") }}
+      {{ ui.field(profile_form.avatar_url, placeholder="https://...") }}
       <p class="muted small full">Use uma imagem sua ou com licença livre. Imagens do anime são protegidas por direitos autorais.</p>
       <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
+    </form>
+    <form method="post" action="{{ url_for('hunter.choose_title') }}" class="form-grid title-picker">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('hunter.profile') }}">
+      <div class="field">
+        <label class="label" for="title_id">Título exibido</label>
+        <select class="input" id="title_id" name="title_id" data-autosubmit>
+          {% for t in unlocked_titles %}
+            <option value="{{ t.id }}" {% if t.is_active %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <small class="muted">Só aparecem os títulos já conquistados. Veja como ganhar os outros em
+          <a href="{{ url_for('hunter.titles') }}">Títulos</a>.</small>
+      </div>
+      <noscript><div class="form-actions"><button class="btn" type="submit">Usar título</button></div></noscript>
     </form>
   </section>
 

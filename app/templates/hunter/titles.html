@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Títulos{% endblock %}
+{% block heading %}Títulos{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('hunter.profile') }}">Voltar ao perfil</a>{% endblock %}
+{% block content %}
+{% set unlocked = titles | selectattr("unlocked") | list %}
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Conquistados</h2>
+      <span class="tag tag-blue">{{ unlocked | length }}/{{ titles | length }}</span>
+    </div>
+    <p class="muted small">Escolha qual título aparece no seu perfil. Novos títulos são desbloqueados sozinhos
+      quando você atinge a meta, e o System avisa na hora.</p>
+    <ul class="list">
+      {% for t in unlocked %}
+        <li class="list-item {% if t.is_active %}is-done{% endif %}">
+          <div class="item-main">
+            <div class="item-title">{{ t.name }} {% if t.is_active %}<span class="tag tag-success">exibido</span>{% endif %}</div>
+            <div class="item-meta">
+              <span>{{ t.description or "Sem descrição." }}</span>
+              <span>{{ "criado por você" if t.is_custom else "desbloqueado" }} em {{ t.unlocked_at | date_br }}</span>
+            </div>
+          </div>
+          <div class="item-actions">
+            {% if not t.is_active %}
+              <form method="post" action="{{ url_for('hunter.choose_title') }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="title_id" value="{{ t.id }}">
+                <button class="btn btn-sm btn-primary" type="submit">Usar</button>
+              </form>
+            {% endif %}
+            {% if t.is_custom %}{{ ui.post_button(url_for('hunter.delete_title', title_id=t.id), "Remover", "btn btn-danger btn-sm") }}{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-header"><h2>A conquistar</h2></div>
+      <ul class="list">
+        {% for t in titles if not t.unlocked %}
+          <li class="list-item">
+            <div class="item-main">
+              <div class="item-title">🔒 {{ t.name }}</div>
+              <div class="item-meta"><span>{{ t.description }}</span></div>
+              <div class="progress thin" aria-hidden="true"><div class="progress-fill" style="width: {{ t.percent }}%"></div></div>
+              <div class="item-meta"><span>{{ t.current }} / {{ t.threshold }} {{ t.rule_label }}</span></div>
+            </div>
+          </li>
+        {% else %}
+          <li>{{ ui.empty("Você conquistou todos os títulos. Crie novos abaixo.") }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Criar título</h2></div>
+      <p class="muted small">Um título seu já nasce desbloqueado (ex.: "Dev das Madrugadas").</p>
+      <form method="post" action="{{ url_for('hunter.create_title') }}" class="form-grid">
+        {{ form.csrf_token }}
+        {{ ui.field(form.name, class="full") }}
+        {{ ui.field(form.description, class="full") }}
+        <div class="form-actions full"><button class="btn btn-primary" type="submit">Criar</button></div>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

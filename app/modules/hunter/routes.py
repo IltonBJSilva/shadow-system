@@ -1,19 +1,28 @@
 """Telas do Hunter: status, edição do perfil, atributos e ranks."""
-from flask import flash, redirect, render_template, url_for
+from flask import flash, redirect, render_template, request, url_for
+
+from app.core.http import redirect_back
 
 from . import bp, services
-from .forms import AttributeForm, ProfileForm, RankForm
+from .forms import AttributeForm, ProfileForm, RankForm, TitleForm
 
 
 @bp.get("/")
 def profile():
+    # Confere conquistas ao abrir o perfil: pega metas atingidas antes dos títulos existirem.
+    for message, category in services.title_unlock_messages(services.check_titles()):
+        flash(message, category)
+    services.db_commit()
     status = services.get_status()
     hunter = services.get_hunter()
+    titles = services.list_titles()
     return render_template(
         "hunter/profile.html",
         status=status,
         profile_form=ProfileForm(obj=hunter),
         events=services.recent_events(limit=25),
+        unlocked_titles=[t for t in titles if t.unlocked],
+        titles_total=len(titles),
     )
 
 
@@ -21,7 +30,7 @@ def profile():
 def update_profile():
     form = ProfileForm()
     if form.validate_on_submit():
-        services.update_profile(form.name.data, form.title.data or "", form.avatar_url.data or "")
+        services.update_profile(form.name.data, avatar_url=form.avatar_url.data or "")
         flash("Perfil atualizado.", "success")
     else:
         flash("Confira os campos do perfil.", "error")
@@ -69,3 +78,37 @@ def delete_rank(rank_id: int):
     services.delete_rank(rank_id)
     flash("Rank removido.", "success")
     return redirect(url_for("hunter.ranks"))
+
+
+# ---------- Títulos ----------
+
+@bp.get("/titles")
+def titles():
+    return render_template("hunter/titles.html", titles=services.list_titles(), form=TitleForm(),
+                           active=services.get_hunter().title)
+
+
+@bp.post("/titles")
+def create_title():
+    form = TitleForm()
+    if form.validate_on_submit():
+        title = services.create_custom_title(form.name.data, form.description.data or "")
+        flash(f"Título criado: {title.name}.", "success")
+    else:
+        flash("Dê um nome ao título (até 80 caracteres).", "error")
+    return redirect(url_for("hunter.titles"))
+
+
+@bp.post("/titles/choose")
+def choose_title():
+    title_id = request.form.get("title_id", "")
+    if title_id.isdigit():
+        flash(f"Título exibido: {services.choose_title(int(title_id))}.", "success")
+    return redirect_back(url_for("hunter.titles"))
+
+
+@bp.post("/titles/<int:title_id>/delete")
+def delete_title(title_id: int):
+    services.delete_title(title_id)
+    flash("Título removido.", "info")
+    return redirect(url_for("hunter.titles"))

@@ -5,7 +5,6 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional, Rege
 
 class ProfileForm(FlaskForm):
     name = StringField("Nome", validators=[DataRequired(), Length(max=80)])
-    title = StringField("Título", validators=[Optional(), Length(max=80)])
     avatar_url = StringField("Avatar: link público de uma imagem (https://...)",
                              validators=[Optional(), Length(max=500)])
 
@@ -21,3 +20,8 @@ class RankForm(FlaskForm):
 class AttributeForm(FlaskForm):
     name = StringField("Nome", validators=[DataRequired(), Length(max=60)])
     description = TextAreaField("O que conta para este atributo", validators=[Optional(), Length(max=500)])
+
+
+class TitleForm(FlaskForm):
+    name = StringField("Nome do título", validators=[DataRequired(), Length(max=80)])
+    description = StringField("Descrição (opcional)", validators=[Optional(), Length(max=500)])

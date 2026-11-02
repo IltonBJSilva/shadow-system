@@ -100,7 +100,7 @@ def test_profile_page_renders(client):
 
 
 def test_update_profile(client):
-    client.post("/hunter/", data={"name": "Ilton", "title": "Shadow Developer"})
+    client.post("/hunter/", data={"name": "Ilton"})
     assert services.get_hunter().name == "Ilton"
 
 
