@@ -77,6 +77,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// Formulários demorados (IA): desliga o botão e mostra que está trabalhando, sem envio duplo.
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-busy-form], form");
+  if (!form) return;
+  form.querySelectorAll("[data-busy-label]").forEach((button) => {
+    button.disabled = true;
+    button.textContent = button.dataset.busyLabel;
+    button.classList.add("is-busy");
+  });
+});
+
 // Janela de LEVEL UP: aparece por cima de tudo quando uma mensagem de subida de nível chega.
 // Some sozinha em ~3,5 s, com clique ou Esc. Respeita "reduzir movimento".
 function showLevelUp(flashes) {

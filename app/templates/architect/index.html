@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Arquiteto{% endblock %}
+{% block heading %}O Arquiteto{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('architect.settings') }}">{{ "IA: " ~ ai_model if ai_ready else "Ligar a IA" }}</a>{% endblock %}
+{% block content %}
+{% set labels = {"good": "tag-success", "warning": "tag-warning", "info": "tag-blue"} %}
+<div class="stack">
+  <section class="panel system-window architect-hero">
+    <p class="system-label">[SYSTEM] ANÁLISE DO JOGADOR · {{ snapshot.today | date_br }}</p>
+    <p class="architect-line">Você decide. Eu leio os seus dados e aponto o caminho.</p>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-value">{{ snapshot.level }}</div><div class="kpi-label">nível · {{ snapshot.rank }}</div></div>
+      <div class="kpi"><div class="kpi-value">🔥 {{ snapshot.evolution_streak }}</div><div class="kpi-label">dias evoluindo</div></div>
+      <div class="kpi"><div class="kpi-value">{{ snapshot.quest_stats.active }}</div><div class="kpi-label">missões ativas</div></div>
+      <div class="kpi"><div class="kpi-value">{{ snapshot.quest_stats.overdue }}</div><div class="kpi-label">atrasadas</div></div>
+    </div>
+    {% if not ai_ready %}
+      <p class="muted small">Modo regras: análise feita no próprio sistema, sem custo. Para conversar e pedir planos sob medida,
+        <a href="{{ url_for('architect.settings') }}">cadastre uma chave da Anthropic</a>.</p>
+    {% endif %}
+  </section>
+
+  <div class="grid grid-2">
+    <section class="panel">
+      <div class="panel-header"><h2>Leitura do momento</h2></div>
+      {% if report.insights %}
+        <ul class="list">
+          {% for i in report.insights %}
+            <li class="list-item">
+              <div class="item-main">
+                <div class="item-title"><span class="tag {{ labels[i.level] }}">{{ {"good": "bom", "warning": "atenção", "info": "dica"}[i.level] }}</span> {{ i.title }}</div>
+                <div class="item-meta">{{ i.text }}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Ainda não há dados suficientes. Conclua algumas missões e hábitos e volte aqui.") }}
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Faça primeiro</h2><span class="muted small">atrasadas, prazo hoje, prioridade</span></div>
+      {% if report.priorities %}
+        <ul class="list">
+          {% for q in report.priorities %}
+            <li class="list-item {% if q.overdue %}is-overdue{% endif %}">
+              <div class="item-main">
+                <a class="item-title" href="{{ url_for('quests.detail', quest_id=q.id) }}">{{ q.title }}</a>
+                <div class="item-meta">
+                  {% if q.category %}<span class="tag">{{ q.category }}</span>{% endif %}
+                  {% if q.overdue %}<span class="tag tag-danger">atrasada</span>{% elif q.due %}<span>prazo {{ q.due[8:10] }}/{{ q.due[5:7] }}</span>{% endif %}
+                </div>
+              </div>
+              <span class="xp-tag">+{{ q.xp }} XP</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Nada urgente. Bom momento para avançar numa meta.") }}
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="panel" id="sugestoes">
+    <div class="panel-header">
+      <h2>Missões sugeridas</h2>
+      <span class="muted small">só viram quest se você aceitar</span>
+    </div>
+    {% if ai_ready %}
+      <form method="post" action="{{ url_for('architect.plan') }}" class="row architect-plan">
+        {{ plan_form.csrf_token }}
+        {{ plan_form.focus(class="input", placeholder="Foco opcional: ex. provas da faculdade, voltar a treinar") }}
+        <button class="btn btn-primary" type="submit" data-busy-label="Montando o plano...">Pedir plano ao Arquiteto (IA)</button>
+      </form>
+    {% endif %}
+    {% if suggestions %}
+      <ul class="list">
+        {% for s in suggestions %}
+          <li class="list-item">
+            <div class="item-main">
+              <div class="item-title">{{ s.title }}
+                <span class="tag {{ 'tag-blue' if s.source == 'ai' else '' }}">{{ "IA" if s.source == "ai" else "regra" }}</span></div>
+              <div class="item-meta">
+                {% if s.category %}<span class="tag">{{ s.category }}</span>{% endif %}
+                <span>dificuldade {{ s.difficulty }}</span>
+                {% if s.recurrence != "none" %}<span>{{ {"daily": "diária", "weekly": "semanal", "monthly": "mensal"}[s.recurrence] }}</span>{% endif %}
+                <span>{{ "hoje" if s.due_in_days == 0 else "em " ~ s.due_in_days ~ " dia(s)" }}</span>
+              </div>
+              {% if s.description %}<div class="item-meta">{{ s.description }}</div>{% endif %}
+              {% if s.reason %}<div class="item-meta muted">Por quê: {{ s.reason }}</div>{% endif %}
+            </div>
+            <div class="item-actions">
+              {{ ui.post_button(url_for('architect.accept', suggestion_id=s.id), "Aceitar", "btn btn-sm btn-primary") }}
+              {{ ui.post_button(url_for('architect.dismiss', suggestion_id=s.id), "Descartar", "btn btn-sm btn-ghost") }}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhuma sugestão pendente. Registre uma meta para o Arquiteto planejar o próximo passo.") }}
+    {% endif %}
+  </section>
+
+  <div class="grid grid-2">
+    <section class="panel">
+      <div class="panel-header"><h2>Metas</h2></div>
+      {% if goals %}
+        <ul class="list">
+          {% for g in goals %}
+            <li class="list-item">
+              <div class="item-main">
+                <div class="item-title">{{ g.title }}</div>
+                <div class="item-meta">
+                  {% if g.area %}<span class="tag">{{ g.area }}</span>{% endif %}
+                  {% if g.deadline %}<span>até {{ g.deadline | date_br }}</span>{% endif %}
+                </div>
+                {% if g.why %}<div class="item-meta muted">{{ g.why }}</div>{% endif %}
+              </div>
+              <div class="item-actions">
+                <form method="post" action="{{ url_for('architect.goal_status', goal_id=g.id) }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-success" name="status" value="done">Concluída</button>
+                  <button class="btn btn-sm btn-ghost" name="status" value="dropped">Arquivar</button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("Nenhuma meta ainda. Ex.: “Passar em Cálculo II”, “Correr 5 km”, “Lançar meu portfólio”.") }}
+      {% endif %}
+      <form method="post" action="{{ url_for('architect.create_goal') }}" class="form-grid section-gap">
+        {{ goal_form.csrf_token }}
+        {{ ui.field(goal_form.title, class="full", placeholder="Ex.: Passar em Cálculo II") }}
+        {{ ui.field(goal_form.area) }}
+        {{ ui.field(goal_form.deadline, type="date") }}
+        {{ ui.field(goal_form.why, class="full", rows=2) }}
+        <div class="form-actions full"><button class="btn btn-primary" type="submit">Registrar meta</button></div>
+      </form>
+    </section>
+
+    <section class="panel" id="conversa">
+      <div class="panel-header">
+        <h2>Conversa</h2>
+        {% if messages %}{{ ui.post_button(url_for('architect.clear_conversation'), "Apagar conversa", "btn btn-sm btn-ghost") }}{% endif %}
+      </div>
+      {% if ai_ready %}
+        <div class="chat">
+          {% for m in messages %}
+            <div class="chat-msg chat-{{ m.role }}">
+              <span class="chat-who">{{ "Você" if m.role == "user" else "[ARQUITETO]" }}</span>
+              <div class="chat-text">{{ m.content }}</div>
+            </div>
+          {% else %}
+            <p class="muted small">Pergunte sobre a sua rotina, prioridades ou metas. O Arquiteto responde com base nos seus
+              dados reais (nível, atributos, missões, falhas, hábitos, treinos e metas) e lembra da conversa.</p>
+          {% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('architect.ask') }}" class="stack section-gap" data-busy-form>
+          {{ ask_form.csrf_token }}
+          {{ ask_form.question(class="input", rows=3, placeholder="Ex.: O que eu deveria priorizar esta semana com as provas chegando?") }}
+          <button class="btn btn-primary" type="submit" data-busy-label="O Arquiteto está analisando...">Enviar</button>
+        </form>
+      {% else %}
+        <p class="muted">A conversa usa o Claude (Anthropic) e precisa de uma chave de API, cobrada pelo uso
+          (centavos por pergunta). <a href="{{ url_for('architect.settings') }}">Configurar</a>.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

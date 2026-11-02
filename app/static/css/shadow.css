@@ -499,3 +499,15 @@ select.input[multiple] { min-height: 130px; }
 
 .achievement-icon { display: inline-block; width: 1.4em; text-align: center; }
 .achievement-icon.is-locked { filter: grayscale(1) opacity(.45); }
+
+/* ---------- Arquiteto ---------- */
+.architect-line { margin: .2rem 0 1rem; font: 600 1rem var(--mono); letter-spacing: .06em; color: #bae6fd; }
+.architect-plan { margin-bottom: .8rem; flex-wrap: wrap; gap: .5rem; }
+.architect-plan .input { flex: 1 1 260px; }
+.chat { display: flex; flex-direction: column; gap: .6rem; max-height: 420px; overflow-y: auto; padding-right: .2rem; }
+.chat-msg { padding: .6rem .8rem; border-radius: 10px; border: 1px solid var(--panel-border); }
+.chat-user { align-self: flex-end; max-width: 88%; background: rgba(59, 130, 246, 0.12); }
+.chat-assistant { max-width: 96%; background: rgba(34, 211, 238, 0.06); border-color: rgba(34, 211, 238, 0.3); }
+.chat-who { display: block; font: 600 .7rem var(--mono); letter-spacing: .12em; color: var(--cyan); margin-bottom: .2rem; }
+.chat-text { white-space: pre-wrap; line-height: 1.55; }
+.btn.is-busy { cursor: progress; }

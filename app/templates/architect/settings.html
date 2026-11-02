@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}IA do Arquiteto{% endblock %}
+{% block heading %}IA do Arquiteto{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('architect.index') }}">Arquiteto</a>{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Como funciona</p>
+    <ul class="plain-list">
+      <li>Sem chave, o Arquiteto analisa por regras dentro do próprio sistema, sem custo.</li>
+      <li>Com uma chave da Anthropic, ele conversa e monta planos de missão usando o Claude.</li>
+      <li>O uso é cobrado pela Anthropic na sua conta (em geral centavos por pergunta; o Sonnet e o Haiku custam menos que o Opus).</li>
+      <li>A chave fica só no servidor, nunca vai para o navegador nem aparece de novo (só o final).</li>
+      <li>São enviados seus dados do sistema: nível, atributos, missões ativas, desempenho por área, falhas, hábitos,
+        treinos e metas. Tokens, senhas e e-mails não são enviados.</li>
+    </ul>
+    <p class="muted small">Crie a chave em console.anthropic.com &gt; API Keys (precisa de créditos na conta).</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Chave da API</h2>
+      {% if configured %}<span class="tag tag-success">configurada {{ masked }}</span>{% else %}<span class="tag tag-muted">não configurada</span>{% endif %}
+    </div>
+    <form method="post" class="form" autocomplete="off">
+      {{ form.csrf_token }}
+      {{ ui.field(form.api_key, type="password", placeholder="sk-ant-...", autocomplete="off") }}
+      {{ ui.field(form.model) }}
+      <div class="form-actions"><button class="btn btn-primary" type="submit">{{ "Trocar chave" if configured else "Conferir e salvar" }}</button></div>
+    </form>
+    {% if configured %}
+      <form method="post" class="form section-gap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="model">
+        <div class="field"><label class="label" for="model-only">Trocar só o modelo</label>
+          <select class="input" id="model-only" name="model" data-autosubmit>
+            {% for key, label in models.items() %}<option value="{{ key }}" {% if key == current_model %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select></div>
+      </form>
+      <div class="section-gap">{{ ui.post_button(url_for('architect.delete_key'), "Remover chave", "btn btn-danger btn-sm") }}</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
