@@ -148,6 +148,38 @@ def completed_between(start: date, end: date) -> int:
         Quest.completed_at < datetime.combine(end + timedelta(days=1), datetime.min.time()))) or 0
 
 
+@dataclass(frozen=True)
+class CategoryPerformance:
+    name: str
+    completed: int
+    missed: int
+    avg_difficulty: float
+
+    @property
+    def rate(self) -> float | None:
+        """Taxa de conclusão (0 a 1). None = sem dados suficientes."""
+        total = self.completed + self.missed
+        return self.completed / total if total else None
+
+
+def category_performance(days: int = 30, today: date | None = None) -> list[CategoryPerformance]:
+    """Concluídas x não realizadas por categoria nos últimos `days` dias (pelo prazo ou conclusão)."""
+    today = today or time.today()
+    since = today - timedelta(days=days)
+    rows = db.session.scalars(select(Quest).where(
+        Quest.status.in_(("completed", "missed")),
+        ((Quest.completed_at >= datetime.combine(since, datetime.min.time())) | (Quest.due_date >= since)),
+    ))
+    stats: dict[str, list] = {}
+    for quest in rows:
+        name = quest.category.name if quest.category else "Sem categoria"
+        entry = stats.setdefault(name, [0, 0, []])
+        entry[0 if quest.status == "completed" else 1] += 1
+        entry[2].append(quest.difficulty)
+    return sorted((CategoryPerformance(name, c, m, round(sum(d) / len(d), 1)) for name, (c, m, d) in stats.items()),
+                  key=lambda p: (-(p.completed + p.missed), p.name))
+
+
 def completed_count(quest_type: str | None = None) -> int:
     """Quantas quests estão concluídas, de um tipo ou de todos (métrica das conquistas)."""
     query = select(func.count(Quest.id)).where(Quest.status == "completed")
