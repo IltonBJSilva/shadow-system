@@ -85,6 +85,79 @@ testadas.
 
 Detalhes e ordem em [ROADMAP.md](ROADMAP.md).
 
+## Regras do jogo
+
+Todas as regras ficam em funções puras e testadas; os valores são editáveis pela tela (Gamificação,
+Hunter > Ranks) ou num arquivo só ([progression.py](app/modules/hunter/progression.py)).
+
+### XP de uma missão
+
+XP padrão = **dificuldade (esforço) × importância (prioridade)**, arredondado para múltiplo de 5. Você pode
+digitar outro valor na missão.
+
+| Dificuldade | XP base | × Baixa (0,8) | × Média (1,0) | × Alta (1,2) | × Crítica (1,4) |
+|---|---|---|---|---|---|
+| 1 Trivial | 10 | 10 | 10 | 10 | 15 |
+| 2 Fácil | 25 | 20 | 25 | 30 | 35 |
+| 3 Normal | 50 | 40 | 50 | 60 | 70 |
+| 4 Difícil | 100 | 80 | 100 | 120 | 140 |
+| 5 Extrema | 200 | 160 | 200 | 240 | 280 |
+
+A importância pesa no máximo ±40%: uma tarefa trivial marcada como "crítica" continua valendo pouco. Bônus
+(primeira missão do dia, combo das Daily Quests, adiantar prazo, sequência de hábitos) e recompensas de
+conquista somam por cima; os valores ficam em Gamificação.
+
+### Níveis e ranks
+
+Para sair do nível N são precisos **100 + 50 × (N − 1) XP** (nível 1→2: 100; 2→3: 150; 10→11: 550). A curva
+é linear de propósito: cresce, mas nunca fica impossível. Ranks padrão (editáveis): E (nível 1), D (10),
+C (20), B (35), A (50), S (70), SS (90), National Level (120) e Shadow Monarch (150). Subir de nível abre a
+janela de **LEVEL UP** com o novo nível e, se houver, o novo rank.
+
+### Atributos
+
+Cada missão concluída dá pontos aos atributos dela (ou aos da categoria, se ela não escolher), iguais à
+dificuldade (1 a 5). Hábitos dão +1. A evolução semana a semana aparece no perfil do Hunter.
+
+| Atributo | Desenvolvido por (categorias sugeridas) |
+|---|---|
+| Strength (Força) | Treino |
+| Vitality (Vitalidade) | Treino, Saúde e bem-estar |
+| Intelligence (Inteligência) | Faculdade, Carreira, Estudos, Projetos pessoais |
+| Wisdom (Sabedoria) | Faculdade, Estudos, Espiritualidade |
+| Focus (Foco) | Faculdade, Estudos, Hobbies, Organização pessoal |
+| Discipline (Disciplina) | Carreira, Treino, Saúde, Finanças, Organização pessoal, Projetos pessoais |
+| Charisma (Carisma) | Carreira, Música e arte, Conteúdo |
+| Creativity (Criatividade) | Música e arte, Hobbies, Projetos pessoais, Conteúdo |
+| Financial Intelligence | Finanças |
+| Spirituality (Espiritualidade) | Espiritualidade |
+
+Nomes e descrições são editáveis em Hunter > Atributos. São indicadores da sua evolução, não avaliação de
+capacidade.
+
+### Punições e Zona de Falha
+
+Uma missão **recorrente** que passa do prazo vira *Não realizada*: tira um pouco de XP (padrão 10% do XP
+dela, **nunca** faz cair de nível) e gera uma **Penalty Quest** que devolve o XP se for cumprida no dia. A
+falha vai para a **Zona de Falha**, onde você escolhe o motivo:
+
+| Motivo | O que acontece (padrão, configurável) |
+|---|---|
+| Procrastinação | A punição fica; o System sugere começar por 15 minutos |
+| Falta de planejamento | A punição fica; o System sugere rever prazo e recorrência |
+| Imprevisto | XP devolvido e Penalty Quest cancelada |
+| Limitação real | XP devolvido e Penalty Quest cancelada |
+
+Missões sem repetição e Penalty Quests não geram punição. Tudo pode ser desligado em Gamificação.
+
+### Conquistas
+
+21 conquistas, conferidas a cada XP ganho: primeira missão, primeiro level up, semana consistente (7 dias
+seguidos com XP), 30 dias de evolução, primeiro projeto (Main Quest), 10/50/100/200 missões, sequências de
+7/30/100 dias num hábito, 1/20/100 treinos, níveis 10/25/50/100 e 10.000 XP. Cada uma tem ícone, data, título
+e uma recompensa em XP paga uma vez (desligável em Gamificação). Lista completa em
+[docs/modules/hunter.md](docs/modules/hunter.md#conquistas-e-títulos).
+
 ## Screenshots
 
 > Ainda sem capturas. Quando houver, ficarão em `docs/images/` e serão referenciadas aqui com caminhos
