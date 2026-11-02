@@ -41,14 +41,17 @@ mostra o que está agendado e agenda posts novos, com texto diferente por rede.
 ### Implementado (MVP)
 
 - [x] **Hunter Profile**: nível, rank configurável (E → SS → especiais), XP com curva linear, 8 atributos, histórico de evolução
+- [x] **Títulos por conquista**: desbloqueados por nível, XP, quests, sequência de hábitos e treinos; você escolhe qual exibir e pode criar os seus
 - [x] **Quest System**: 8 tipos (Daily, Weekly, Monthly, Main, Side, Habit, Emergency, Custom), categorias, prioridade, dificuldade, prazo, critérios, recompensas, atributos, histórico
 - [x] **Quests recorrentes** (diária, semanal, mensal) sem punição por dia perdido
+- [x] **Ações em massa** nas quests: marcar várias e cancelar ou excluir
 - [x] **Gamificação**: bônus, punições configuráveis, Penalty Quests com redenção, sons e janelas do *System*
-- [x] **Hábitos diários**: check-in, streak atual e recorde, correção de dias esquecidos, estorno exato de XP
+- [x] **Hábitos**: todos os dias ou em dias escolhidos (folga não quebra a sequência), streak atual e recorde, correção de dias esquecidos, estorno exato de XP
+- [x] **Treinos**: rotinas prontas (ABC, Full body, Superior/Inferior, PPL, em casa, corrida), texto colado ou documento (PDF, Word, texto) viram quests semanais, eventos no calendário, hábito de treino e sugestão de progressão de carga
 - [x] **Calendário interno**: visão mensal, eventos ligados a quests, prazos de quests, aviso de conflito de horário
 - [x] **Dashboard** estilo janela de status, com widgets configuráveis
 - [x] **Google Calendar**: OAuth 2.0, importar e enviar eventos sem duplicar, disponibilidade (opcional)
-- [x] **Gmail** (somente leitura): não lidos no dashboard, e-mail vira quest (opcional)
+- [x] **Gmail** (somente leitura): não lidos no dashboard, busca por texto com filtros (remetente, período, anexo, pasta), e-mail vira quest (opcional)
 - [x] **Notion**: importar páginas de bancos de dados como quests, sem duplicar (opcional)
 - [x] **WhatsApp** (Cloud API): resumo do dia enviado para o seu número (opcional)
 - [x] **Postagens (Buffer pessoal)**: token cadastrado pela tela, canais, posts agendados/rascunhos/enviados, novo post com texto por rede, carrossel no Instagram (opcional)
@@ -56,7 +59,7 @@ mostra o que está agendado e agenda posts novos, com texto diferente por rede.
 
 ### Planejado
 
-- [ ] Fitness System (treinos, séries, cargas, divisões ABC/ABCD/Full Body, evolução)
+- [ ] Fitness: peso e medidas, cardio, gráficos de evolução de carga (os treinos já existem)
 - [ ] Financial System (receitas, despesas, contas, cartões, orçamento, metas, BRL)
 - [ ] University System (disciplinas, provas, trabalhos, notas com regras configuráveis, frequência)
 - [ ] Study System (cursos, sessões de estudo, revisões)
@@ -274,7 +277,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
 | [docs/deployment.md](docs/deployment.md) | Hospedar online de graça e só com seu acesso (Render + Supabase; PythonAnywhere como alternativa) |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Erros conhecidos (deploy, Google, Notion, Buffer) e como resolver |
-| [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
+| [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Treinos](docs/modules/training.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
 | [docs/decisions/architecture-decisions.md](docs/decisions/architecture-decisions.md) | Decisões e seus motivos |
 
 ## Segurança
