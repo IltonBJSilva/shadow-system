@@ -2,6 +2,10 @@
 {% import "partials/_macros.html" as ui %}
 {% set active = q.status in ("pending", "in_progress") %}
 <li class="list-item {% if q.status == 'completed' %}is-done{% endif %} {% if q.is_overdue %}is-overdue{% endif %}">
+  {% if bulk_form %}
+    <input class="bulk-check" type="checkbox" name="ids" value="{{ q.id }}" form="{{ bulk_form }}"
+           aria-label="Selecionar {{ q.title }}" data-bulk-item>
+  {% endif %}
   {% if active %}
     <form method="post" action="{{ url_for('quests.complete', quest_id=q.id) }}" class="inline-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

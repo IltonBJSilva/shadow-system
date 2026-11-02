@@ -164,3 +164,28 @@ def test_pages_render(client):
     for url in ("/quests/", "/quests/?view=completed", f"/quests/{quest.id}", f"/quests/{quest.id}/edit",
                 "/quests/categories"):
         assert client.get(url).status_code == 200, url
+
+
+def test_bulk_delete_and_cancel(client):
+    a, b, c = (services.create_quest(QuestInput(title=t)) for t in ("A", "B", "C"))
+    services.complete_quest(c.id)
+    response = client.post("/quests/bulk", data={"ids": [str(a.id), str(c.id)], "action": "cancel"})
+    assert response.status_code == 302
+    assert services.get_quest(a.id).status == "cancelled"
+    assert services.get_quest(c.id).status == "completed"  # já fechada: cancelar não mexe
+
+    client.post("/quests/bulk", data={"ids": [str(a.id), str(b.id), "x"], "action": "delete"})
+    assert [q.title for q in services.list_quests("all")] == ["C"]
+    assert hunter.get_hunter().total_xp > 0  # XP da quest concluída continua
+
+
+def test_bulk_without_selection_does_nothing(client):
+    services.create_quest(QuestInput(title="Fica"))
+    client.post("/quests/bulk", data={"action": "delete"})
+    assert len(services.list_quests("all")) == 1
+
+
+def test_quest_list_has_bulk_checkboxes(client):
+    services.create_quest(QuestInput(title="Marcável"))
+    html = client.get("/quests/").get_data(as_text=True)
+    assert 'form="bulk-quests"' in html and "Excluir selecionadas" in html

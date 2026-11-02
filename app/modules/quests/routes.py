@@ -95,6 +95,22 @@ def delete(quest_id: int):
     return redirect(url_for("quests.index"))
 
 
+@bp.post("/bulk")
+def bulk():
+    """Ações em várias quests marcadas na lista: excluir ou cancelar."""
+    ids = [int(value) for value in request.form.getlist("ids") if value.isdigit()]
+    action = request.form.get("action")
+    if not ids:
+        flash("Marque pelo menos uma quest.", "info")
+    elif action == "delete":
+        flash(f"{services.delete_quests(ids)} quest(s) removida(s).", "info")
+    elif action == "cancel":
+        flash(f"{services.cancel_quests(ids)} quest(s) cancelada(s). Sem perda de XP.", "info")
+    else:
+        flash("Ação desconhecida.", "error")
+    return redirect_back(url_for("quests.index"))
+
+
 @bp.route("/categories", methods=["GET", "POST"])
 def categories():
     form = CategoryForm()

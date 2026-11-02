@@ -43,9 +43,17 @@
     </div>
 
     {% if quests %}
+      <form method="post" action="{{ url_for('quests.bulk') }}" id="bulk-quests" class="bulk-bar" data-bulk>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <label class="row small"><input type="checkbox" data-bulk-all> Marcar todas</label>
+        <span class="muted small" data-bulk-count>0 selecionada(s)</span>
+        <button class="btn btn-sm btn-ghost" type="submit" name="action" value="cancel" data-bulk-action disabled>Cancelar selecionadas</button>
+        <button class="btn btn-sm btn-danger" type="submit" name="action" value="delete" data-bulk-action disabled>Excluir selecionadas</button>
+      </form>
       <ul class="list">
         {% for q in quests %}
-          {% with next_url = request.full_path %}{% include "quests/_quest_item.html" %}{% endwith %}
+          {% with next_url = request.full_path, bulk_form = "bulk-quests" %}{% include "quests/_quest_item.html" %}{% endwith %}
         {% endfor %}
       </ul>
     {% else %}

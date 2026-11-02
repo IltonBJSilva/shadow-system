@@ -232,6 +232,27 @@ def delete_quest(quest_id: int) -> None:
     db.session.commit()
 
 
+def delete_quests(quest_ids: list[int]) -> int:
+    """Remove várias quests de uma vez. O XP já ganho continua no histórico. Retorna quantas saíram."""
+    rows = db.session.scalars(select(Quest).where(Quest.id.in_(quest_ids))).all() if quest_ids else []
+    for quest in rows:
+        db.session.delete(quest)
+    db.session.commit()
+    return len(rows)
+
+
+def cancel_quests(quest_ids: list[int]) -> int:
+    """Cancela as quests ativas da lista (as já fechadas são ignoradas). Sem perda de XP."""
+    rows = db.session.scalars(
+        select(Quest).where(Quest.id.in_(quest_ids), Quest.status.in_(constants.ACTIVE_STATUSES))
+    ).all() if quest_ids else []
+    for quest in rows:
+        quest.status = "cancelled"
+        _log(quest, "cancelled", "Quest cancelada (em massa)")
+    db.session.commit()
+    return len(rows)
+
+
 def roll_over_recurring(today: date | None = None) -> int:
     """Fecha ocorrências recorrentes vencidas e cria a próxima. Retorna quantas foram roladas."""
     return roll_over_with_messages(today)[0]

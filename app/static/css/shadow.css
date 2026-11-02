@@ -372,3 +372,9 @@ select.input[multiple] { min-height: 130px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Seleção em massa (Quests) */
+.bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 0 12px; }
+.bulk-bar label { gap: 6px; cursor: pointer; }
+.bulk-check { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--accent, #8b5cf6); cursor: pointer; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }

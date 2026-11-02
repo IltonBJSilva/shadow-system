@@ -54,4 +54,23 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.ShadowSound) window.ShadowSound.play("notify");
     });
   });
+
+  // Seleção em massa: caixas [data-bulk-item] ligadas a um <form data-bulk> pelo atributo form=
+  document.querySelectorAll("form[data-bulk]").forEach((bulk) => {
+    const items = () => Array.from(document.querySelectorAll(`[data-bulk-item][form="${bulk.id}"]`));
+    const all = bulk.querySelector("[data-bulk-all]");
+    const count = bulk.querySelector("[data-bulk-count]");
+    const refresh = () => {
+      const checked = items().filter((item) => item.checked).length;
+      if (count) count.textContent = `${checked} selecionada(s)`;
+      bulk.querySelectorAll("[data-bulk-action]").forEach((button) => { button.disabled = checked === 0; });
+      if (all) {
+        all.checked = checked > 0 && checked === items().length;
+        all.indeterminate = checked > 0 && checked < items().length;
+      }
+    };
+    if (all) all.addEventListener("change", () => { items().forEach((item) => { item.checked = all.checked; }); refresh(); });
+    items().forEach((item) => item.addEventListener("change", refresh));
+    refresh();
+  });
 });
