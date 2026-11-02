@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # ◈ Shadow System
 
@@ -265,7 +265,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/testing.md](docs/testing.md) | Como os testes são organizados e rodados |
 | [docs/integrations.md](docs/integrations.md) | Google Calendar, Gmail, Buffer, Notion, WhatsApp, como criar novas |
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
-| [docs/deployment.md](docs/deployment.md) | Rodar fora do ambiente de desenvolvimento |
+| [docs/deployment.md](docs/deployment.md) | Hospedar online de graça e só com seu acesso (PythonAnywhere) |
 | [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
 | [docs/decisions/architecture-decisions.md](docs/decisions/architecture-decisions.md) | Decisões e seus motivos |
 

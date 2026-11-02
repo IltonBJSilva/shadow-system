@@ -1,34 +1,143 @@
 # Deploy
 
-Hoje o Shadow System roda localmente (`.\run.ps1`). Para rodar em outro lugar:
+Localmente: `.\run.ps1` (http://localhost:5050). Para ter o sistema online com o PC desligado, de graça
+e só com o seu acesso, o caminho recomendado é o **PythonAnywhere** (abaixo).
 
-## Checklist
+## Segurança em produção (automática)
 
-1. `SHADOW_ENV=production` (ativa `ProductionConfig`: cookie de sessão só por HTTPS).
-2. `SECRET_KEY` aleatória e exclusiva do servidor.
-3. Login ligado (`AUTH_ENABLED=true` + hash da senha). Ver [security.md](security.md).
-4. Banco: PostgreSQL recomendado (`DATABASE_URL`). Ver [database.md](database.md).
-5. `flask --app wsgi db upgrade` a cada versão nova.
-6. HTTPS na frente (proxy reverso: Caddy, Nginx ou Traefik).
-7. Google Calendar: adicione a URI de redirecionamento do domínio no Google Cloud e em `GOOGLE_REDIRECT_URI`.
-8. Backups automáticos do banco.
+Com `SHADOW_ENV=production` o app **se recusa a iniciar** se faltar qualquer um destes:
 
-## Servidor WSGI
+- `SECRET_KEY` aleatória (não a de exemplo);
+- `AUTH_ENABLED=true`;
+- `OWNER_PASSWORD_HASH` (gere com `flask --app wsgi security hash-password`).
 
-Windows:
-```powershell
-.\.venv\Scripts\waitress-serve --listen=127.0.0.1:5050 --call app:create_app
-```
+Também em produção: cookie de sessão só por HTTPS, `TRUST_PROXY=true` (lê `X-Forwarded-Proto` do
+proxy HTTPS) e login bloqueado por 15 minutos após 5 senhas erradas. Ver [security.md](security.md).
 
-Linux (waitress também funciona; gunicorn é a alternativa comum):
+---
+
+## PythonAnywhere (gratuito)
+
+Plano gratuito: app sempre no ar em `https://SEU_USUARIO.pythonanywhere.com`, disco persistente
+(o SQLite fica salvo), HTTPS incluso, sem cartão de crédito.
+
+Limites do plano gratuito:
+
+- **Internet de saída restrita** a uma lista de sites liberados. As APIs do Google estão na lista; se
+  Buffer, Notion ou WhatsApp derem erro de conexão, peça a liberação do domínio no fórum/suporte do
+  PythonAnywhere (eles liberam APIs públicas) ou use o plano pago.
+- É preciso entrar no painel e clicar em **"Run until 3 months from today"** a cada 3 meses, senão o
+  site é pausado (os dados não se perdem).
+- 512 MB de disco e CPU limitada: suficiente para um usuário.
+
+### 1. Criar a conta
+
+Em https://www.pythonanywhere.com > **Pricing & signup** > **Create a Beginner account**.
+O nome de usuário vira o endereço (`usuario.pythonanywhere.com`).
+
+### 2. Baixar o código
+
+No painel: **Consoles** > **Bash**:
+
 ```bash
-waitress-serve --listen=127.0.0.1:5050 --call app:create_app
+git clone https://github.com/IltonBJSilva/shadow-system.git
+cd shadow-system
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-O proxy reverso recebe HTTPS na porta 443 e repassa para `127.0.0.1:5050`.
+(Repositório privado: use `git clone https://SEU_USUARIO_GITHUB:TOKEN@github.com/...` com um token
+de acesso do GitHub só de leitura.)
+
+### 3. Criar o `.env` no servidor
+
+Ainda no Bash, dentro de `shadow-system`:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"     # copie: é a SECRET_KEY
+flask --app wsgi security hash-password                      # digite sua senha; copie o hash
+nano .env
+```
+
+Conteúdo do `.env` (troque `SEU_USUARIO`):
+
+```
+SHADOW_ENV=production
+SECRET_KEY=<valor gerado>
+TIMEZONE=America/Sao_Paulo
+AUTH_ENABLED=true
+OWNER_USERNAME=<seu login>
+OWNER_PASSWORD_HASH=<hash gerado>
+GOOGLE_CLIENT_SECRETS_FILE=instance/google_client_secret.json
+GOOGLE_REDIRECT_URI=https://SEU_USUARIO.pythonanywhere.com/integrations/google/callback
+GOOGLE_CALENDAR_ID=primary
+```
+
+Salve (Ctrl+O, Enter, Ctrl+X) e crie o banco:
+
+```bash
+flask --app wsgi db upgrade
+```
+
+**Levar seus dados do PC (opcional):** na aba **Files**, envie o seu `instance/shadow.db` para
+`/home/SEU_USUARIO/shadow-system/instance/` (substitui o banco vazio). Envie também
+`instance/google_client_secret.json`. Os tokens (Buffer, Notion, WhatsApp) você cadastra de novo pelas
+telas do sistema.
+
+### 4. Criar o site
+
+**Web** > **Add a new web app** > **Manual configuration** > **Python 3.12**. Depois, na página do app:
+
+- **Virtualenv**: `/home/SEU_USUARIO/shadow-system/.venv`
+- **Source code**: `/home/SEU_USUARIO/shadow-system`
+- **Static files**: URL `/static/` → Directory `/home/SEU_USUARIO/shadow-system/app/static`
+- **Force HTTPS**: ligado
+- **WSGI configuration file**: clique no link e troque todo o conteúdo por:
+
+```python
+import sys
+path = "/home/SEU_USUARIO/shadow-system"
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+from wsgi import app as application  # noqa: E402
+```
+
+Clique em **Reload**. Abra `https://SEU_USUARIO.pythonanywhere.com`: deve aparecer a tela de login.
+Se der erro, veja o **Error log** na aba Web (por exemplo, "Produção sem segurança" = falta algo no `.env`).
+
+### 5. Google no servidor
+
+No Google Cloud > **Google Auth Platform** > **Clientes** > seu cliente Web > **URIs de
+redirecionamento autorizados** > adicione
+`https://SEU_USUARIO.pythonanywhere.com/integrations/google/callback` (mantenha a do localhost).
+Depois, no sistema online: **Integrações > Google Calendar > Conectar** e **Gmail > Autorizar**.
+
+### Atualizar para uma versão nova
+
+```bash
+cd ~/shadow-system && git pull && source .venv/bin/activate
+pip install -r requirements.txt && flask --app wsgi db upgrade
+```
+
+E clique em **Reload** na aba Web.
+
+### Backup
+
+`flask --app wsgi backup create` no Bash, ou baixe `instance/shadow.db` pela aba **Files**.
+
+---
+
+## Outro servidor (VPS)
+
+1. Mesmo `.env` de produção acima (`DATABASE_URL` para PostgreSQL, se quiser; ver [database.md](database.md)).
+2. `flask --app wsgi db upgrade` a cada versão nova.
+3. `waitress-serve --listen=127.0.0.1:5050 --call app:create_app` atrás de um proxy HTTPS (Caddy, Nginx).
+4. Adicione a URI de redirecionamento do domínio no Google Cloud e em `GOOGLE_REDIRECT_URI`.
 
 ## Ainda não feito
 
 - Dockerfile / docker-compose.
 - Agendador para `flask quests rollover` e sincronização do Google (hoje o rollover roda ao abrir o
-  dashboard ou a lista de quests; no Windows dá para agendar o comando no Agendador de Tarefas).
+  dashboard ou a lista de quests).

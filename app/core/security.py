@@ -4,6 +4,7 @@ O Shadow System tem um único usuário (você). Com AUTH_ENABLED=false o app fic
 rodar só em 127.0.0.1. Antes de expor em rede, ligue o login (ver docs/security.md).
 """
 import hmac
+import time
 
 import click
 from flask import (Blueprint, Flask, current_app, flash, redirect, render_template, request,
@@ -71,11 +72,18 @@ def login():
     if not current_app.config.get("AUTH_ENABLED"):
         return redirect("/")
     if request.method == "POST":
+        client = request.remote_addr or "?"
+        if _is_locked(client):
+            flash("Muitas tentativas erradas. Espere alguns minutos e tente de novo.", "error")
+            return render_template("security/login.html"), 429
         username = request.form.get("username", "")
         if check_credentials(username, request.form.get("password", "")):
+            _FAILURES.pop(client, None)
             session.clear()
             session["user"] = username
+            session.permanent = True
             return redirect(_safe_next(request.args.get("next", "")))
+        _FAILURES.setdefault(client, []).append(time.monotonic())
         flash("Usuário ou senha incorretos.", "error")
     return render_template("security/login.html")
 
@@ -84,6 +92,17 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("security.login"))
+
+
+# Tentativas erradas por IP (memória do processo). Simples, suficiente para um único usuário.
+_FAILURES: dict[str, list[float]] = {}
+
+
+def _is_locked(client: str) -> bool:
+    window = current_app.config.get("LOGIN_LOCK_MINUTES", 15) * 60
+    recent = [t for t in _FAILURES.get(client, []) if time.monotonic() - t < window]
+    _FAILURES[client] = recent
+    return len(recent) >= current_app.config.get("LOGIN_MAX_FAILURES", 5)
 
 
 def _safe_next(target: str) -> str:

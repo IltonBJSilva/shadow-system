@@ -23,6 +23,12 @@ def create_app(config_name: str | None = None, overrides: dict | None = None) ->
     app.config.from_object(CONFIGS.get(name, DevelopmentConfig))
     app.config.update(overrides or {})
     INSTANCE_DIR.mkdir(exist_ok=True)
+    if name == "production":
+        _check_production(app)
+    if app.config.get("TRUST_PROXY"):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     _configure_logging(app)
     _init_extensions(app)
@@ -30,6 +36,19 @@ def create_app(config_name: str | None = None, overrides: dict | None = None) ->
     _register_modules(app)
     _register_integrations(app)
     return app
+
+
+def _check_production(app: Flask) -> None:
+    """Na internet o app nunca sobe aberto: exige login com senha e SECRET_KEY própria."""
+    problems = []
+    if app.config.get("SECRET_KEY") in ("", "dev-only-change-me", "troque-por-um-valor-aleatorio"):
+        problems.append("SECRET_KEY aleatória")
+    if not app.config.get("AUTH_ENABLED"):
+        problems.append("AUTH_ENABLED=true")
+    if not app.config.get("OWNER_PASSWORD_HASH"):
+        problems.append("OWNER_PASSWORD_HASH (gere com: flask security hash-password)")
+    if problems:
+        raise RuntimeError("Produção sem segurança. Defina no .env: " + "; ".join(problems))
 
 
 def _configure_logging(app: Flask) -> None:

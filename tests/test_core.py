@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import pytest
 from werkzeug.security import generate_password_hash
 
 from app import create_app
@@ -66,3 +67,40 @@ def test_login_with_valid_and_invalid_password():
     assert good.headers["Location"] == "/"  # não segue next externo
     with client.session_transaction() as session:
         assert session["user"] == "hunter"
+
+
+def test_login_locks_after_repeated_failures():
+    from app.core import security
+
+    security._FAILURES.clear()
+    client = _auth_app().test_client()
+    for _ in range(5):
+        client.post("/login", data={"username": "hunter", "password": "wrong"})
+    locked = client.post("/login", data={"username": "hunter", "password": "arise"})
+    assert locked.status_code == 429  # nem a senha certa entra durante o bloqueio
+    security._FAILURES.clear()
+
+
+def test_production_refuses_to_start_without_login():
+    with pytest.raises(RuntimeError, match="AUTH_ENABLED"):
+        create_app("production", {"SECRET_KEY": "x" * 32, "AUTH_ENABLED": False})
+
+
+def test_production_behind_https_proxy():
+    app = create_app("production", {
+        "SECRET_KEY": "x" * 32, "AUTH_ENABLED": True, "OWNER_PASSWORD_HASH": generate_password_hash("arise"),
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+    })
+    from flask import request
+
+    app.add_url_rule("/_scheme", "scheme", lambda: request.url)
+    from app.core import security
+    security.PUBLIC_ENDPOINTS.add("scheme")
+    try:
+        response = app.test_client().get("/_scheme", headers={"X-Forwarded-Proto": "https"},
+                                         base_url="http://hunter.pythonanywhere.com")
+    finally:
+        security.PUBLIC_ENDPOINTS.discard("scheme")
+    # O callback do Google usa request.url: atrás do proxy ele precisa sair como https.
+    assert response.get_data(as_text=True).startswith("https://hunter.pythonanywhere.com/")
+    assert app.config["SESSION_COOKIE_SECURE"]

@@ -26,6 +26,11 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
   e no `.env`: `AUTH_ENABLED=true`, `OWNER_USERNAME=...`, `OWNER_PASSWORD_HASH=<resultado>`.
   Todas as páginas passam a exigir login (menos `/health`).
 - Em produção use HTTPS (cookie de sessão `Secure` em `ProductionConfig`).
+- `SHADOW_ENV=production` não inicia sem `SECRET_KEY` própria, `AUTH_ENABLED=true` e
+  `OWNER_PASSWORD_HASH`: o sistema nunca fica aberto na internet por engano.
+- Login bloqueado por 15 minutos após 5 senhas erradas do mesmo IP (responde 429). O contador fica na
+  memória do processo e zera ao reiniciar.
+- Sessão do login dura 31 dias (`session.permanent`); **Sair** encerra na hora.
 
 ## Proteções da aplicação
 

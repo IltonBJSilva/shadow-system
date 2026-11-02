@@ -48,6 +48,10 @@ class Config:
     WTF_CSRF_TIME_LIMIT = None  # o token vale enquanto a sessão durar
 
     AUTH_ENABLED = _bool(os.getenv("AUTH_ENABLED"))
+    TRUST_PROXY = _bool(os.getenv("TRUST_PROXY"))
+    # Bloqueio de login: após LOGIN_MAX_FAILURES erros, espera LOGIN_LOCK_MINUTES.
+    LOGIN_MAX_FAILURES = 5
+    LOGIN_LOCK_MINUTES = 15
     OWNER_USERNAME = os.getenv("OWNER_USERNAME", "hunter")
     OWNER_PASSWORD_HASH = os.getenv("OWNER_PASSWORD_HASH", "")
 
@@ -81,6 +85,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
+    # Atrás de um proxy HTTPS (PythonAnywhere, Nginx): confia em X-Forwarded-Proto/Host.
+    TRUST_PROXY = _bool(os.getenv("TRUST_PROXY", "true"))
 
 
 class TestingConfig(Config):
