@@ -24,7 +24,9 @@ shadow-system/
 │   │   ├── __init__.py          register_modules(): lista de blueprints
 │   │   ├── hunter/              progression.py, defaults.py, models, services, forms, routes, cli
 │   │   ├── quests/              constants.py, recurrence.py, models, services, forms, routes, cli
-│   │   ├── habits/              streaks.py, models, services, forms, routes
+│   │   ├── habits/              streaks.py (com dias de folga), models, services, forms, routes
+│   │   ├── training/            parser.py (texto → plano), library.py (rotinas prontas), documents.py
+│   │   │                        (txt/md/docx/pdf), progression.py, handlers.py, models, services, forms, routes
 │   │   ├── gamification/        rules.py, handlers.py (eventos), services, routes
 │   │   ├── calendar/            models, services, forms, routes
 │   │   └── dashboard/           services (widgets), routes

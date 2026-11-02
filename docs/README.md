@@ -23,3 +23,4 @@ Comece por aqui se for mexer no código.
 | Calendário | [modules/calendar.md](modules/calendar.md) |
 | Dashboard | [modules/dashboard.md](modules/dashboard.md) |
 | Gamificação | [modules/gamification.md](modules/gamification.md) |
+| Treinos | [modules/training.md](modules/training.md) |
