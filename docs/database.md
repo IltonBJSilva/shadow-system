@@ -9,7 +9,8 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 |---|---|---|
 | `app_settings` | core | Configurações do usuário em JSON (ex.: widgets do dashboard) |
 | `stored_secrets` | core | Tokens das integrações cadastrados pela tela, em JSON (`google_token`, `buffer_token`, `credentials:<nome>`). Ver [security.md](security.md) |
-| `hunters` | hunter | O perfil (nome, título, `total_xp`) |
+| `hunters` | hunter | O perfil (nome, título exibido, `total_xp`) |
+| `titles` | hunter | Títulos: regra de desbloqueio (`rule` + `threshold`), `unlocked_at`; `rule="custom"` = criado por você |
 | `ranks` | hunter | Ranks configuráveis (`code`, `min_level` únicos) |
 | `attributes` | hunter | Atributos e seus pontos |
 | `xp_events` | hunter | Histórico de XP (origem, valor, data) |
@@ -19,10 +20,14 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 | `quests` | quests | Quests (tipo, prioridade, dificuldade, XP, prazo, status, recorrência, `series_id`) |
 | `quest_attributes` | quests | Atributos de cada quest |
 | `quest_logs` | quests | Histórico de cada quest |
-| `habits` | habits | Hábitos |
+| `habits` | habits | Hábitos (`weekdays`: dias esperados, vazio = todos) |
 | `habit_attributes` | habits | Atributos de cada hábito |
 | `habit_logs` | habits | Dias feitos (único por hábito+dia), com o XP dado |
 | `calendar_events` | calendar | Eventos (origem local/google, `google_event_id` único, quest vinculada) |
+| `workout_plans` | training | Planos de treino: horário, duração, automações, aumento de carga, hábito ligado |
+| `workout_days` | training | Dias de treino (dia da semana, nome, `quest_series_id` da quest semanal) |
+| `workout_exercises` | training | Exercícios (séries, repetições, carga, descanso, observação) |
+| `workout_sessions` | training | Treinos feitos (data, dia, quest) |
 
 ## Relações principais
 
