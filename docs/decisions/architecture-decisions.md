@@ -80,3 +80,33 @@ deixam a regra de jogo num lugar só sem acoplar os módulos. Síncrono e na mes
 pelo usuário.
 **Motivo:** áudios e imagens do anime são protegidos por direitos autorais. Sons sintetizados não pesam no
 repositório e funcionam offline.
+
+## ADR-013: Produção no Render + Supabase, não no PythonAnywhere (02/11/2026)
+
+**Decisão:** o app roda no Render (plano gratuito, Ohio) e o banco no Supabase (PostgreSQL gratuito,
+`us-east-2`), configurados pelo `render.yaml`. Front e back no mesmo serviço.
+**Motivo:** o PythonAnywhere gratuito só deixa sair para domínios liberados, e `api.buffer.com` não
+estava na lista. Vercel e Cloudflare Workers foram descartados: são serverless, não têm disco, e o
+Flask com SQLAlchemy, psycopg e as bibliotecas do Google exigiria reescrever o app. Separar front
+(Vercel) e back (Render) exigiria reescrever a interface em JS e lidar com CORS e cookies entre
+domínios, sem ganho para um usuário. App e banco na mesma região para as consultas serem rápidas.
+**Custo:** o Render gratuito dorme após 15 min sem acesso (ver ADR-015) e apaga o disco a cada deploy
+(ver ADR-014).
+
+## ADR-014: Tokens das integrações no banco (02/11/2026)
+
+**Decisão:** os tokens cadastrados pela tela (Google, Buffer, Notion, WhatsApp) ficam na tabela
+`stored_secrets` (`app/core/secret_store.py`), não em `instance/*.json`. Arquivos antigos são
+importados na primeira leitura e apagados.
+**Motivo:** o disco do Render é efêmero; os tokens sumiriam a cada deploy. No Supabase, as tabelas do
+schema `public` ficam expostas na API REST com a chave pública, por isso `flask security lock-db`
+liga RLS sem policies em todas elas no build. O app conecta como dono das tabelas e não é afetado.
+**Custo:** os tokens ficam em texto no banco; quem tiver a senha do banco os lê.
+
+## ADR-015: Keep-alive externo pelo /health (02/11/2026)
+
+**Decisão:** o cron-job.org (a cada 5 min, principal) e o GitHub Actions (reserva) chamam `/health`,
+que é público e faz `SELECT 1`.
+**Motivo:** o mesmo ping evita o sono do Render e a pausa do Supabase gratuito. O GitHub Actions
+sozinho não bastou: execuções agendadas não têm horário garantido, e no primeiro dia nenhuma rodou em
+3 horas. Um Worker do Cloudflare com Cron Trigger faria o mesmo papel, se o cron-job.org falhar.
