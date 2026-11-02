@@ -21,6 +21,29 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 - Token do Buffer vence em 90 dias; para invalidar, apague-o no Buffer. Para revogar o Google,
   *Desconectar* no app e https://myaccount.google.com/permissions.
 
+## Produção (Render + Supabase)
+
+O repositório é **público**. Por isso nada de segredo entra nele, nem no `render.yaml` nem nos
+workflows. Onde cada segredo fica:
+
+| Segredo | Onde fica | Observação |
+|---|---|---|
+| Senha do banco (dentro do `DATABASE_URL`) | Render > Environment | Nunca colar em chat, issue ou log; trocar por `***` |
+| `OWNER_PASSWORD_HASH` | Render > Environment | É o hash, não a senha |
+| `SECRET_KEY` | Render (gerada sozinha) | Trocar derruba as sessões |
+| JSON do cliente OAuth do Google | Render > Secret Files (`/etc/secrets/`) | Fora do git e fora do disco do app |
+| Tokens do Google, Buffer, Notion, WhatsApp | Tabela `stored_secrets` no Supabase | Cadastrados pela tela; RLS ligado |
+| `APP_URL` do keep-alive | Variável do GitHub Actions | Não é segredo (o endereço já é público) |
+
+- A chave `sb_publishable_...` do Supabase é pública por natureza. O que impede que ela leia as tabelas
+  é o RLS ligado pelo `flask security lock-db`.
+- O `/health` é público, mas só responde `{"ok":..., "database":...}`, sem nenhum dado.
+- Login: um usuário, senha com hash scrypt, bloqueio após 5 tentativas erradas, cookie só por HTTPS.
+- Testes e scripts que usam outro banco **não podem apontar para `instance/` real**: a importação de
+  arquivos antigos (`secret_store`) apagaria os tokens do PC. Os testes já usam uma pasta temporária
+  (`tests/conftest.py`); scripts avulsos devem fazer o mesmo (`GOOGLE_TOKEN_FILE`, `BUFFER_TOKEN_FILE`,
+  `CREDENTIALS_DIR` apontando para uma pasta temporária).
+
 ## Acesso
 
 - Com `AUTH_ENABLED=false` (padrão), qualquer um que alcance a porta usa o app. Por isso o `run.ps1`
