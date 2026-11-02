@@ -33,16 +33,43 @@ Penalty Quests (não há efeito cascata).
 
 Tudo pode ser desligado ou ajustado em `/gamification/`.
 
+## Zona de Falha (`/gamification/failures`)
+
+Toda quest recorrente não feita vira uma linha em `quest_failures` (título, prazo, XP perdido, Penalty
+Quest gerada), mesmo com as punições desligadas. Você registra o **motivo**, com uma observação opcional:
+
+| Motivo (`FAILURE_REASONS`) | Sugestão do System | Devolve o XP? (padrão) |
+|---|---|---|
+| `procrastination`: Procrastinação | começar pela parte de 15 minutos | não |
+| `planning`: Falta de planejamento | rever prazo e recorrência | não |
+| `unexpected`: Imprevisto | seguir na próxima ocorrência | **sim** |
+| `real_limit`: Limitação real | ajustar a meta ao momento | **sim** |
+
+- Os motivos que devolvem o XP ficam em `Rules.refund_reasons` (caixas na tela de Regras). Devolver
+  significa: `+XP` com `source="penalty_refund"` e a Penalty Quest cancelada. Mudar de ideia depois não
+  devolve duas vezes (`refunded`).
+- O dashboard avisa quantas falhas estão sem motivo; o Arquiteto usa as contagens por motivo para
+  sugerir ajustes ("Planejar a semana", "Primeiros 15 minutos").
+- `services`: `record_failure`, `list_failures`, `pending_failures_count`, `failure_stats(dias)`,
+  `classify_failure(id, motivo, observação)`.
+
+## Conquistas
+
+A caixa *"Dar o XP de recompensa ao desbloquear uma conquista"* liga ou desliga a recompensa
+(`hunter.set_achievement_rewards`). As conquistas em si são do módulo Hunter
+([hunter.md](hunter.md#conquistas-e-títulos)).
+
 ## Como funciona por dentro
 
 ```
 quests.complete_quest ──publish("quest.completed")──▶ handlers.on_quest_completed  → bônus
-quests.roll_over      ──publish("quest.missed")─────▶ handlers.on_quest_missed     → penalidade + Penalty Quest
+quests.roll_over      ──publish("quest.missed")─────▶ handlers.on_quest_missed     → penalidade + Penalty Quest + registro na Zona de Falha
 habits.check_in       ──publish("habit.checked")────▶ handlers.on_habit_checked    → bônus de sequência
 habits.undo_check_in  ──publish("habit.unchecked")──▶ handlers.on_habit_unchecked  → estorno do bônus
 ```
 
 - `rules.py`: regras puras e valores padrão (`Rules`). Mude os padrões ali.
 - `handlers.py`: as reações aos eventos. Para um bônus novo, crie um handler com `@subscribe("evento")`.
-- As mensagens devolvidas pelos handlers viram flashes com categoria `bonus`, `penalty` ou `levelup`,
-  que tocam o som correspondente (`static/js/sounds.js`).
+- As mensagens devolvidas pelos handlers viram flashes com categoria `bonus`, `penalty`, `levelup` ou
+  `achievement`, que tocam o som correspondente (`static/js/sounds.js`). `levelup` com "LEVEL UP" abre a
+  janela de tela cheia (`showLevelUp` em `static/js/shadow.js`).
