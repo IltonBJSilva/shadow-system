@@ -10,6 +10,7 @@ google-auth==2.35.0
 google-auth-oauthlib==1.2.1
 tzdata==2024.2
 waitress==3.0.0
+pypdf==5.1.0
 pytest==8.3.3
 # PostgreSQL (produção: Render + Supabase)
 psycopg[binary]==3.2.3
