@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Nova rotina{% endblock %}
+{% block heading %}Nova rotina de treino{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('training.index') }}">Treinos</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  {% if not form.text.data %}
+    <section class="panel">
+      <div class="panel-header"><h2>1. Comece por uma rotina pronta</h2></div>
+      <p class="muted small">Modelos gerais para ajustar à sua realidade. Não substituem a orientação de um profissional de
+        educação física.</p>
+      <div class="grid grid-3">
+        {% for t in templates %}
+          <a class="panel template-card" href="{{ url_for('training.new', template=t.key) }}">
+            <span class="tag">{{ t.level }}</span>
+            <h3>{{ t.name }}</h3>
+            <p class="muted small">{{ t.summary }}</p>
+            <span class="btn btn-sm">Usar esta</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>2. Ou envie um documento</h2></div>
+      <p class="muted small">PDF, Word (.docx) ou texto do seu personal ou de um site. O texto é extraído para você
+        conferir antes de salvar. PDF escaneado (imagem) não tem texto: nesse caso, cole à mão.</p>
+      <form method="post" action="{{ url_for('training.upload') }}" enctype="multipart/form-data" class="row">
+        {{ upload.csrf_token }}
+        {{ upload.document(class="input", accept=".txt,.md,.docx,.pdf") }}
+        <button class="btn btn-primary" type="submit">Ler documento</button>
+      </form>
+    </section>
+  {% endif %}
+
+  {% include "training/_preview.html" %}
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>{{ "Confira e ajuste" if form.text.data else "3. Ou escreva/cole a sua rotina" }}</h2>
+      {% if form.text.data %}<a class="btn btn-ghost btn-sm" href="{{ url_for('training.new') }}">Recomeçar</a>{% endif %}
+    </div>
+    {% if from_document %}<p class="muted small">Texto extraído do documento. Apague o que não for treino (cabeçalhos,
+      dicas) e confira a prévia.</p>{% endif %}
+    <form method="post" action="{{ url_for('training.new') }}" class="form-grid">
+      {% include "training/_plan_fields.html" %}
+      <div class="form-actions full">
+        <button class="btn" type="submit" name="action" value="preview">Atualizar prévia</button>
+        <button class="btn btn-primary" type="submit" name="action" value="create">Criar e ativar plano</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

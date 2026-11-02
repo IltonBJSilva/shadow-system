@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}{{ plan.name }}{% endblock %}
+{% block heading %}{{ plan.name }}{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('training.index') }}">Treinos</a>
+  <a class="btn" href="{{ url_for('training.edit', plan_id=plan.id) }}">Editar</a>
+  {% if plan.active %}
+    {{ ui.post_button(url_for('training.deactivate', plan_id=plan.id), "Pausar", "btn btn-ghost") }}
+  {% else %}
+    {{ ui.post_button(url_for('training.activate', plan_id=plan.id), "Ativar", "btn btn-primary") }}
+  {% endif %}
+{% endblock %}
+{% block content %}
+{% set done, total = week %}
+<div class="stack">
+  {% if suggestions %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Semana completa: progressão sugerida</p>
+      <p class="muted small">Você fez todos os treinos da semana. Sugestão para a próxima (aplique só o que fizer sentido
+        para o seu corpo; se algum exercício ainda estiver pesado, ignore e repita a semana).</p>
+      <ul class="list">
+        {% for s in suggestions %}
+          <li class="list-item"><div class="item-main"><div class="item-title">{{ s.name }}</div>
+            <div class="item-meta"><span>{{ s.before }}</span><span>→</span><strong>{{ s.after }}</strong></div></div></li>
+        {% endfor %}
+      </ul>
+      <div class="row">
+        {{ ui.post_button(url_for('training.apply_progression', plan_id=plan.id), "Aplicar progressão", "btn btn-primary") }}
+        {{ ui.post_button(url_for('training.dismiss_progression', plan_id=plan.id), "Ignorar desta vez", "btn btn-ghost") }}
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-value">{{ done }}/{{ total }}</div><div class="kpi-label">Esta semana</div></div>
+    <div class="kpi"><div class="kpi-value">{{ sessions }}</div><div class="kpi-label">Treinos feitos</div></div>
+    <div class="kpi"><div class="kpi-value">{{ plan.session_time }}</div><div class="kpi-label">{{ plan.session_minutes }} min</div></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Semana de treino</h2>
+      {% if plan.active %}<span class="tag tag-success">ativo</span>{% else %}<span class="tag tag-muted">pausado</span>{% endif %}
+    </div>
+    {% if plan.description %}<p class="muted">{{ plan.description }}</p>{% endif %}
+    <p class="muted small">
+      {% if plan.active %}
+        Conclua a quest <em>"Treino: ..."</em> do dia (em Quests ou no Dashboard) para registrar o treino.
+        {% if plan.make_habit %}O hábito de treino é marcado sozinho.{% endif %}
+        {% if plan.make_events %}Os treinos estão no calendário das próximas semanas.{% endif %}
+      {% else %}
+        Plano pausado: clique em <strong>Ativar</strong> para criar as quests{% if plan.make_events %}, os eventos{% endif %}{% if plan.make_habit %} e o hábito{% endif %}.
+      {% endif %}
+    </p>
+    <div class="grid grid-2">
+      {% for day in plan.days %}
+        <div class="panel training-day">
+          <p class="system-label">{{ weekdays[day.weekday] }}</p>
+          <h3>{{ day.name }}</h3>
+          <table class="table small">
+            <thead><tr><th>Exercício</th><th>Séries</th><th>Carga</th><th>Descanso</th></tr></thead>
+            <tbody>
+              {% for ex in day.exercises %}
+                <tr>
+                  <td>{{ ex.name }}{% if ex.notes %}<br><span class="muted">{{ ex.notes }}</span>{% endif %}</td>
+                  <td class="mono">{{ ex.sets }}x{{ ex.reps }}</td>
+                  <td class="mono">{{ ("%g kg" % ex.load_kg) | replace(".", ",") if ex.load_kg is not none else "—" }}</td>
+                  <td class="mono">{{ "%ss" % ex.rest_seconds if ex.rest_seconds else "—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Últimos treinos</h2></div>
+    {% if recent %}
+      <ul class="list">
+        {% for day, name in recent %}
+          <li class="list-item is-done"><span class="check-button is-checked">✓</span>
+            <div class="item-main"><div class="item-title">{{ name }}</div><div class="item-meta">{{ day | date_br }}</div></div></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhum treino registrado ainda. O primeiro desbloqueia o título “Primeiro Treino”.") }}
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Zona de perigo</h2></div>
+    <p class="muted small">Remover apaga o plano e seus treinos registrados. O XP já ganho continua no histórico do Hunter.</p>
+    {{ ui.post_button(url_for('training.delete', plan_id=plan.id), "Remover plano", "btn btn-danger btn-sm") }}
+  </section>
+</div>
+{% endblock %}

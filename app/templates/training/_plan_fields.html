@@ -1,0 +1,24 @@
+{# Campos do plano (criar e editar). Espera `form` (PlanForm). #}
+{% import "partials/_macros.html" as ui %}
+{{ form.csrf_token }}
+{{ ui.field(form.name, placeholder="Ex.: Hipertrofia ABC") }}
+{{ ui.field(form.description, placeholder="Ex.: Ganhar força até março") }}
+<div class="field full">
+  {{ form.text.label(class="label") }}
+  {{ form.text(class="input mono training-text", rows=16, spellcheck="false", placeholder=example | default("")) }}
+  <small class="muted">Um dia por linha (<span class="mono">Segunda: Treino A - Peito</span>) e os exercícios abaixo
+    (<span class="mono">- Supino reto 4x8-12 40kg descanso 90s</span>). Carga, descanso e observações entre
+    parênteses são opcionais. Sem dia da semana (<span class="mono">Treino A:</span>), os dias são distribuídos sozinhos.</small>
+  {% for e in form.text.errors %}<small class="error-text">{{ e }}</small>{% endfor %}
+</div>
+{{ ui.field(form.start_date, type="date") }}
+{{ ui.field(form.session_time, placeholder="18:00") }}
+{{ ui.field(form.session_minutes) }}
+{{ ui.field(form.load_increment_kg, step="0.5") }}
+<div class="field full">
+  <span class="label">O que o System faz ao ativar</span>
+  {{ ui.field(form.make_quests) }}
+  {{ ui.field(form.make_events) }}
+  {{ ui.field(form.make_habit) }}
+  {{ ui.field(form.progression) }}
+</div>

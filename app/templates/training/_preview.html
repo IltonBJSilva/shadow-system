@@ -1,0 +1,31 @@
+{# Prévia do que o texto virou. Espera `parsed` (ParsedPlan ou None), `error` e `weekdays`. #}
+{% if error %}
+  <div class="panel system-window"><p class="system-label">[SYSTEM] Atenção</p><p>{{ error }}</p></div>
+{% endif %}
+{% if parsed %}
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Prévia</h2>
+      <span class="tag tag-blue">{{ parsed.days | length }} dia(s) · {{ parsed.exercise_count }} exercício(s)</span>
+    </div>
+    <p class="muted small">Assim o System entendeu a rotina. Se algo saiu errado, ajuste o texto e clique em
+      <strong>Atualizar prévia</strong>.</p>
+    <div class="grid grid-2">
+      {% for day in parsed.days | sort(attribute="weekday") %}
+        <div class="panel training-day">
+          <p class="system-label">{{ weekdays[day.weekday] }}</p>
+          <h3>{{ day.name }}</h3>
+          <ul class="plain-list">
+            {% for ex in day.exercises %}<li>{{ ex.describe() }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+    {% if parsed.warnings %}
+      <details class="small muted">
+        <summary>{{ parsed.warnings | length }} linha(s) não entendida(s)</summary>
+        <ul class="plain-list">{% for w in parsed.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+      </details>
+    {% endif %}
+  </section>
+{% endif %}

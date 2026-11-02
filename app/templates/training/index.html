@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Treinos{% endblock %}
+{% block heading %}Treinos{% endblock %}
+{% block actions %}<a class="btn btn-primary" href="{{ url_for('training.new') }}">+ Nova rotina</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Rotinas de treino</p>
+    <p class="muted small">Escolha uma rotina pronta, cole a sua ou envie um documento (PDF, Word, texto). O System cria
+      uma quest por dia de treino, coloca os treinos no calendário, conta a sequência num hábito e sugere aumentar a
+      carga quando você completa a semana.</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Seus planos</h2></div>
+    {% if plans %}
+      <ul class="list">
+        {% for plan in plans %}
+          {% set done, total = weeks[plan.id] %}
+          <li class="list-item {% if not plan.active %}is-done{% endif %}">
+            <div class="item-main">
+              <a class="item-title" href="{{ url_for('training.detail', plan_id=plan.id) }}">{{ plan.name }}</a>
+              <div class="item-meta">
+                {% if plan.active %}<span class="tag tag-success">ativo</span>{% else %}<span class="tag tag-muted">pausado</span>{% endif %}
+                <span>{{ plan.days | length }} treino(s) por semana</span>
+                <span>{% for d in plan.days %}{{ weekdays[d.weekday][:3] }}{{ ", " if not loop.last }}{% endfor %}</span>
+                <span>{{ sessions[plan.id] }} treino(s) feitos</span>
+                {% if plan.pending_progression_week %}<span class="tag tag-warning">progressão disponível</span>{% endif %}
+              </div>
+              {% if plan.active and total %}
+                <div class="progress thin" aria-hidden="true"><div class="progress-fill" style="width: {{ (done * 100 / total) | int }}%"></div></div>
+                <div class="item-meta"><span>Esta semana: {{ done }}/{{ total }}</span></div>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhuma rotina ainda. Clique em “+ Nova rotina” e escolha uma pronta para começar.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

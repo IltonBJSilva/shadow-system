@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ plan.name }}{% endblock %}
+{% block heading %}Editar plano{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('training.detail', plan_id=plan.id) }}">Voltar ao plano</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  {% include "training/_preview.html" %}
+  <section class="panel">
+    {% if plan.active %}
+      <p class="muted small">O plano está ativo: ao salvar, as quests pendentes e os eventos futuros são refeitos com o
+        conteúdo novo. O histórico de treinos continua.</p>
+    {% endif %}
+    <form method="post" class="form-grid">
+      {% include "training/_plan_fields.html" %}
+      <div class="form-actions full">
+        <button class="btn" type="submit" name="action" value="preview">Atualizar prévia</button>
+        <button class="btn btn-primary" type="submit" name="action" value="save">Salvar</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

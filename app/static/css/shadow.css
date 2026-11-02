@@ -378,3 +378,16 @@ select.input[multiple] { min-height: 130px; }
 .bulk-bar label { gap: 6px; cursor: pointer; }
 .bulk-check { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--accent, #8b5cf6); cursor: pointer; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Treinos */
+.plain-list { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.plain-list li { padding-left: .9rem; position: relative; }
+.plain-list li::before { content: "›"; position: absolute; left: 0; color: var(--accent, #8b5cf6); }
+.template-card { display: flex; flex-direction: column; gap: .4rem; text-decoration: none; color: inherit;
+  transition: border-color .15s, transform .15s; }
+.template-card:hover { border-color: var(--accent, #8b5cf6); transform: translateY(-2px); }
+.template-card h3, .training-day h3 { margin: 0; font-size: 1rem; }
+.template-card .btn { align-self: flex-start; margin-top: auto; }
+.training-day { padding: .9rem 1rem; }
+.training-text { min-height: 16rem; font-size: .85rem; line-height: 1.5; }
+.mail-filters { margin: 0; }
