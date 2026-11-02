@@ -1,6 +1,6 @@
 # Roadmap
 
-Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
+Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 
 ## Fase 1: MVP ✅
 
@@ -18,6 +18,7 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Postagens no Buffer pessoal: token pela tela, canais, posts, novo agendamento com texto por rede
 - [x] Gmail (leitura), Notion (importar quests), WhatsApp (resumo do dia), tokens cadastrados pela tela
 - [x] Login opcional, CSRF, cabeçalhos de segurança, backup
+- [x] Online de graça: Render + Supabase (`render.yaml`), tokens no banco com RLS, keep-alive (cron-job.org + GitHub Actions)
 - [x] Documentação técnica
 
 ## Fase 2: Vida acadêmica
@@ -66,6 +67,8 @@ Estado em 01/11/2026. Marque aqui conforme as features forem concluídas.
 
 - [ ] Hábitos semanais (meta de N vezes por semana)
 - [ ] Reabrir quest concluída com estorno de XP
-- [ ] Criptografia do token do Google em repouso
-- [ ] Testes rodando também contra PostgreSQL
+- [ ] Criptografia dos tokens em repouso (`stored_secrets`)
+- [ ] Testes rodando também contra PostgreSQL no CI (hoje as migrations foram validadas à mão num PostgreSQL real)
+- [ ] Backup automático do Supabase (o plano gratuito não guarda backups para baixar)
+- [ ] Ler `instance/` de uma variável de ambiente, para scripts nunca tocarem nos tokens reais
 - [ ] Screenshots reais no README

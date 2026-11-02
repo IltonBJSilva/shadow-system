@@ -316,5 +316,7 @@ E clique em **Reload** na aba Web.
 ## Ainda não feito
 
 - Dockerfile / docker-compose.
+- Backup automático do Supabase (hoje é `pg_dump` manual).
+- Domínio próprio (o Cloudflare pode cuidar do DNS e apontar para o Render).
 - Agendador para `flask quests rollover` e sincronização do Google (hoje o rollover roda ao abrir o
   dashboard ou a lista de quests).
