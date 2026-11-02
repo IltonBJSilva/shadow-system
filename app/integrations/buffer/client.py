@@ -16,6 +16,7 @@ from datetime import datetime
 import httpx
 
 from app.core import time
+from app.integrations.network import connection_message
 
 API_URL = "https://api.buffer.com"
 
@@ -136,7 +137,7 @@ class BufferClient:
         try:
             response = self._http.post("", json={"query": query, "variables": variables or {}})
         except httpx.HTTPError as exc:
-            raise BufferError("Não foi possível falar com o Buffer. Confira a internet.") from exc
+            raise BufferError(connection_message("Buffer", API_URL, exc)) from exc
         if response.status_code == 401:
             raise BufferError("O Buffer recusou o token (venceu ou foi apagado). Cadastre um novo.")
         if response.status_code == 429:

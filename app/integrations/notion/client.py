@@ -13,6 +13,7 @@ from datetime import date
 
 import httpx
 
+from app.integrations.network import connection_message
 API_URL = "https://api.notion.com/v1"
 _ID = re.compile(r"[0-9a-fA-F-]{32,36}")
 NOTION_VERSION = "2022-06-28"
@@ -69,7 +70,7 @@ class NotionClient:
         try:
             response = self._http.request(method, path, json=json)
         except httpx.HTTPError as exc:
-            raise NotionError("Não foi possível falar com o Notion. Confira a internet.") from exc
+            raise NotionError(connection_message("Notion", API_URL, exc)) from exc
         if response.status_code == 401:
             raise NotionError("O Notion recusou o token. Gere outro em notion.so/my-integrations.")
         if response.status_code == 404:

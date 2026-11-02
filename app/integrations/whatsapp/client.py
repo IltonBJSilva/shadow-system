@@ -11,6 +11,7 @@ import re
 
 import httpx
 
+from app.integrations.network import connection_message
 GRAPH_URL = "https://graph.facebook.com"
 GRAPH_VERSION = "v21.0"
 _DIGITS = re.compile(r"\d{8,15}")
@@ -62,7 +63,7 @@ class WhatsAppClient:
         try:
             response = self._http.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
-            raise WhatsAppError("Não foi possível falar com o WhatsApp. Confira a internet.") from exc
+            raise WhatsAppError(connection_message("WhatsApp", GRAPH_URL, exc)) from exc
         try:
             data = response.json()
         except ValueError:

@@ -12,6 +12,8 @@ from datetime import date
 import httpx
 from flask import current_app
 
+from app.integrations.network import connection_message
+
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_BYTES = 20 * 1024 * 1024
 
@@ -42,7 +44,7 @@ def upload(filename: str, content: bytes, content_type: str, transport: httpx.Ba
             response = http.post(f"{base}/storage/v1/object/{bucket}/{path}", content=content,
                                  headers={"Content-Type": content_type})
         except httpx.HTTPError as exc:
-            raise StorageError(f"{filename}: não foi possível enviar a imagem.") from exc
+            raise StorageError(f"{filename}: {connection_message('armazenamento', base, exc)}") from exc
     if response.status_code >= 400:
         raise StorageError(f"{filename}: a hospedagem recusou a imagem ({response.status_code}).")
     return f"{base}/storage/v1/object/public/{bucket}/{path}"

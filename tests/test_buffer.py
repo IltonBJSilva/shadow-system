@@ -238,3 +238,21 @@ def test_pages_render(client, connected):
 
 def test_buffer_page_redirects_to_token_when_missing(client):
     assert client.get("/integrations/buffer/").headers["Location"].endswith("/integrations/buffer/token")
+
+
+def test_blocked_by_pythonanywhere_proxy_explains_allowlist():
+    def handler(request):
+        raise httpx.ProxyError("403 Forbidden", request=request)
+
+    client = buffer.client.BufferClient("x" * 40, transport=httpx.MockTransport(handler))
+    with pytest.raises(buffer.client.BufferError, match="api.buffer.com.*PythonAnywhere"):
+        client.organization_id()
+
+
+def test_offline_keeps_generic_message():
+    def handler(request):
+        raise httpx.ConnectError("sem rede", request=request)
+
+    client = buffer.client.BufferClient("x" * 40, transport=httpx.MockTransport(handler))
+    with pytest.raises(buffer.client.BufferError, match="Confira a internet"):
+        client.organization_id()

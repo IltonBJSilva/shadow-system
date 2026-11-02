@@ -23,9 +23,13 @@ Plano gratuito: app sempre no ar em `https://SEU_USUARIO.pythonanywhere.com`, di
 
 Limites do plano gratuito:
 
-- **Internet de saída restrita** a uma lista de sites liberados. As APIs do Google estão na lista; se
-  Buffer, Notion ou WhatsApp derem erro de conexão, peça a liberação do domínio no fórum/suporte do
-  PythonAnywhere (eles liberam APIs públicas) ou use o plano pago.
+- **Internet de saída restrita** a uma lista de sites liberados (https://www.pythonanywhere.com/whitelist/).
+  As APIs do Google estão na lista. Se um domínio não estiver, o app mostra "O servidor bloqueou o
+  acesso a ...". Domínios usados: `api.buffer.com` (Buffer), `api.notion.com` (Notion),
+  `graph.facebook.com` (WhatsApp) e o seu `*.supabase.co` (imagens). Para liberar, peça no fórum
+  (https://www.pythonanywhere.com/forums/) ou por e-mail (support@pythonanywhere.com) informando o
+  domínio e o link da documentação pública da API (ex.: https://developers.buffer.com); ou use o
+  plano pago, que não tem restrição.
 - É preciso entrar no painel e clicar em **"Run until 3 months from today"** a cada 3 meses, senão o
   site é pausado (os dados não se perdem).
 - 512 MB de disco e CPU limitada: suficiente para um usuário.
