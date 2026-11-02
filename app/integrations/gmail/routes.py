@@ -7,6 +7,7 @@ from app.modules.quests.services import QuestInput
 from ..google_calendar import oauth
 from ..google_calendar.oauth import GoogleAuthError
 from . import GmailError, get_client, is_authorized
+from .client import PERIODS, PLACES, STATUSES, MailFilter
 
 bp = Blueprint("gmail", __name__, url_prefix="/integrations/gmail")
 
@@ -20,15 +21,19 @@ def _handle(exc):
 
 @bp.get("/")
 def index():
-    emails, unread, error = [], 0, None
+    emails, total, error = [], 0, None
+    mail_filter = MailFilter.from_args(request.args)
     if is_authorized():
         try:
             client = get_client()
-            unread, emails = client.unread_count(), client.unread(15)
+            emails, total = client.search(mail_filter, 25)
+            if mail_filter.is_default:
+                total = client.unread_count()  # número exato de não lidos (a estimativa da busca é aproximada)
         except (GmailError, GoogleAuthError) as exc:
             error = str(exc)
     return render_template("integrations/gmail.html", configured=oauth.is_configured(),
-                           authorized=is_authorized(), emails=emails, unread=unread, error=error)
+                           authorized=is_authorized(), emails=emails, total=total, error=error,
+                           f=mail_filter, periods=PERIODS, statuses=STATUSES, places=PLACES)
 
 
 @bp.post("/quest")
@@ -46,4 +51,5 @@ def to_quest():
         description=f"E-mail de {sender}.\n{link if link.startswith('https://mail.google.com/') else ''}".strip(),
     ), note="Quest criada a partir de um e-mail")
     flash(f"[Nova quest] {quest.title}", "success")
-    return redirect(url_for("gmail.index"))
+    back = request.form.get("next", "")
+    return redirect(back if back.startswith("/integrations/gmail/") else url_for("gmail.index"))

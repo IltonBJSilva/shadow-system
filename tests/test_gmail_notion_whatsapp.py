@@ -267,3 +267,38 @@ def test_notion_import_skips_untitled_pages(app):
     assert notion.import_pages(pages) == 1
     assert [q.title for q in quests.list_quests("active")] == ["Com nome"]
     assert "p1" not in notion.imported_ids()  # depois de ganhar um nome, ainda dá para importar
+
+
+def test_mail_filter_builds_gmail_query():
+    from werkzeug.datastructures import MultiDict
+    from app.integrations.gmail.client import MailFilter
+
+    assert MailFilter().query() == "is:unread in:inbox"
+    f = MailFilter.from_args(MultiDict({"q": 'vaga "java" (remoto)', "status": "all", "period": "7d",
+                                        "from": "linkedin", "attachment": "1", "place": "all"}))
+    assert f.query() == "newer_than:7d from:(linkedin) has:attachment vaga java remoto"
+    assert not f.is_default
+    bad = MailFilter.from_args(MultiDict({"period": "999d", "status": "x"}))
+    assert bad.period == "any" and bad.status == "unread"  # valores fora da lista voltam ao padrão
+
+
+def test_gmail_search_page_passes_query(client, gmail_authorized, monkeypatch):
+    seen = {}
+    original = FakeGmail.users
+
+    def users(self):
+        users_obj = original(self)
+        messages = users_obj.messages()
+        real_list = messages.list
+
+        def spy(userId, q, maxResults):
+            seen["q"] = q
+            return _Req({"messages": [{"id": "m1"}], "resultSizeEstimate": 1})
+        messages.list = spy
+        users_obj.messages = lambda: messages
+        return users_obj
+
+    monkeypatch.setattr(FakeGmail, "users", users)
+    html = client.get("/integrations/gmail/?q=proposta&status=all").get_data(as_text=True)
+    assert seen["q"] == "in:inbox proposta"
+    assert "Resultado da busca" in html and "Proposta" in html and "Virar quest" in html

@@ -23,10 +23,52 @@
     <section class="panel system-window"><p class="system-label">[SYSTEM] Erro</p><p>{{ error }}</p></section>
   {% else %}
     <section class="panel">
+      <form method="get" class="form-grid mail-filters" role="search">
+        <label class="field full">
+          <span class="label">Buscar</span>
+          <input class="input" type="search" name="q" value="{{ f.text }}"
+                 placeholder="Palavras do assunto ou do texto (ex.: vaga java, boleto, proposta)">
+        </label>
+        <label class="field">
+          <span class="label">Remetente</span>
+          <input class="input" type="text" name="from" value="{{ f.sender }}" placeholder="nome ou e-mail">
+        </label>
+        <label class="field">
+          <span class="label">Situação</span>
+          <select class="input" name="status">
+            {% for key, label in statuses.items() %}<option value="{{ key }}" {% if key == f.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Período</span>
+          <select class="input" name="period">
+            {% for key, label in periods.items() %}<option value="{{ key }}" {% if key == f.period %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Onde</span>
+          <select class="input" name="place">
+            {% for key, label in places.items() %}<option value="{{ key }}" {% if key == f.place %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" name="attachment" value="1" {% if f.attachment %}checked{% endif %}> Só com anexo</label>
+        <div class="form-actions full">
+          <button class="btn btn-primary" type="submit">Buscar</button>
+          {% if not f.is_default %}<a class="btn btn-ghost" href="{{ url_for('gmail.index') }}">Limpar filtros</a>{% endif %}
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
       <div class="panel-header">
-        <h2>Não lidos na caixa de entrada</h2>
-        <span class="tag tag-blue">{{ unread }}</span>
+        <h2>{{ "Não lidos na caixa de entrada" if f.is_default else "Resultado da busca" }}</h2>
+        <span class="tag tag-blue">{{ total }}</span>
       </div>
+      <p class="muted small">
+        <strong>Virar quest</strong> transforma um e-mail que pede uma ação (responder um cliente, se candidatar a
+        uma vaga, pagar um boleto) numa Side Quest <em>"Responder: assunto"</em> com prazo para hoje e o link do
+        e-mail. Ao concluir, você ganha XP. O e-mail não é alterado no Gmail.
+      </p>
       {% if emails %}
         <ul class="list">
           {% for mail in emails %}
@@ -44,13 +86,16 @@
                 <input type="hidden" name="subject" value="{{ mail.subject }}">
                 <input type="hidden" name="sender" value="{{ mail.sender }}">
                 <input type="hidden" name="url" value="{{ mail.url }}">
-                <button class="btn btn-sm" type="submit">Virar quest</button>
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button class="btn btn-sm" type="submit" title="Cria a quest &quot;Responder: {{ mail.subject }}&quot; para hoje">Virar quest</button>
               </form>
             </li>
           {% endfor %}
         </ul>
-      {% else %}
+      {% elif f.is_default %}
         {{ ui.empty("Caixa de entrada zerada. Inbox Zero desbloqueado.") }}
+      {% else %}
+        {{ ui.empty("Nenhum e-mail encontrado com esses filtros.") }}
       {% endif %}
     </section>
   {% endif %}

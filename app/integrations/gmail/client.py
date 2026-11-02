@@ -2,7 +2,7 @@
 
 Métodos usados (https://developers.google.com/gmail/api/reference/rest):
     users.labels.get        quantidade de não lidos na caixa de entrada
-    users.messages.list     ids dos e-mails não lidos (q="is:unread in:inbox")
+    users.messages.list     ids dos e-mails de uma busca (q = sintaxe de busca do Gmail, ver MailFilter)
     users.messages.get      remetente, assunto e data (format="metadata")
 
 Somente leitura (escopo gmail.readonly): o Shadow System não envia, não marca e não apaga e-mails.
@@ -34,6 +34,58 @@ class EmailSummary:
         return f"https://mail.google.com/mail/u/0/#inbox/{self.id}"
 
 
+PERIODS = {"any": "Qualquer data", "1d": "Últimas 24 horas", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias"}
+STATUSES = {"unread": "Não lidos", "all": "Lidos e não lidos"}
+PLACES = {"inbox": "Caixa de entrada", "all": "Todos (inclui arquivados)"}
+
+
+def _clean(value: str, limit: int = 120) -> str:
+    """Tira caracteres que quebram a sintaxe de busca do Gmail (parênteses, aspas, chaves)."""
+    return " ".join(value.translate({ord(c): " " for c in '()"{}'}).split())[:limit]
+
+
+@dataclass(frozen=True)
+class MailFilter:
+    """Filtros da tela, convertidos na busca do Gmail (os mesmos operadores da caixa de busca do Gmail)."""
+
+    text: str = ""
+    status: str = "unread"
+    period: str = "any"
+    sender: str = ""
+    attachment: bool = False
+    place: str = "inbox"
+
+    @classmethod
+    def from_args(cls, args) -> "MailFilter":
+        def pick(key: str, options: dict, default: str) -> str:
+            value = args.get(key, default)
+            return value if value in options else default
+
+        return cls(text=_clean(args.get("q", ""), 200), status=pick("status", STATUSES, "unread"),
+                   period=pick("period", PERIODS, "any"), sender=_clean(args.get("from", ""), 80),
+                   attachment=args.get("attachment") == "1", place=pick("place", PLACES, "inbox"))
+
+    @property
+    def is_default(self) -> bool:
+        return self == MailFilter()
+
+    def query(self) -> str:
+        parts = []
+        if self.status == "unread":
+            parts.append("is:unread")
+        if self.place == "inbox":
+            parts.append("in:inbox")
+        if self.period != "any":
+            parts.append(f"newer_than:{self.period}")
+        if self.sender:
+            parts.append(f"from:({self.sender})")
+        if self.attachment:
+            parts.append("has:attachment")
+        if self.text:
+            parts.append(self.text)
+        return " ".join(parts) or "in:anywhere"
+
+
 def build_service(credentials) -> Any:
     from googleapiclient.discovery import build
 
@@ -49,9 +101,14 @@ class GmailClient:
         return int(label.get("messagesUnread", 0))
 
     def unread(self, limit: int = 10) -> list[EmailSummary]:
-        listing = self._run(self._service.users().messages().list(userId="me", q="is:unread in:inbox",
+        return self.search(MailFilter(), limit)[0]
+
+    def search(self, mail_filter: MailFilter, limit: int = 15) -> tuple[list[EmailSummary], int]:
+        """E-mails que batem com o filtro e a estimativa de quantos existem no total."""
+        listing = self._run(self._service.users().messages().list(userId="me", q=mail_filter.query(),
                                                                   maxResults=limit))
-        return [self._summary(item["id"]) for item in listing.get("messages", [])]
+        found = [self._summary(item["id"]) for item in listing.get("messages", [])]
+        return found, int(listing.get("resultSizeEstimate", len(found)))
 
     def _summary(self, message_id: str) -> EmailSummary:
         data = self._run(self._service.users().messages().get(
