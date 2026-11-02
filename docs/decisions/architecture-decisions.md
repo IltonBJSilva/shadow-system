@@ -142,3 +142,44 @@ as registradas por outros módulos com `register_metric`). O título exibido é 
 conquistados; títulos próprios nascem desbloqueados.
 **Motivo:** dá um objetivo aos números que já existiam sem criar dependência circular: quem tem o dado
 se registra no Hunter. A verificação roda dentro de `award_xp`, então toda conquista é avisada na hora.
+
+## ADR-020: Inspiração no Solo Sistema sem copiar (02/11/2026)
+
+**Decisão:** o conceito (RPG da vida real, inicialização do sistema, mentor, zona de falha) foi adaptado
+com identidade própria: manifesto do usuário, textos e nomes originais, sons sintetizados, emblema próprio.
+**Motivo:** o site de referência não oferece licença para áudio, imagens ou textos, e Solo Leveling é obra
+protegida. A ADR-012 já valia para sons e arte; esta estende para textos e nomes de funcionalidades.
+
+## ADR-021: Arquiteto em duas camadas, regras sempre e IA opcional (02/11/2026)
+
+**Decisão:** o Arquiteto sempre roda por regras (`architect/analysis.py`) sobre um retrato montado só com
+dados reais (`architect/context.py`). A IA (Claude, SDK oficial `anthropic`) é opcional, com chave
+cadastrada pela tela e chamada só no servidor, e usa o mesmo retrato.
+**Motivo:** o projeto não tinha provedor de IA, e o usuário já tinha preferido não pagar por IA nos treinos.
+Assim o mentor existe e é útil sem custo, nada é simulado, e quem liga a IA ganha conversa e planos sob
+medida. Sugestões (das regras ou da IA) só viram quest quando o jogador aceita: "eu sou o jogador".
+**Escolhas técnicas:** modelo padrão `claude-opus-5-5`, `fallbacks: "default"` para recusas do
+classificador (exceto Haiku, que não tem), `effort` baixo na conversa e médio no plano, plano com saída
+estruturada e saneado no servidor. Testes com cliente falso: nenhum teste gasta crédito.
+
+## ADR-022: Falhas com motivo e XP devolvido por contexto (02/11/2026)
+
+**Decisão:** toda quest recorrente não feita fica na Zona de Falha (`quest_failures`); o jogador escolhe o
+motivo, e motivos configuráveis (padrão: imprevisto e limitação real) devolvem o XP e cancelam a Penalty
+Quest.
+**Motivo:** o pedido era punir com contexto, sem culpa. O System não tem como saber o motivo sozinho, então
+pergunta; a punição continua automática e pequena (ADR-010), e a correção vem depois, sem retroativo duplo.
+
+## ADR-023: XP por dificuldade e importância (02/11/2026)
+
+**Decisão:** XP padrão = XP da dificuldade × fator da prioridade (0,8 a 1,4), múltiplo de 5.
+**Motivo:** importância passa a contar sem deixar tarefa trivial render muito: o esforço (dificuldade)
+continua sendo o fator dominante. Categoria e atributos já influenciam pelos pontos de atributo, não pelo
+XP, para não haver categoria "que vale mais".
+
+## ADR-024: Conquistas são títulos com ícone e recompensa (02/11/2026)
+
+**Decisão:** em vez de uma tabela nova, `titles` ganhou `icon` e `reward_xp`; cada conquista desbloqueia o
+título de mesmo nome e paga o XP uma vez, direto no histórico (sem passar por `award_xp`).
+**Motivo:** conquista e título eram o mesmo evento; duas tabelas duplicariam regras e telas. Pagar fora de
+`award_xp` evita verificar conquistas em laço. A recompensa é desligável e não é paga retroativamente.
