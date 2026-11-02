@@ -34,6 +34,7 @@ workflows. Onde cada segredo fica:
 | JSON do cliente OAuth do Google | Render > Secret Files (`/etc/secrets/`) | Fora do git e fora do disco do app |
 | Tokens do Google, Buffer, Notion, WhatsApp | Tabela `stored_secrets` no Supabase | Cadastrados pela tela; RLS ligado |
 | `APP_URL` do keep-alive | Variável do GitHub Actions | Não é segredo (o endereço já é público) |
+| Chave da API da Anthropic (Arquiteto) | Tabela `stored_secrets` (`credentials:architect`) | Cadastrada pela tela, conferida antes de salvar, nunca volta para a página |
 
 - A chave `sb_publishable_...` do Supabase é pública por natureza. O que impede que ela leia as tabelas
   é o RLS ligado pelo `flask security lock-db`.
@@ -43,6 +44,16 @@ workflows. Onde cada segredo fica:
   arquivos antigos (`secret_store`) apagaria os tokens do PC. Os testes já usam uma pasta temporária
   (`tests/conftest.py`); scripts avulsos devem fazer o mesmo (`GOOGLE_TOKEN_FILE`, `BUFFER_TOKEN_FILE`,
   `CREDENTIALS_DIR` apontando para uma pasta temporária).
+
+## IA do Arquiteto (dados enviados à Anthropic)
+
+Só com a chave cadastrada, e só quando você pergunta ou pede um plano. O pedido sai do servidor (nunca do
+navegador) e leva o retrato do `architect/context.py`: nome, nível, rank, atributos, até 40 missões ativas
+(título, categoria, prazo, prioridade), desempenho por área, falhas por motivo (sem as observações),
+hábitos, treinos ativos e metas (título, área, por quê e prazo). **Não** vão tokens de integrações, senhas,
+e-mails, conteúdo do Gmail/Notion/Buffer nem o histórico de XP detalhado. A conversa fica salva na tabela
+`architect_messages` e pode ser apagada pela tela. Para parar de enviar qualquer coisa: Arquiteto >
+Ligar a IA > *Remover chave*.
 
 ## Acesso
 
