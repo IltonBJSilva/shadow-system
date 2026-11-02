@@ -126,23 +126,46 @@ O retorno do Google é montado a partir do `GOOGLE_REDIRECT_URI`, e não do ende
 atrás do proxy do Render o app recebe a requisição como `http://`, e o oauthlib recusaria com
 `InsecureTransportError` (`app/integrations/google_calendar/routes.py`).
 
-### 5. Keep-alive
+### 5. Keep-alive (o app não dormir)
 
-1. GitHub > repositório > **Settings** > **Secrets and variables** > **Actions** > aba **Variables** >
-   **New repository variable**: `APP_URL` = `https://SEU-APP.onrender.com`.
-2. **Actions** > **keep-alive** > **Run workflow** para testar. Deve terminar verde e mostrar
-   `{"database":true,"ok":true}`.
+O Render gratuito desliga o app após **15 minutos sem acesso**, e o próximo acesso leva de 30 a 60 s.
+O keep-alive é um robô que abre `/health` de tempos em tempos. Como o `/health` faz um `SELECT 1`, ele
+também impede o Supabase gratuito de pausar o projeto (o que acontece após 7 dias sem uso).
 
-Limitações do GitHub e um reforço opcional:
+São usados dois robôs. Os dois juntos não atrapalham.
 
-- Em horários de pico o GitHub pode atrasar execuções agendadas. Se passar de 15 minutos, o app
-  dorme e o próximo acesso demora uns 30 a 60 s.
-- Em repositório público, o GitHub **desliga workflows agendados após 60 dias sem commits** (ele
-  avisa por e-mail; reative em Actions > keep-alive > *Enable workflow*).
-- Reforço gratuito: em https://cron-job.org crie um job para `https://SEU-APP.onrender.com/health`
-  a cada 5 minutos. Os dois juntos não atrapalham.
-- O Render gratuito dá 750 horas por mês somadas entre os serviços gratuitos. Um serviço ligado o mês
-  inteiro usa cerca de 744 h, então **não crie outro serviço gratuito** na mesma conta.
+**Principal: cron-job.org (pontual, a cada 5 minutos)**
+
+1. https://cron-job.org > **Sign up** (conta pessoal) e confirme o e-mail.
+2. **CREATE CRONJOB**:
+   - Title: `Shadow System`
+   - URL: `https://SEU-APP.onrender.com/health`
+   - Execution schedule: **Every 5 minutes**
+3. **CREATE**. Em alguns minutos, *Last execution* mostra **200 OK**.
+
+**Reserva: GitHub Actions** (`.github/workflows/keep-alive.yml`, nos minutos 4, 14, 24, ... de cada hora)
+
+1. A URL fica numa variável do repositório. Pelo terminal:
+   `gh variable set APP_URL --body "https://SEU-APP.onrender.com"`. Ou pelo site: **Settings** >
+   **Secrets and variables** > **Actions** > aba **Variables** (a aba *Secrets* também serve; o
+   workflow lê as duas).
+2. Teste: **Actions** > **keep-alive** > **Run workflow**, ou `gh workflow run keep-alive.yml`. Deve
+   terminar verde e mostrar `{"database":true,"ok":true}` no log.
+
+Por que o GitHub não basta sozinho:
+
+- Execuções agendadas **não têm horário garantido**. Em horários de pico o GitHub atrasa ou pula, e um
+  workflow novo pode levar horas para rodar a primeira vez. No primeiro dia, o agendamento a cada
+  10 minutos (`*/10`) não rodou nenhuma vez em 3 horas e o app dormiu. Por isso o cron saiu da hora
+  cheia e o cron-job.org virou o principal.
+- Em repositório público, o GitHub **desliga workflows agendados após 60 dias sem commits** (avisa por
+  e-mail; reative em Actions > keep-alive > *Enable workflow*).
+
+Para ver se está rodando: `gh run list --workflow keep-alive.yml` (execuções `schedule` são as
+automáticas; `workflow_dispatch` são as manuais).
+
+O Render gratuito dá 750 horas por mês somadas entre os serviços gratuitos. Um serviço ligado o mês
+inteiro usa cerca de 744 h, então **não crie outro serviço gratuito** na mesma conta.
 
 ### Atualizar
 
