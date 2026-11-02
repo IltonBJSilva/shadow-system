@@ -109,9 +109,22 @@ Depois de mudar uma variável: **Save, rebuild, and deploy**.
 1. No serviço: **Environment** > **Secret Files** > **Add Secret File**. Nome
    `google_client_secret.json`, conteúdo igual ao `instance/google_client_secret.json` do seu PC.
    (O `render.yaml` já aponta `GOOGLE_CLIENT_SECRETS_FILE` para `/etc/secrets/google_client_secret.json`.)
+   Dá para reaproveitar o mesmo cliente OAuth do PC, desde que seja do tipo **Aplicativo da Web**
+   (no JSON a chave de cima é `"web"`). Não precisa criar projeto nem cliente novo.
 2. Google Cloud > **Google Auth Platform** > **Clientes** > seu cliente Web > **URIs de
-   redirecionamento autorizados** > adicione a mesma URL do `GOOGLE_REDIRECT_URI`.
-3. No sistema online: **Integrações > Google Calendar > Conectar** e **Gmail > Autorizar**.
+   redirecionamento autorizados** > **+ Adicionar URI** com a mesma URL do `GOOGLE_REDIRECT_URI`.
+   Mantenha a do `localhost` para continuar usando no PC.
+3. **Salvar**. Se o botão estiver cinza, há um campo vazio em vermelho (geralmente em *Origens
+   JavaScript autorizadas*): apague-o ou preencha com `https://SEU-APP.onrender.com`. Enquanto o
+   botão estiver cinza, **nada foi salvo**. A mudança leva de 5 minutos a algumas horas para valer.
+4. No sistema online: **Integrações > Google Calendar > Conectar** e **Gmail > Autorizar**. No aviso
+   *"O Google não verificou este app"*: **Avançado** > **Acessar**. É o normal no modo Teste.
+
+Se um cliente tiver duas chaves secretas ativas, não apague a que está no JSON enviado ao Render.
+
+O retorno do Google é montado a partir do `GOOGLE_REDIRECT_URI`, e não do endereço que o app vê:
+atrás do proxy do Render o app recebe a requisição como `http://`, e o oauthlib recusaria com
+`InsecureTransportError` (`app/integrations/google_calendar/routes.py`).
 
 ### 5. Keep-alive
 
