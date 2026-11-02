@@ -61,3 +61,38 @@ db.session.commit()  # award_xp não faz commit: salve junto com a sua alteraç�
 for message, category in hunter.award_messages(result):
     flash(message, category)
 ```
+
+## Títulos
+
+O título exibido no perfil não é mais um texto livre: você escolhe entre os títulos **conquistados**
+(Hunter > *Editar perfil* > *Título exibido*, ou a página **Títulos** em `/hunter/titles`).
+
+| Tipo | Como se ganha |
+|---|---|
+| Conquista | Meta atingida numa métrica: `level`, `total_xp`, `quests_completed`, `habit_best_streak`, `workouts_completed` |
+| Criado por você | Já nasce desbloqueado; só esses podem ser apagados |
+
+Títulos padrão (`defaults.DEFAULT_TITLES`, nomes originais): Recém-desperto (início), Primeiro Passo,
+Cumpridor de Missões (10 quests), Veterano das Missões (50), Incansável (200), Chama Constante
+(7 dias seguidos num hábito), Inquebrável (30), Disciplina de Ferro (100), Primeiro Treino, Corpo em
+Forja (20 treinos), Corpo de Aço (100), Ascendente (nível 10), Caçador Experiente (25), Elite (50),
+Lenda Viva (100) e Colecionador de XP (10.000 XP).
+
+Como funciona:
+
+- `check_titles()` roda dentro de `award_xp` (todo ganho de XP) e ao abrir o perfil. O desbloqueio vira
+  a mensagem *"[SYSTEM] Título desbloqueado: ..."*.
+- A página **Títulos** mostra o progresso dos bloqueados (`3 / 10 quests concluídas`).
+- Títulos padrão novos aparecem sozinhos em bancos antigos (`_seed_titles`). Um título escrito à mão na
+  versão antiga vira um título seu, para não sumir.
+
+Métricas de outros módulos são registradas sem o Hunter importar esses módulos:
+
+```python
+# app/modules/quests/__init__.py
+from app.modules.hunter import services as hunter
+hunter.register_metric("quests_completed", services.completed_count)
+```
+
+Para um título novo de outra métrica: registre a métrica no módulo dono do dado, acrescente a linha em
+`DEFAULT_TITLES` e o rótulo em `RULE_LABELS`.
