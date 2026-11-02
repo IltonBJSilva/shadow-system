@@ -178,6 +178,7 @@ def test_status_with_secrets_and_token(tmp_path):
     token = tmp_path / "token.json"
     app = create_app("testing", {"GOOGLE_CLIENT_SECRETS_FILE": str(secrets), "GOOGLE_TOKEN_FILE": str(token)})
     with app.app_context():
+        db.create_all()
         assert google_calendar.status().state == "configured"
         url, state, _ = oauth.authorization_url()
         assert url.startswith("https://accounts.google.com/") and "calendar.events" in url and state

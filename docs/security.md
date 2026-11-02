@@ -9,11 +9,17 @@ O Shadow System guarda dados pessoais (rotina, hábitos, agenda e, no futuro, fi
 - O `.env.example` vai para o git **sem valores**.
 - Nada de chave ou senha no código, em teste ou em log.
 - `SECRET_KEY` precisa ser aleatória (o `run.ps1` gera uma). Se vazar, troque: as sessões abertas caem.
-- Token do Buffer: `instance/buffer_token.json`, cadastrado pela tela, nunca exibido (só os 4 últimos
-  caracteres). Vence em 90 dias; para invalidar, apague-o no Buffer.
-- Tokens do Notion e do WhatsApp: `instance/credentials/<nome>.json`, cadastrados pela tela, mascarados.
-- Token do Google: `instance/google_token.json` contém o refresh token em texto. Proteja a pasta;
-  para revogar, *Desconectar* no app e https://myaccount.google.com/permissions.
+- Tokens cadastrados pela tela (Buffer, Notion, WhatsApp e o refresh token do Google) ficam no banco,
+  na tabela `stored_secrets`, em texto. Nunca são exibidos (só os 4 últimos caracteres). Quem tiver
+  acesso ao banco tem acesso a eles: proteja a senha do banco e o arquivo `instance/shadow.db`.
+  Arquivos antigos (`instance/*_token.json`, `instance/credentials/`) são importados e apagados na
+  primeira leitura.
+- **Supabase**: ele publica as tabelas do schema `public` numa API REST acessível com a chave
+  pública do projeto. O `flask security lock-db` (roda sozinho no build do Render) liga RLS sem
+  policies em todas as tabelas, e essa API não lê nem grava nada. O app não é afetado porque
+  conecta como dono das tabelas. Rode o comando de novo sempre que uma migration criar uma tabela.
+- Token do Buffer vence em 90 dias; para invalidar, apague-o no Buffer. Para revogar o Google,
+  *Desconectar* no app e https://myaccount.google.com/permissions.
 
 ## Acesso
 

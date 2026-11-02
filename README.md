@@ -210,7 +210,7 @@ shadow-system/
 │   │   ├── gmail/             leitura de não lidos (mesmo OAuth do Google)
 │   │   ├── notion/            bancos de dados → quests
 │   │   ├── whatsapp/          resumo do dia para o seu número
-│   │   ├── credentials.py     tokens cadastrados pela tela (instance/credentials/)
+│   │   ├── credentials.py     tokens cadastrados pela tela (banco: stored_secrets)
 │   │   └── buffer/            token, cliente GraphQL, regras por rede, agendamento
 │   ├── templates/             Jinja2, uma pasta por módulo
 │   └── static/                css/shadow.css, js/shadow.js, img/

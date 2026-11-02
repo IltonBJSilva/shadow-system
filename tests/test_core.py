@@ -4,13 +4,14 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from app import create_app
+from app.extensions import db as _db
 from app.core import settings, time
 
 
 def test_health_is_public(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.get_json() == {"ok": True}
+    assert response.get_json() == {"ok": True, "database": True}
 
 
 def test_security_headers_are_set(client):
@@ -38,11 +39,14 @@ def test_unknown_page_returns_404(client):
 
 
 def _auth_app():
-    return create_app("testing", {
+    app = create_app("testing", {
         "AUTH_ENABLED": True,
         "OWNER_USERNAME": "hunter",
         "OWNER_PASSWORD_HASH": generate_password_hash("arise"),
     })
+    with app.app_context():
+        _db.create_all()  # as páginas leem o status das integrações (tabela stored_secrets)
+    return app
 
 
 def test_login_required_when_enabled():

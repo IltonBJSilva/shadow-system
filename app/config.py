@@ -31,15 +31,24 @@ def _database_url() -> str:
     url = os.getenv("DATABASE_URL", "").strip()
     if not url:
         return f"sqlite:///{INSTANCE_DIR / 'shadow.db'}"
-    # Alguns provedores ainda entregam "postgres://", que o SQLAlchemy 2 não aceita.
-    if url.startswith("postgres://"):
-        url = "postgresql+psycopg://" + url[len("postgres://"):]
+    # Supabase/Render entregam "postgresql://" ou "postgres://"; o driver instalado é o psycopg 3.
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
     return url
+
+
+def _engine_options(url: str) -> dict:
+    if url.startswith("sqlite"):
+        return {}
+    # Conexões paradas (app dormindo, pooler do Supabase) caem: testa antes de usar e renova a cada 5 min.
+    return {"pool_pre_ping": True, "pool_recycle": 300}
 
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-me")
     SQLALCHEMY_DATABASE_URI = _database_url()
+    SQLALCHEMY_ENGINE_OPTIONS = _engine_options(SQLALCHEMY_DATABASE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TIMEZONE = os.getenv("TIMEZONE", "America/Sao_Paulo")
 
@@ -62,13 +71,14 @@ class Config:
     GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "primary")
     GOOGLE_TOKEN_FILE = str(INSTANCE_DIR / "google_token.json")
 
-    # Buffer: o token normalmente é cadastrado pela tela (instance/buffer_token.json).
+    # Tokens cadastrados pela tela ficam no banco (tabela stored_secrets). Os caminhos *_FILE e
+    # CREDENTIALS_DIR abaixo só servem para importar arquivos de versões antigas.
+    # Buffer: o token normalmente é cadastrado pela tela.
     # BUFFER_API_KEY no .env é a alternativa, e vale só quando não há token salvo pela tela.
     BUFFER_API_KEY = os.getenv("BUFFER_API_KEY", "").strip()
     BUFFER_KEY_CREATED_AT = os.getenv("BUFFER_KEY_CREATED_AT", "").strip()
     BUFFER_TOKEN_FILE = str(INSTANCE_DIR / "buffer_token.json")
 
-    # Tokens do Notion, WhatsApp etc. cadastrados pela tela (um JSON por integração).
     CREDENTIALS_DIR = str(INSTANCE_DIR / "credentials")
 
     # Hospedagem opcional das imagens enviadas do computador (Supabase Storage, bucket público).
@@ -93,6 +103,7 @@ class TestingConfig(Config):
     TESTING = True
     SECRET_KEY = "test-secret"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     WTF_CSRF_ENABLED = False
     AUTH_ENABLED = False
     GOOGLE_CLIENT_SECRETS_FILE = ""

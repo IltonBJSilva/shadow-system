@@ -1,29 +1,30 @@
 """Credenciais cadastradas pela tela (Notion, WhatsApp...).
 
-Cada integração tem um arquivo em instance/credentials/<nome>.json (fora do git). Valores secretos
-nunca voltam para a tela: use `mask()` para mostrar só o final.
+Ficam no banco (tabela stored_secrets, ver core/secret_store.py) com o nome "credentials:<integração>".
+Valores secretos nunca voltam para a tela: use `mask()` para mostrar só o final.
 """
-import json
 from pathlib import Path
 
 from flask import current_app
 
+from app.core import secret_store
 
-def _path(name: str) -> Path:
+
+def _key(name: str) -> str:
+    return f"credentials:{name}"
+
+
+def _legacy_file(name: str) -> Path:
+    """Arquivo antigo (instance/credentials/<nome>.json), importado para o banco se existir."""
     return Path(current_app.config["CREDENTIALS_DIR"]) / f"{name}.json"
 
 
 def load(name: str) -> dict:
-    try:
-        return json.loads(_path(name).read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    return secret_store.load(_key(name), _legacy_file(name))
 
 
 def save(name: str, values: dict) -> None:
-    path = _path(name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(values, indent=2, ensure_ascii=False), encoding="utf-8")
+    secret_store.save(_key(name), values)
 
 
 def update(name: str, **values) -> None:
@@ -33,7 +34,7 @@ def update(name: str, **values) -> None:
 
 
 def clear(name: str) -> None:
-    _path(name).unlink(missing_ok=True)
+    secret_store.delete(_key(name), _legacy_file(name))
 
 
 def mask(secret: str | None) -> str:

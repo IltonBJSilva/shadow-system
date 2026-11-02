@@ -3,8 +3,8 @@
 Fluxo (Authorization Code):
 1. /integrations/google/connect -> `authorization_url()` manda o usuário para o Google.
 2. O Google volta em GOOGLE_REDIRECT_URI -> `exchange_code()` troca o código por tokens.
-3. Os tokens (incluindo o refresh token) ficam em instance/google_token.json, fora do git.
-4. `load_credentials()` lê o arquivo e renova o access token quando expira.
+3. Os tokens (incluindo o refresh token) ficam no banco (stored_secrets, nome "google_token").
+4. `load_credentials()` lê o token e renova o access token quando expira.
 
 Docs: https://developers.google.com/identity/protocols/oauth2/web-server
 """
@@ -17,6 +17,8 @@ from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
+
+from app.core import secret_store
 
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",   # ler/criar/editar/excluir eventos
@@ -35,20 +37,21 @@ def is_configured() -> bool:
     return bool(path) and Path(path).is_file()
 
 
-def _token_path() -> Path:
+TOKEN_KEY = "google_token"
+
+
+def _legacy_token_file() -> Path:
+    """Arquivo antigo (instance/google_token.json), importado para o banco se existir."""
     return Path(current_app.config["GOOGLE_TOKEN_FILE"])
 
 
 def is_connected() -> bool:
-    return _token_path().is_file()
+    return secret_store.exists(TOKEN_KEY, _legacy_token_file())
 
 
 def granted_scopes() -> set[str]:
     """Escopos já autorizados, lidos do token salvo (sem chamar o Google)."""
-    try:
-        return set(json.loads(_token_path().read_text(encoding="utf-8")).get("scopes") or [])
-    except (FileNotFoundError, json.JSONDecodeError):
-        return set()
+    return set(secret_store.load(TOKEN_KEY, _legacy_token_file()).get("scopes") or [])
 
 
 def has_scope(scope: str) -> bool:
@@ -102,7 +105,7 @@ def load_credentials() -> Credentials:
     if not is_connected():
         raise GoogleAuthError("Google Calendar não conectado.")
     # Sem passar escopos: vale o que está no token (Calendar e, se autorizado, Gmail).
-    creds = Credentials.from_authorized_user_file(str(_token_path()))
+    creds = Credentials.from_authorized_user_info(secret_store.load(TOKEN_KEY, _legacy_token_file()))
     if creds.expired and creds.refresh_token:
         try:
             creds.refresh(Request())
@@ -113,11 +116,9 @@ def load_credentials() -> Credentials:
 
 
 def disconnect() -> None:
-    """Apaga o token local. Para revogar no Google: https://myaccount.google.com/permissions"""
-    _token_path().unlink(missing_ok=True)
+    """Apaga o token salvo. Para revogar no Google: https://myaccount.google.com/permissions"""
+    secret_store.delete(TOKEN_KEY, _legacy_token_file())
 
 
 def _save(creds: Credentials) -> None:
-    path = _token_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(creds.to_json(), encoding="utf-8")
+    secret_store.save(TOKEN_KEY, json.loads(creds.to_json()))

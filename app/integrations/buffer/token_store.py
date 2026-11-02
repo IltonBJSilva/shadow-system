@@ -1,17 +1,18 @@
 """Guarda o token da API do Buffer cadastrado pela tela.
 
-Arquivo: instance/buffer_token.json (a pasta instance/ não vai para o git). O token nunca é mostrado
+Fica no banco (tabela stored_secrets, nome "buffer_token"). O token nunca é mostrado
 de volta na tela nem escrito em log: só os 4 últimos caracteres aparecem.
 Se não houver token salvo pela tela, vale BUFFER_API_KEY do .env.
 
 Tokens pessoais do Buffer vencem em 90 dias; a data de criação serve para avisar antes.
 """
-import json
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
 from flask import current_app
+
+from app.core import secret_store
 
 VALID_DAYS = 90
 REMINDER_DAYS = 15
@@ -38,15 +39,16 @@ class TokenStatus:
         return "warning" if self.days_left <= REMINDER_DAYS else "ok"
 
 
-def _path() -> Path:
+KEY = "buffer_token"
+
+
+def _legacy_file() -> Path:
+    """Arquivo antigo (instance/buffer_token.json), importado para o banco se existir."""
     return Path(current_app.config["BUFFER_TOKEN_FILE"])
 
 
 def _load() -> dict:
-    try:
-        return json.loads(_path().read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    return secret_store.load(KEY, _legacy_file())
 
 
 def api_key() -> str:
@@ -58,21 +60,19 @@ def organization_id() -> str | None:
 
 
 def save(api_key_value: str, created_at: date, organization: str) -> None:
-    path = _path()
-    path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"api_key": api_key_value.strip(), "created_at": created_at.isoformat(), "organization_id": organization}
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    secret_store.save(KEY, payload)
 
 
 def remember_organization(organization: str) -> None:
     data = _load()
     if data:
         data["organization_id"] = organization
-        _path().write_text(json.dumps(data, indent=2), encoding="utf-8")
+        secret_store.save(KEY, data)
 
 
 def clear() -> None:
-    _path().unlink(missing_ok=True)
+    secret_store.delete(KEY, _legacy_file())
 
 
 def status(today: date | None = None) -> TokenStatus:

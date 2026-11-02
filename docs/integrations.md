@@ -24,7 +24,7 @@ A tela `/integrations/` mostra a situação de cada uma (`app/integrations/regis
 - Credenciais só no `.env` ou em `instance/` (fora do git). Nunca no código, nunca em log.
 - **Token só quando você gerar**: nenhuma integração é obrigatória. Cada uma tem uma tela que explica como
   gerar o token e um campo para colar; o token é conferido na API antes de salvar e nunca volta para a tela.
-  Os de Notion e WhatsApp ficam em `instance/credentials/<nome>.json` (`app/integrations/credentials.py`).
+  Os de Notion e WhatsApp ficam no banco, na tabela `stored_secrets` (`app/integrations/credentials.py`).
 - Testes nunca chamam serviços reais: usam `httpx.MockTransport` ou objetos falsos.
 
 ## Como adicionar uma integração
@@ -76,7 +76,7 @@ Nenhum endpoint é montado à mão.
 
 - **Escopos**: `calendar.events` (ler/criar/editar/excluir eventos) e `calendar.readonly` (listar
   calendários e consultar disponibilidade).
-- **Token**: `instance/google_token.json`, com refresh token. É uma credencial: não compartilhe e não
+- **Token**: no banco (tabela `stored_secrets`, nome `google_token`), com refresh token. É uma credencial: não compartilhe e não
   suba para o git. *Desconectar* apaga o arquivo; para revogar no Google use
   https://myaccount.google.com/permissions.
 - **HTTP em localhost**: o `oauthlib` exige HTTPS; liberamos HTTP (`OAUTHLIB_INSECURE_TRANSPORT`)
@@ -112,7 +112,7 @@ Substitui o leitor do Kausa Social Scheduler, que é da Kausa e continua separad
 |---|---|
 | `client.py` | `BufferClient`: GraphQL em `https://api.buffer.com` (organização, canais, posts, `createPost`) |
 | `posting.py` | Regras por rede: metadados do Instagram/Facebook, limite de hashtags e de texto, `dueAt` em UTC |
-| `token_store.py` | Token salvo pela tela em `instance/buffer_token.json`, mascarado, aviso de vencimento |
+| `token_store.py` | Token salvo pela tela no banco (`stored_secrets`), mascarado, aviso de vencimento |
 | `storage.py` | Hospedagem opcional das imagens enviadas do computador (Supabase Storage) |
 | `__init__.py` | Funções de alto nível: `save_token`, `channels`, `posts`, `schedule`, `scheduled_posts_safe` |
 | `routes.py` | `/integrations/buffer/` (posts por status), `/token`, `/new` |
@@ -122,7 +122,7 @@ Substitui o leitor do Kausa Social Scheduler, que é da Kausa e continua separad
 1. No Buffer da sua conta pessoal, abra https://publish.buffer.com/settings/api e crie um token com
    todas as permissões.
 2. No Shadow System: menu **Postagens** (ou Integrações > Buffer) > **Token**, cole o token e a data de criação.
-3. O token é **conferido no Buffer antes de salvar**. Fica em `instance/buffer_token.json` (fora do git),
+3. O token é **conferido no Buffer antes de salvar**. Fica no banco (tabela `stored_secrets`),
    nunca aparece de novo na tela (só `••••` + 4 últimos caracteres) e nunca vai para log.
 4. Tokens do Buffer vencem em **90 dias**: a tela e a integração avisam 15 dias antes.
 

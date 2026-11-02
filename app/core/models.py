@@ -28,3 +28,17 @@ class AppSetting(db.Model):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class StoredSecret(db.Model):
+    """Tokens das integrações (Google, Buffer, Notion, WhatsApp) cadastrados pela tela.
+
+    Ficam no banco, não em arquivo, porque em hospedagens como o Render o disco é apagado a cada
+    deploy ou reinício. O valor é JSON em texto. Nunca é mostrado de volta na tela.
+    """
+
+    __tablename__ = "stored_secrets"
+
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, onupdate=time.now, nullable=False)

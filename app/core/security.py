@@ -66,6 +66,27 @@ def register(app: Flask) -> None:
         """Gera o OWNER_PASSWORD_HASH para colocar no .env."""
         click.echo(generate_password_hash(password))
 
+    @security_cli.command("lock-db")
+    def lock_db():
+        """Liga RLS em todas as tabelas do PostgreSQL (Supabase). Rode após `flask db upgrade`.
+
+        O Supabase publica as tabelas do schema public na API REST dele. Com RLS ligado e nenhuma
+        policy, essa API não lê nem grava nada; o app continua funcionando porque conecta como dono
+        das tabelas. No SQLite não faz nada.
+        """
+        from app.extensions import db
+
+        if db.engine.dialect.name != "postgresql":
+            click.echo("Banco não é PostgreSQL: nada a fazer.")
+            return
+        with db.engine.begin() as conn:
+            tables = conn.exec_driver_sql(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+            ).scalars().all()
+            for table in tables:
+                conn.exec_driver_sql(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY')
+        click.echo(f"RLS ligado em {len(tables)} tabelas.")
+
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():

@@ -33,7 +33,7 @@ shadow-system/
 │   │   ├── registry.py          IntegrationStatus e lista de integrações
 │   │   ├── routes.py            /integrations/
 │   │   ├── google_calendar/     oauth.py, client.py, sync.py, routes.py
-│   │   ├── credentials.py       tokens cadastrados pela tela (instance/credentials/)
+│   │   ├── credentials.py       tokens cadastrados pela tela (banco: stored_secrets)
 │   │   ├── gmail/               client.py, routes.py (usa o OAuth do Google)
 │   │   ├── notion/              client.py, routes.py
 │   │   ├── whatsapp/            client.py, routes.py
@@ -58,7 +58,7 @@ shadow-system/
 │
 ├── tests/                       conftest.py + um arquivo por módulo/integração + test_migrations.py
 ├── docs/                        esta documentação
-├── instance/                    shadow.db, google_token.json, backups/ (tudo fora do git)
+├── instance/                    shadow.db, backups/ (tudo fora do git)
 ├── .env.example                 modelo do .env
 ├── run.ps1                      instala e roda no Windows
 ├── wsgi.py                      `app = create_app()`
