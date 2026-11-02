@@ -8,6 +8,11 @@
   <section class="panel">
     <div class="panel-header"><h2>Categorias</h2></div>
     <p class="muted small">Os atributos da categoria são usados quando a quest não escolhe atributos próprios.</p>
+    <div class="row">
+      {{ ui.post_button(url_for('quests.suggested_categories'), "Criar categorias sugeridas", "btn btn-sm") }}
+      <span class="muted small">Faculdade, Carreira, Estudos, Treino, Saúde, Finanças, Música e arte, Hobbies,
+        Organização, Espiritualidade, Projetos pessoais e Conteúdo, já ligadas aos atributos. Só cria as que faltam.</span>
+    </div>
     {% if items %}
       <ul class="list">
         {% for category, attribute_names in items %}
@@ -24,7 +29,7 @@
         {% endfor %}
       </ul>
     {% else %}
-      {{ ui.empty("Nenhuma categoria. Sugestões: Treino, Estudos, Finanças, Projetos, Conteúdo, Espiritualidade.") }}
+      {{ ui.empty("Nenhuma categoria ainda. Use “Criar categorias sugeridas” para começar.") }}
     {% endif %}
   </section>
 

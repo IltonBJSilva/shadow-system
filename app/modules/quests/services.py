@@ -319,6 +319,19 @@ def list_categories() -> list[QuestCategory]:
     return list(db.session.scalars(select(QuestCategory).order_by(QuestCategory.name)))
 
 
+def create_suggested_categories() -> list[str]:
+    """Cria as categorias sugeridas que ainda não existem (pelo nome). Retorna os nomes criados."""
+    existing = {name.lower() for name in db.session.scalars(select(QuestCategory.name))}
+    ids_by_key = {a.key: a.id for a in hunter.list_attributes()}
+    created = []
+    for name, color, keys in constants.SUGGESTED_CATEGORIES:
+        if name.lower() in existing:
+            continue
+        save_category(name, color, [ids_by_key[k] for k in keys if k in ids_by_key])
+        created.append(name)
+    return created
+
+
 def category_choices() -> list[tuple[int, str]]:
     return [(c.id, c.name) for c in list_categories()]
 

@@ -189,3 +189,14 @@ def test_quest_list_has_bulk_checkboxes(client):
     services.create_quest(QuestInput(title="Marcável"))
     html = client.get("/quests/").get_data(as_text=True)
     assert 'form="bulk-quests"' in html and "Excluir selecionadas" in html
+
+
+def test_suggested_categories_are_created_once_with_attributes(client):
+    services.save_category("treino", "#ffffff", [])  # já existe (outro caso): fica a sua
+    client.post("/quests/categories/suggested")
+    names = [c.name for c in services.list_categories()]
+    assert "Faculdade" in names and "Espiritualidade" in names and "Treino" not in names and "treino" in names
+    faculdade = next(c for c in services.list_categories() if c.name == "Faculdade")
+    keys = {a.key for a in hunter.list_attributes() if a.id in services.category_attribute_ids(faculdade.id)}
+    assert keys == {"intelligence", "wisdom", "focus"}
+    assert services.create_suggested_categories() == []

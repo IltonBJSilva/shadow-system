@@ -124,6 +124,14 @@ def categories():
     return render_template("quests/categories.html", form=form, items=items)
 
 
+@bp.post("/categories/suggested")
+def suggested_categories():
+    created = services.create_suggested_categories()
+    flash(f"{len(created)} categoria(s) criada(s): {', '.join(created)}." if created
+          else "Todas as categorias sugeridas já existem.", "success" if created else "info")
+    return redirect(url_for("quests.categories"))
+
+
 @bp.route("/categories/<int:category_id>", methods=["GET", "POST"])
 def edit_category(category_id: int):
     category = next((c for c in services.list_categories() if c.id == category_id), None)
