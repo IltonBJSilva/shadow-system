@@ -40,7 +40,13 @@ recorrente vencida ──rollover──▶ missed                  (sem perda de
 
 ## Regras
 
-- **XP**: se o campo XP ficar vazio, vale o padrão da dificuldade (10/25/50/100/200).
+- **XP**: se o campo XP ficar vazio, vale dificuldade × prioridade: base 10/25/50/100/200, vezes 0,8
+  (baixa), 1,0 (média), 1,2 (alta) ou 1,4 (crítica), arredondado para múltiplo de 5
+  (`hunter.progression.xp_for_difficulty`).
+- **Categorias sugeridas** (Quests > Categorias > *Criar categorias sugeridas*): Faculdade, Carreira,
+  Estudos, Treino, Saúde e bem-estar, Finanças, Música e arte, Hobbies, Organização pessoal,
+  Espiritualidade, Projetos pessoais e Conteúdo, cada uma ligada aos atributos que desenvolve
+  (`constants.SUGGESTED_CATEGORIES`). Só cria as que faltam pelo nome; as suas ficam como estão.
 - **Atributos**: se a quest não escolher atributos, herda os da categoria. Ao concluir, cada atributo
   ganha pontos iguais à dificuldade (1 a 5).
 - **Concluir duas vezes** não é permitido (evita XP duplicado).
@@ -65,7 +71,10 @@ recorrente vencida ──rollover──▶ missed                  (sem perda de
 | `quest_choices()` / `quest_title(id)` | | Vincular eventos a quests |
 | `create_quest(QuestInput)` | `Quest` | Ex.: University gerando quests de revisão, IA no futuro |
 | `stats()` | `dict` | Contadores |
-| `completed_count()` | `int` | Quests concluídas (métrica dos títulos) |
+| `completed_count(tipo=None)` | `int` | Quests concluídas, de um tipo ou todas (métricas das conquistas) |
+| `completed_between(início, fim)` | `int` | Concluídas num período (widget Progresso) |
+| `category_performance(dias)` | `list[CategoryPerformance]` | Concluídas x não realizadas por categoria (Arquiteto) |
+| `create_suggested_categories()` | `list[str]` | Cria as categorias sugeridas que faltam |
 | `active_in_series(series_id)` | `Quest \| None` | Ocorrência ativa de uma recorrente (Treinos) |
 | `update_description(id, text)` | | Troca a descrição; a próxima ocorrência herda (Treinos) |
 | `cancel_quests(ids)` / `delete_quests(ids)` | `int` | Ações em massa |
