@@ -45,3 +45,28 @@ def test_main_quest_with_high_priority_is_listed_first(app):
     services.create_quest(QuestInput(title="Urgente", quest_type="main", priority="critical"))
     assert services.priority_quests()[0].title == "Urgente"
 ```
+
+## Testar contra PostgreSQL
+
+A suíte roda em SQLite em memória (rápida). Antes de mudar migrations, valide também num PostgreSQL
+real, que é o banco de produção (Supabase):
+
+1. Suba um PostgreSQL descartável (Docker: `docker run --rm -e POSTGRES_PASSWORD=pw -p 55432:5432 postgres:16`,
+   ou o pacote `pgserver` instalado fora do projeto).
+2. Aponte para ele **e para uma pasta temporária de tokens**, senão a importação de arquivos antigos
+   move os tokens reais de `instance/` para o banco descartável e apaga os arquivos (`app/core/secret_store.py`):
+
+   ```powershell
+   $env:DATABASE_URL = "postgresql://postgres:pw@localhost:55432/postgres"
+   $tmp = New-Item -ItemType Directory -Force "$env:TEMP\shadow-pg-test"
+   $env:GOOGLE_TOKEN_FILE = "$tmp\google_token.json"   # ver nota abaixo
+   .venv\Scripts\flask --app wsgi db upgrade
+   .venv\Scripts\flask --app wsgi security lock-db
+   .venv\Scripts\flask --app wsgi db check
+   ```
+
+   Nota: `GOOGLE_TOKEN_FILE`, `BUFFER_TOKEN_FILE` e `CREDENTIALS_DIR` não são lidos do ambiente; num script
+   Python use `create_app(overrides={...})` com caminhos temporários, como faz `tests/conftest.py`.
+3. `db check` sem diferenças = modelos e migrations batem.
+
+Os testes de integração nunca chamam serviços reais: Buffer, Notion e WhatsApp usam `httpx.MockTransport`.
