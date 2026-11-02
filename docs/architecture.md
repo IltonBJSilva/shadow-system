@@ -9,7 +9,7 @@ para crescer módulo a módulo.
 ```
 app/
 ├── core/          compartilhado, não conhece os módulos
-├── modules/       domínio (hunter, quests, habits, training, calendar, gamification, dashboard)
+├── modules/       domínio (hunter, quests, habits, training, calendar, gamification, architect, dashboard)
 └── integrations/  serviços externos (google_calendar, buffer)
 ```
 
@@ -47,6 +47,8 @@ quests    ──▶ hunter
 habits    ──▶ hunter
 calendar  ──▶ quests
 training  ──▶ quests, habits, calendar, hunter   (e assina quest.completed)
+architect ──▶ hunter, quests, habits, gamification, training   (só leitura + criar a quest aceita)
+dashboard ──▶ gamification   (contagem de falhas sem motivo)
 integrations.google_calendar ──▶ calendar
 ```
 
@@ -64,7 +66,15 @@ O Hunter precisa de números de outros módulos para os títulos (quests conclu�
 hábito, treinos feitos), mas não pode importar esses módulos (eles dependem do Hunter). Cada módulo
 registra a própria métrica ao ser importado:
 `hunter.services.register_metric("quests_completed", services.completed_count)`. O Hunter só chama a
-função. É a mesma ideia dos eventos: quem fornece o dado conhece o Hunter, não o contrário.
+função. Registradas hoje: `quests_completed`, `main_quests_completed` (quests), `habit_best_streak`
+(habits) e `workouts_completed` (training); `level`, `total_xp` e `evolution_days` são do próprio Hunter.
+
+### Inteligência artificial
+
+Só o módulo `architect` fala com IA (`architect/ai.py`, SDK oficial `anthropic`), sempre no servidor. Ele
+recebe um retrato montado pela API pública dos outros módulos (`architect/context.py`), nunca acessa
+tabelas alheias, e o resultado só vira dado (quest) por uma ação do usuário (Aceitar). Sem chave, a
+análise por regras (`architect/analysis.py`) cobre a mesma tela. É a mesma ideia dos eventos: quem fornece o dado conhece o Hunter, não o contrário.
 
 O banco é central, então tabelas de módulos diferentes podem ter FK entre si (ex.: `quest_attributes`
 aponta para `attributes.id`). Isso é aceitável num monólito; o que não se faz é usar o *modelo* de outro
