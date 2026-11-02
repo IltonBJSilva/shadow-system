@@ -57,9 +57,9 @@ real, que é o banco de produção (Supabase):
 
    ```powershell
    $env:DATABASE_URL = "postgresql://postgres:pw@localhost:55432/postgres"
-   .venv\Scriptslask --app wsgi db upgrade
-   .venv\Scriptslask --app wsgi security lock-db
-   .venv\Scriptslask --app wsgi db check
+   .venv\Scripts\flask --app wsgi db upgrade
+   .venv\Scripts\flask --app wsgi security lock-db
+   .venv\Scripts\flask --app wsgi db check
    ```
 
    Os comandos acima não leem tokens. Mas **não abra páginas do app** apontado para o banco
