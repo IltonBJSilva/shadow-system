@@ -2,7 +2,7 @@
 # Supabase ativo (o /health faz um SELECT 1; o plano gratuito pausa após 7 dias sem uso).
 #
 # Configure a URL em: GitHub > Settings > Secrets and variables > Actions > Variables >
-#   APP_URL = https://SEU-APP.onrender.com
+#   APP_URL = https://SEU-APP.onrender.com  (pode ser na aba Variables ou na aba Secrets)
 # Sem APP_URL o workflow não faz nada.
 #
 # O GitHub pode atrasar execuções agendadas em horários de pico e desliga workflows agendados após
@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Ping /health
         env:
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
         run: |
           if [ -z "$APP_URL" ]; then
             echo "APP_URL não configurada; nada a fazer."
