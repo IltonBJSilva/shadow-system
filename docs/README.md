@@ -9,8 +9,9 @@ Comece por aqui se for mexer no código.
 5. [testing.md](testing.md): testes
 6. [integrations.md](integrations.md): Google Calendar, Gmail, Buffer, Notion, WhatsApp
 7. [security.md](security.md): credenciais, login, backups
-8. [deployment.md](deployment.md): rodar fora do modo desenvolvimento
-9. [decisions/architecture-decisions.md](decisions/architecture-decisions.md): por que as coisas são como são
+8. [deployment.md](deployment.md): colocar online (Render + Supabase, keep-alive) ou no PythonAnywhere
+9. [troubleshooting.md](troubleshooting.md): erros conhecidos e como resolver
+10. [decisions/architecture-decisions.md](decisions/architecture-decisions.md): por que as coisas são como são
 
 ## Módulos
 
