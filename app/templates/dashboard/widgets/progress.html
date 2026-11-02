@@ -1,0 +1,34 @@
+{# Progresso: sequência de evolução, esta semana x a anterior (mesmo trecho) e missões concluídas hoje. #}
+{% import "partials/_macros.html" as ui %}
+{% macro delta(now, before) -%}
+  {%- set diff = now - before -%}
+  <span class="delta {{ 'is-up' if diff > 0 else ('is-down' if diff < 0 else '') }}">{{ '%+d' % diff if diff else '=' }}</span>
+{%- endmacro %}
+<section class="panel">
+  <div class="panel-header"><h2>Progresso</h2><span class="muted small">semana atual x mesmo trecho da anterior</span></div>
+  <div class="kpis">
+    <div class="kpi" title="Dias seguidos com XP. Recorde: {{ progress.best_streak }}">
+      <div class="kpi-value">🔥 {{ progress.streak }}</div><div class="kpi-label">dias evoluindo</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">{{ progress.xp_week }} {{ delta(progress.xp_week, progress.xp_last_week) }}</div>
+      <div class="kpi-label">XP na semana</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">{{ progress.quests_week }} {{ delta(progress.quests_week, progress.quests_last_week) }}</div>
+      <div class="kpi-label">missões na semana</div>
+    </div>
+  </div>
+  <h3 class="section-gap">Concluídas hoje</h3>
+  {% if progress.done_today %}
+    <ul class="list">
+      {% for q in progress.done_today %}
+        <li class="list-item is-done"><span class="check-button is-checked">✓</span>
+          <div class="item-main"><div class="item-title">{{ q.title }}</div></div>
+          <span class="xp-tag">+{{ q.xp_reward }} XP</span></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ ui.empty("Nada concluído hoje ainda. A primeira missão do dia vale bônus.") }}
+  {% endif %}
+</section>

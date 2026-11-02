@@ -47,3 +47,32 @@ def test_build_only_loads_requested_widgets(app):
     data = services.build(["weekly_xp"])
     assert set(data) == {"widgets", "system_messages", "weekly_xp"}
     assert len(data["weekly_xp"]["series"]) == 7
+
+
+def test_evolution_streak_and_progress_widget(client):
+    from datetime import timedelta
+
+    from app.core import time
+    from app.extensions import db
+    from app.modules.hunter import services as hunter_services
+    from app.modules.hunter.models import XpEvent
+
+    today = time.now()
+    for back in (0, 1, 2, 4):
+        db.session.add(XpEvent(amount=10, source="manual", description="x", created_at=today - timedelta(days=back)))
+    db.session.add(XpEvent(amount=-10, source="penalty", description="y", created_at=today - timedelta(days=3)))
+    db.session.commit()
+    assert hunter_services.evolution_streak() == 3          # dia 3 ficou com XP líquido zero
+    assert hunter_services.best_evolution_streak() == 3
+    html = client.get("/").get_data(as_text=True)
+    assert "dias evoluindo" in html and "Concluídas hoje" in html
+
+
+def test_new_widgets_show_up_for_people_who_saved_before(app):
+    from app.core import settings as app_settings
+    from app.modules.dashboard import services as dashboard
+
+    app_settings.set_setting(dashboard.SETTING_KEY, ["status", "habits"])  # salvo numa versão antiga
+    assert dashboard.enabled_widgets() == ["status", "progress", "habits"]
+    dashboard.save_widgets(["status"])                                 # depois de salvar de novo, vale a escolha
+    assert dashboard.enabled_widgets() == ["status"]

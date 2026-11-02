@@ -492,3 +492,6 @@ select.input[multiple] { min-height: 130px; }
               rgba(56, 132, 255, 0.1);
 }
 @media (max-width: 720px) { .trend-table { display: block; overflow-x: auto; } }
+.delta { font-size: .72rem; font-family: var(--mono); color: var(--muted); vertical-align: middle; }
+.delta.is-up { color: var(--success); }
+.delta.is-down { color: var(--warning); }

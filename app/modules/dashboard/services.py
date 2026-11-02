@@ -19,6 +19,7 @@ SETTING_KEY = "dashboard.widgets"
 WIDGETS: dict[str, str] = {
     "status": "Status do Hunter (nível, rank, XP, atributos)",
     "notifications": "Notificações",
+    "progress": "Progresso: sequência de evolução, semana atual x anterior, concluídas hoje",
     "today_quests": "Missões do dia",
     "habits": "Hábitos de hoje",
     "priority_quests": "Missões prioritárias",
@@ -31,15 +32,25 @@ WIDGETS: dict[str, str] = {
 DEFAULT_WIDGETS = list(WIDGETS)
 
 
+KNOWN_KEY = "dashboard.widgets_known"
+# Widgets que existiam antes de KNOWN_KEY ser gravado: quem salvou antes disso já os conhecia.
+_LEGACY_WIDGETS = ["status", "notifications", "today_quests", "habits", "priority_quests", "upcoming_events",
+                   "weekly_xp", "recent_activity", "scheduled_content", "emails"]
+
+
 def enabled_widgets() -> list[str]:
+    """Widgets ligados. Um widget novo (que você ainda não viu na tela de Personalizar) aparece ligado."""
     saved = settings.get_setting(SETTING_KEY)
     if not isinstance(saved, list):
         return DEFAULT_WIDGETS
-    return [key for key in WIDGETS if key in saved]
+    known = settings.get_setting(KNOWN_KEY)
+    known = set(known) if isinstance(known, list) else set(_LEGACY_WIDGETS)
+    return [key for key in WIDGETS if key in saved or key not in known]
 
 
 def save_widgets(keys: list[str]) -> None:
     settings.set_setting(SETTING_KEY, [key for key in WIDGETS if key in keys])
+    settings.set_setting(KNOWN_KEY, list(WIDGETS))
 
 
 def build(widgets: list[str] | None = None) -> dict[str, Any]:
@@ -88,6 +99,24 @@ def _emails() -> dict[str, Any]:
     return {"authorized": gmail.is_authorized(), "unread": unread, "emails": emails, "error": error}
 
 
+def _progress() -> dict[str, Any]:
+    """Comparação desta semana (segunda até hoje) com o mesmo trecho da semana passada."""
+    from datetime import timedelta
+
+    today = time.today()
+    monday = today - timedelta(days=today.weekday())
+    last_monday, last_same_day = monday - timedelta(days=7), today - timedelta(days=7)
+    return {
+        "streak": hunter.evolution_streak(today),
+        "best_streak": hunter.best_evolution_streak(),
+        "xp_week": hunter.xp_between(monday, today),
+        "xp_last_week": hunter.xp_between(last_monday, last_same_day),
+        "quests_week": quests.completed_between(monday, today),
+        "quests_last_week": quests.completed_between(last_monday, last_same_day),
+        "done_today": quests.completed_on(today),
+    }
+
+
 def _status() -> dict[str, Any]:
     return {
         "status": hunter.get_status(),
@@ -98,6 +127,7 @@ def _status() -> dict[str, Any]:
 
 _LOADERS: dict[str, Callable[[], Any]] = {
     "status": _status,
+    "progress": _progress,
     "notifications": _notifications,
     "today_quests": lambda: quests.quests_for_today(),
     "habits": lambda: habits.list_habits(),

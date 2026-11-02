@@ -140,6 +140,14 @@ def update_description(quest_id: int, description: str) -> None:
     db.session.commit()
 
 
+def completed_between(start: date, end: date) -> int:
+    """Quests concluídas entre start e end, inclusive."""
+    return db.session.scalar(select(func.count(Quest.id)).where(
+        Quest.status == "completed",
+        Quest.completed_at >= datetime.combine(start, datetime.min.time()),
+        Quest.completed_at < datetime.combine(end + timedelta(days=1), datetime.min.time()))) or 0
+
+
 def completed_count() -> int:
     """Quantas quests estão concluídas (métrica dos títulos)."""
     return db.session.scalar(select(func.count(Quest.id)).where(Quest.status == "completed")) or 0
