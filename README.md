@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # ◈ Shadow System
 
@@ -18,23 +18,30 @@ Transform your goals into quests, track your progress, and build your own system
 
 ## Sobre o projeto
 
-O Shadow System é o meu **centro de controle pessoal**. Ele transforma áreas da vida (treino, estudos,
-faculdade, finanças, carreira, hobbies, criação de conteúdo) em **quests**, e cada atividade real
-registrada vira **XP**, **níveis**, **ranks** e **atributos**, como a janela de *System* de Sung Jin-Woo.
+> **"SE ESSE SISTEMA QUER ME USAR, ENTÃO EU VOU USAR O SISTEMA."**
 
-**O problema:** tarefas, agenda, hábitos e metas ficam espalhados em apps diferentes, e é difícil enxergar
-evolução ao longo do tempo.
+O Shadow System é o meu **RPG da vida real**: um sistema pessoal de evolução com a estética das janelas
+de *System* dos animes de RPG. Faculdade, carreira, treino, estudos, finanças, música, hobbies,
+espiritualidade e projetos pessoais viram **missões (quests)**, e cada atividade real registrada vira
+**XP**, **níveis**, **ranks**, **atributos** e **conquistas**.
 
-**A ideia:** um lugar só, com uma camada de RPG que incentiva **constância**. Há bônus (primeira quest do
-dia, combo das Daily Quests, sequência de hábitos) e punições no estilo *Penalty Zone*: uma quest recorrente
-não feita tira um pouco de XP (nunca um nível) e gera uma Penalty Quest que devolve o XP se cumprida.
+**A filosofia:** eu não sou um personagem controlado pelo sistema. **Eu sou o jogador.** O sistema
+acompanha, mede, aponta padrões e sugere; quem decide sou eu. Por isso:
+
+- nada vira missão sem eu aceitar (nem as sugestões do Arquiteto);
+- punições existem, mas são justas: nunca fazem perder nível, e uma falha por **imprevisto** ou
+  **limitação real** devolve o XP (*Zona de Falha*);
+- toda conclusão do Arquiteto cita o dado que a gerou: nada é inventado.
+
+**O problema:** tarefas, agenda, hábitos, treinos e metas ficam espalhados em apps diferentes, e é difícil
+enxergar evolução ao longo do tempo.
+
+**A ideia:** um lugar só, com uma camada de RPG que incentiva **constância** (bônus por sequência,
+combos, conquistas) e um mentor, **o Arquiteto**, que lê os dados reais e ajuda a organizar a rotina.
 
 **Por que foi feito assim:** além de ferramenta, o projeto é meu **manual de desenvolvimento**. O código é
-organizado para ser lido e modificado sem depender de ninguém para entendê-lo, com regras de negócio
-documentadas e testadas.
-
-Ele também cuida das **minhas postagens pessoais**: conecta direto no meu Buffer (LinkedIn, Instagram...),
-mostra o que está agendado e agenda posts novos, com texto diferente por rede.
+organizado para ser lido e modificado sem depender de ninguém, com regras de negócio documentadas e
+testadas.
 
 ## Funcionalidades
 
