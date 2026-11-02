@@ -81,3 +81,24 @@ class AttributeGain(db.Model):
 
     event: Mapped[XpEvent] = relationship(back_populates="gains")
     attribute: Mapped[Attribute] = relationship()
+
+
+class Title(db.Model):
+    """Título que o Hunter pode exibir. Desbloqueado quando a métrica `rule` chega em `threshold`.
+
+    rule: "level", "total_xp" ou uma métrica registrada por outro módulo (ex.: "quests_completed").
+    "custom" = criado pelo usuário, já nasce desbloqueado. `key` identifica os títulos padrão.
+    """
+
+    __tablename__ = "titles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    rule: Mapped[str] = mapped_column(String(40), nullable=False)
+    threshold: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    unlocked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    __table_args__ = (CheckConstraint("threshold >= 0", name="threshold_non_negative"),)

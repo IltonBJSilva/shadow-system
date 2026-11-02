@@ -5,6 +5,7 @@ Eles nunca alteram as tabelas do Hunter diretamente.
 """
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from typing import Callable
 
 from sqlalchemy import func, select
 
@@ -12,7 +13,9 @@ from app.core.errors import DomainError, NotFoundError
 from app.extensions import db
 
 from . import defaults, progression
-from .models import Attribute, AttributeGain, Hunter, Rank, XpEvent
+from app.core import time
+
+from .models import Attribute, AttributeGain, Hunter, Rank, Title, XpEvent
 
 
 # ---------- Tipos retornados para outros módulos ----------
@@ -77,6 +80,7 @@ def seed_defaults() -> None:
     if db.session.scalar(select(func.count(Attribute.id))) == 0:
         for order, (key, name, description) in enumerate(defaults.DEFAULT_ATTRIBUTES):
             db.session.add(Attribute(key=key, name=name, description=description, sort_order=order))
+    _seed_titles()
     db.session.commit()
 
 
@@ -193,6 +197,8 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
 
     new_level = progression.level_progress(hunter.total_xp).level
     result = AwardResult(amount=applied, old_level=old_level, new_level=new_level, attribute_names=names)
+    if applied > 0:
+        result.extra.extend(title_unlock_messages(check_titles()))
     if new_level > old_level:
         ranks = _ranks()
         before = progression.rank_for_level(old_level, ranks)
@@ -202,13 +208,20 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
     return result
 
 
-def update_profile(name: str, title: str, avatar_url: str = "") -> None:
+def update_profile(name: str, title: str | None = None, avatar_url: str = "") -> None:
+    """Nome e avatar. O título exibido é escolhido entre os desbloqueados (`choose_title`);
+    `title`, se vier, precisa ser um título já desbloqueado."""
     avatar_url = avatar_url.strip()
     if avatar_url and not avatar_url.startswith("https://"):
         raise DomainError("O avatar precisa ser um link público começando com https://")
     hunter = get_hunter()
     hunter.name = name.strip() or hunter.name
-    hunter.title = title.strip()
+    if title is not None and title.strip() != hunter.title:
+        _seed_titles()
+        unlocked = {t.name for t in db.session.scalars(select(Title).where(Title.unlocked_at.is_not(None)))}
+        if title.strip() not in unlocked:
+            raise DomainError("Escolha um título já desbloqueado.")
+        hunter.title = title.strip()
     hunter.avatar_url = avatar_url
     db.session.commit()
 
@@ -276,3 +289,147 @@ def _attributes_by_ids(ids: list[int]) -> list[Attribute]:
     if not ids:
         return []
     return list(db.session.scalars(select(Attribute).where(Attribute.id.in_(ids))))
+
+
+# ---------- Títulos ----------
+
+@dataclass(frozen=True)
+class TitleView:
+    id: int
+    name: str
+    description: str
+    rule: str
+    rule_label: str
+    threshold: int
+    current: int
+    unlocked_at: datetime | None
+    is_custom: bool
+    is_active: bool
+
+    @property
+    def unlocked(self) -> bool:
+        return self.unlocked_at is not None
+
+    @property
+    def percent(self) -> int:
+        if self.unlocked or not self.threshold:
+            return 100
+        return min(99, int(self.current * 100 / self.threshold))
+
+
+# Métricas vindas de outros módulos (ex.: quests registra "quests_completed"). O Hunter não importa
+# esses módulos: eles se registram aqui ao serem importados, e o Hunter só chama a função.
+_metrics: dict[str, Callable[[], int]] = {}
+
+
+def register_metric(rule: str, provider: Callable[[], int]) -> None:
+    _metrics[rule] = provider
+
+
+def _metric_values() -> dict[str, int]:
+    hunter = get_hunter()
+    values = {"level": progression.level_progress(hunter.total_xp).level, "total_xp": hunter.total_xp}
+    for rule, provider in _metrics.items():
+        values[rule] = int(provider() or 0)
+    return values
+
+
+def check_titles() -> list[str]:
+    """Desbloqueia os títulos cuja meta foi atingida e retorna os nomes recém-desbloqueados.
+
+    Não faz commit (roda dentro de award_xp); quem chama salva junto.
+    """
+    _seed_titles()
+    values = _metric_values()
+    unlocked: list[str] = []
+    for title in db.session.scalars(select(Title).where(Title.unlocked_at.is_(None))).all():
+        if title.rule == "custom" or values.get(title.rule, -1) >= title.threshold:
+            title.unlocked_at = time.now()
+            unlocked.append(title.name)
+    return unlocked
+
+
+def title_unlock_messages(names: list[str]) -> list[tuple[str, str]]:
+    return [(f"[SYSTEM] Título desbloqueado: {name}. Escolha-o no seu perfil.", "levelup") for name in names]
+
+
+def list_titles() -> list[TitleView]:
+    _seed_titles()
+    values = _metric_values()
+    active = get_hunter().title
+    rows = db.session.scalars(select(Title).order_by(Title.sort_order, Title.id)).all()
+    rows.sort(key=lambda t: t.unlocked_at is None)  # desbloqueados primeiro, na ordem padrão
+    return [
+        TitleView(id=t.id, name=t.name, description=t.description, rule=t.rule,
+                  rule_label=defaults.RULE_LABELS.get(t.rule, t.rule), threshold=t.threshold,
+                  current=values.get(t.rule, 0), unlocked_at=t.unlocked_at, is_custom=t.rule == "custom",
+                  is_active=t.name == active)
+        for t in rows
+    ]
+
+
+def choose_title(title_id: int) -> str:
+    title = db.session.get(Title, title_id)
+    if title is None:
+        raise NotFoundError("Título não encontrado.")
+    if title.unlocked_at is None:
+        raise DomainError("Esse título ainda está bloqueado.")
+    get_hunter().title = title.name
+    db.session.commit()
+    return title.name
+
+
+def create_custom_title(name: str, description: str = "") -> Title:
+    name = name.strip()[:80]
+    if not name:
+        raise DomainError("Dê um nome ao título.")
+    _seed_titles()
+    if db.session.scalar(select(Title).where(func.lower(Title.name) == name.lower())):
+        raise DomainError("Já existe um título com esse nome.")
+    order = (db.session.scalar(select(func.max(Title.sort_order))) or 0) + 1
+    title = Title(name=name, description=description.strip()[:500], rule="custom", threshold=0,
+                  unlocked_at=time.now(), sort_order=order)
+    db.session.add(title)
+    db.session.commit()
+    return title
+
+
+def delete_title(title_id: int) -> None:
+    """Só títulos criados por você podem ser apagados. Se era o exibido, volta ao inicial."""
+    title = db.session.get(Title, title_id)
+    if title is None:
+        raise NotFoundError("Título não encontrado.")
+    if title.rule != "custom":
+        raise DomainError("Títulos de conquista não podem ser apagados.")
+    hunter = get_hunter()
+    if hunter.title == title.name:
+        hunter.title = defaults.DEFAULT_HUNTER_TITLE
+    db.session.delete(title)
+    db.session.commit()
+
+
+def _seed_titles() -> None:
+    """Cria os títulos padrão que faltarem (também em bancos antigos). Não faz commit."""
+    existing_keys = set(db.session.scalars(select(Title.key).where(Title.key.is_not(None))))
+    existing_names = {n.lower() for n in db.session.scalars(select(Title.name))}
+    added = False
+    for order, (key, name, description, rule, threshold) in enumerate(defaults.DEFAULT_TITLES):
+        if key in existing_keys or name.lower() in existing_names:
+            continue  # já existe (ou você criou um título com o mesmo nome: fica o seu)
+        db.session.add(Title(key=key, name=name, description=description, rule=rule, threshold=threshold,
+                             sort_order=order, unlocked_at=time.now() if key == "start" else None))
+        existing_names.add(name.lower())
+        added = True
+    # Título escrito à mão na versão antiga (campo livre): vira um título seu, para não sumir.
+    hunter = db.session.scalar(select(Hunter).order_by(Hunter.id))
+    if hunter and hunter.title.strip() and hunter.title.strip().lower() not in existing_names:
+        db.session.add(Title(name=hunter.title.strip()[:80], description="Seu título anterior.", rule="custom",
+                             threshold=0, unlocked_at=time.now(), sort_order=len(defaults.DEFAULT_TITLES)))
+        added = True
+    if added:
+        db.session.flush()
+
+
+def db_commit() -> None:
+    """Salva desbloqueios feitos por check_titles() fora de award_xp (ex.: ao abrir o perfil)."""
+    db.session.commit()

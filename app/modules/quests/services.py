@@ -127,6 +127,11 @@ def quest_title(quest_id: int | None) -> str | None:
     return quest.title if quest else None
 
 
+def completed_count() -> int:
+    """Quantas quests estão concluídas (métrica dos títulos)."""
+    return db.session.scalar(select(func.count(Quest.id)).where(Quest.status == "completed")) or 0
+
+
 def stats() -> dict[str, int]:
     counts = dict(db.session.execute(select(Quest.status, func.count(Quest.id)).group_by(Quest.status)).all())
     today = time.today()

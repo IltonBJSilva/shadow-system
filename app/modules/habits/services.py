@@ -48,6 +48,14 @@ def best_current_streak(today: date | None = None) -> int:
     return max((h.current_streak for h in list_habits(today=today)), default=0)
 
 
+def best_streak_ever() -> int:
+    """Maior sequência já feita em qualquer hábito, mesmo arquivado (métrica dos títulos)."""
+    days_by_habit: dict[int, set[date]] = {}
+    for habit_id, day in db.session.execute(select(HabitLog.habit_id, HabitLog.day)):
+        days_by_habit.setdefault(habit_id, set()).add(day)
+    return max((streaks.best_streak(days) for days in days_by_habit.values()), default=0)
+
+
 def attribute_ids_for(habit: Habit) -> list[int]:
     return list(db.session.scalars(
         select(habit_attributes.c.attribute_id).where(habit_attributes.c.habit_id == habit.id)
