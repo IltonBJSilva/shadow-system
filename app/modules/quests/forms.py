@@ -22,7 +22,7 @@ class QuestForm(FlaskForm):
     difficulty = SelectField("Dificuldade", coerce=int, default=3,
                              choices=[(k, f"{v} ({progression.DIFFICULTY_XP[k]} XP)")
                                       for k, v in progression.DIFFICULTY_LABELS.items()])
-    xp_reward = IntegerField("XP (vazio = padrão da dificuldade)",
+    xp_reward = IntegerField("XP (vazio = padrão: dificuldade x prioridade)",
                              validators=[Optional(), NumberRange(min=0, max=100000)])
     due_date = DateField("Prazo", validators=[Optional()])
     recurrence = SelectField("Repetição", choices=list(constants.RECURRENCES.items()), default="none")

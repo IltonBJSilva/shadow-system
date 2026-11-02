@@ -401,7 +401,7 @@ def _apply(quest: Quest, data: QuestInput) -> None:
     quest.category_id = data.category_id or None
     quest.priority = data.priority
     quest.difficulty = data.difficulty
-    quest.xp_reward = data.xp_reward if data.xp_reward is not None else progression.xp_for_difficulty(data.difficulty)
+    quest.xp_reward = data.xp_reward if data.xp_reward is not None else progression.xp_for_difficulty(data.difficulty, data.priority)
     quest.due_date = data.due_date
     quest.recurrence = data.recurrence
     quest.completion_criteria = data.completion_criteria.strip()

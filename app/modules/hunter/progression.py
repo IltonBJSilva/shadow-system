@@ -57,8 +57,16 @@ def level_progress(total_xp: int) -> LevelProgress:
     return LevelProgress(level, total_xp, remaining, xp_to_next_level(level))
 
 
-def xp_for_difficulty(difficulty: int) -> int:
-    return DIFFICULTY_XP.get(difficulty, DIFFICULTY_XP[3])
+# Importância (prioridade da quest) ajusta o XP padrão em até ±20/40%: o esforço (dificuldade) continua
+# sendo o que mais pesa, para que uma tarefa trivial marcada como "crítica" não renda XP absurdo.
+PRIORITY_MULTIPLIER: dict[str, float] = {"low": 0.8, "medium": 1.0, "high": 1.2, "critical": 1.4}
+
+
+def xp_for_difficulty(difficulty: int, priority: str = "medium") -> int:
+    """XP padrão de uma quest: dificuldade (esforço) x importância, arredondado para múltiplo de 5."""
+    base = DIFFICULTY_XP.get(difficulty, DIFFICULTY_XP[3])
+    value = base * PRIORITY_MULTIPLIER.get(priority, 1.0)
+    return max(5, int(round(value / 5)) * 5)
 
 
 def attribute_points_for_difficulty(difficulty: int) -> int:

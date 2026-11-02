@@ -137,3 +137,11 @@ def test_wisdom_and_charisma_are_added_to_old_databases(app):
     db.session.commit()
     keys = [a.key for a in services.list_attributes()]
     assert "wisdom" in keys and "charisma" in keys and len(keys) == 10
+
+
+def test_default_xp_weighs_effort_more_than_importance():
+    assert progression.xp_for_difficulty(3) == 50
+    assert progression.xp_for_difficulty(3, "critical") == 70
+    assert progression.xp_for_difficulty(3, "low") == 40
+    assert progression.xp_for_difficulty(1, "critical") == 15   # trivial "crítica" continua pouco XP
+    assert progression.xp_for_difficulty(5, "high") == 240
