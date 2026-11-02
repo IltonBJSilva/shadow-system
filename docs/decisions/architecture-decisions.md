@@ -110,3 +110,35 @@ que é público e faz `SELECT 1`.
 **Motivo:** o mesmo ping evita o sono do Render e a pausa do Supabase gratuito. O GitHub Actions
 sozinho não bastou: execuções agendadas não têm horário garantido, e no primeiro dia nenhuma rodou em
 3 horas. Um Worker do Cloudflare com Cron Trigger faria o mesmo papel, se o cron-job.org falhar.
+
+## ADR-016: Rotinas de treino sem IA (02/11/2026)
+
+**Decisão:** rotinas vêm de modelos prontos, de texto colado ou de documentos (.txt, .md, .docx, .pdf)
+lidos por um parser de formato simples (`training/parser.py`), sempre com prévia antes de salvar.
+**Motivo:** escolha do usuário: sem custo, sem chave de API e previsível. O formato é o mesmo das
+rotinas prontas, e o plano volta para texto na edição (`to_text`), então só há um jeito de escrever
+treino. Uma camada de IA pode ser adicionada depois só para *converter* texto livre nesse formato, sem
+mudar o resto.
+**Custo:** documentos em parágrafos corridos precisam de ajuste manual; PDF escaneado não tem texto.
+
+## ADR-017: Treino é uma quest semanal recorrente (02/11/2026)
+
+**Decisão:** cada dia de treino vira uma Daily Quest com recorrência semanal; o dia guarda o
+`quest_series_id`, e o módulo reage a `quest.completed` para registrar o treino.
+**Motivo:** reaproveita XP, atributos, atrasos sem punição, dashboard e calendário das quests, em vez de
+criar um segundo sistema de tarefas. O `series_id` sobrevive às novas ocorrências, que têm outro id.
+O hábito de treino usa dias da semana para que a folga não quebre a sequência (ADR-018).
+
+## ADR-018: Hábitos com dias da semana (02/11/2026)
+
+**Decisão:** `habits.weekdays` lista os dias esperados; dias fora da agenda não quebram a sequência.
+**Motivo:** um hábito diário de treino perderia a sequência em todo dia de descanso. Vazio = todos os
+dias, então os hábitos existentes não mudam.
+
+## ADR-019: Títulos por conquista com métricas registradas (02/11/2026)
+
+**Decisão:** títulos ficam no Hunter (`titles`) e são desbloqueados por métricas (`level`, `total_xp` e
+as registradas por outros módulos com `register_metric`). O título exibido é escolhido entre os
+conquistados; títulos próprios nascem desbloqueados.
+**Motivo:** dá um objetivo aos números que já existiam sem criar dependência circular: quem tem o dado
+se registra no Hunter. A verificação roda dentro de `award_xp`, então toda conquista é avisada na hora.
