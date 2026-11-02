@@ -25,6 +25,18 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Online de graça: Render + Supabase (`render.yaml`), tokens no banco com RLS, keep-alive (cron-job.org + GitHub Actions)
 - [x] Documentação técnica
 
+## RPG da vida real ✅
+
+- [x] Inicialização do System com o manifesto ("Se esse sistema quer me usar, então eu vou usar o sistema")
+- [x] Identidade visual de HUD: azul profundo, azul elétrico, ciano e roxo nos detalhes
+- [x] LEVEL UP em tela cheia e notificação especial de conquista, com sons sintetizados
+- [x] Atributos Sabedoria e Carisma; categorias sugeridas ligadas aos atributos; evolução semanal dos atributos
+- [x] XP por dificuldade × importância
+- [x] Painel: dias seguidos evoluindo, semana atual x anterior, concluídas hoje, XP para o próximo nível
+- [x] Zona de Falha: motivo da falha (procrastinação, planejamento, imprevisto, limitação real) com XP devolvido configurável
+- [x] Conquistas com ícone, recompensa em XP e título (21 padrão)
+- [x] O Arquiteto: análise por regras com dados reais, prioridades, missões sugeridas, metas; IA opcional (Claude) para conversa e planos
+
 ## Fase 2: Vida acadêmica
 
 - [ ] **Study**: cursos, conteúdos, sessões de estudo (horas), revisões, metas, anotações
@@ -59,12 +71,14 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 
 - [ ] **Career**: vagas, empresas, pipeline de candidaturas, entrevistas, testes técnicos, propostas
 - [ ] **Hobbies** genéricos com dados próprios (Gaming, Música, Game Dev, Writing, personalizados)
-- [ ] **Personal Development**: diário, reflexões, revisão semanal e mensal, conquistas (achievements)
+- [ ] **Personal Development**: diário, reflexões, revisão semanal e mensal
 
 ## Fase 6: Inteligência e automação
 
-- [ ] **Shadow AI**: camada de provedor configurável; objetivos → lista de `QuestInput` para o usuário confirmar
-- [ ] Relatórios diários/semanais, análise de rotina, tarefas atrasadas, conflitos de agenda
+- [x] **Arquiteto** (a antiga "Shadow AI"): regras + Claude opcional; metas → missões para o jogador aceitar
+- [ ] Relatório semanal automático do Arquiteto e sugestões agendadas
+- [ ] Transformar uma frase livre ("estudar cálculo amanhã à noite") em missão, por texto ou voz
+- [ ] Temas de cor trocáveis (hoje as cores ficam nas variáveis do `shadow.css`)
 - [ ] **Automações**: agendador no próprio processo ou via Agendador de Tarefas do Windows chamando comandos `flask`, com log de execução, liga/desliga e trava contra execução duplicada
 - [ ] Sincronização automática com o Google Calendar
 
