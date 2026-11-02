@@ -50,6 +50,13 @@
       </div>
     </section>
 
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] CONQUISTAS</p>
+      <label class="check"><input type="checkbox" name="achievement_rewards" {% if achievement_rewards %}checked{% endif %}>
+        Dar o XP de recompensa ao desbloquear uma conquista (uma vez por conquista)</label>
+      <p class="muted small">Veja todas em <a href="{{ url_for('hunter.titles') }}">Conquistas e títulos</a>.</p>
+    </section>
+
     <div class="form-actions"><button class="btn btn-primary" type="submit">Salvar regras</button></div>
   </form>
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "partials/_macros.html" as ui %}
-{% block title %}Títulos{% endblock %}
-{% block heading %}Títulos{% endblock %}
+{% block title %}Conquistas{% endblock %}
+{% block heading %}Conquistas e títulos{% endblock %}
 {% block actions %}<a class="btn btn-ghost" href="{{ url_for('hunter.profile') }}">Voltar ao perfil</a>{% endblock %}
 {% block content %}
 {% set unlocked = titles | selectattr("unlocked") | list %}
@@ -11,13 +11,16 @@
       <h2>Conquistados</h2>
       <span class="tag tag-blue">{{ unlocked | length }}/{{ titles | length }}</span>
     </div>
-    <p class="muted small">Escolha qual título aparece no seu perfil. Novos títulos são desbloqueados sozinhos
-      quando você atinge a meta, e o System avisa na hora.</p>
+    <p class="muted small">Cada conquista desbloqueia um título com o mesmo nome e, se tiver, dá o XP de recompensa
+      uma vez. Elas são conferidas sozinhas a cada XP ganho, e o System avisa na hora. Escolha aqui qual título
+      aparece no seu perfil.</p>
     <ul class="list">
       {% for t in unlocked %}
         <li class="list-item {% if t.is_active %}is-done{% endif %}">
           <div class="item-main">
-            <div class="item-title">{{ t.name }} {% if t.is_active %}<span class="tag tag-success">exibido</span>{% endif %}</div>
+            <div class="item-title"><span class="achievement-icon" aria-hidden="true">{{ t.icon }}</span> {{ t.name }}
+              {% if t.is_active %}<span class="tag tag-success">exibido</span>{% endif %}
+              {% if t.reward_xp %}<span class="xp-tag">+{{ t.reward_xp }} XP</span>{% endif %}</div>
             <div class="item-meta">
               <span>{{ t.description or "Sem descrição." }}</span>
               <span>{{ "criado por você" if t.is_custom else "desbloqueado" }} em {{ t.unlocked_at | date_br }}</span>
@@ -45,7 +48,8 @@
         {% for t in titles if not t.unlocked %}
           <li class="list-item">
             <div class="item-main">
-              <div class="item-title">🔒 {{ t.name }}</div>
+              <div class="item-title"><span class="achievement-icon is-locked" aria-hidden="true">{{ t.icon }}</span> {{ t.name }}
+                {% if t.reward_xp %}<span class="xp-tag">+{{ t.reward_xp }} XP</span>{% endif %}</div>
               <div class="item-meta"><span>{{ t.description }}</span></div>
               <div class="progress thin" aria-hidden="true"><div class="progress-fill" style="width: {{ t.percent }}%"></div></div>
               <div class="item-meta"><span>{{ t.current }} / {{ t.threshold }} {{ t.rule_label }}</span></div>
@@ -58,7 +62,7 @@
     </section>
 
     <section class="panel">
-      <div class="panel-header"><h2>Criar título</h2></div>
+      <div class="panel-header"><h2>Criar título próprio</h2></div>
       <p class="muted small">Um título seu já nasce desbloqueado (ex.: "Dev das Madrugadas").</p>
       <form method="post" action="{{ url_for('hunter.create_title') }}" class="form-grid">
         {{ form.csrf_token }}

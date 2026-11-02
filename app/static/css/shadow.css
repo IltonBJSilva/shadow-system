@@ -496,3 +496,6 @@ select.input[multiple] { min-height: 130px; }
 .delta.is-up { color: var(--success); }
 .delta.is-down { color: var(--warning); }
 .failure-form { margin-top: .5rem; flex-wrap: wrap; gap: .4rem; } .failure-form .input { flex: 1 1 220px; }
+
+.achievement-icon { display: inline-block; width: 1.4em; text-align: center; }
+.achievement-icon.is-locked { filter: grayscale(1) opacity(.45); }

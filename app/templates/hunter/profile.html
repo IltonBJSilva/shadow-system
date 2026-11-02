@@ -3,7 +3,7 @@
 {% block title %}Hunter{% endblock %}
 {% block heading %}Hunter Profile{% endblock %}
 {% block actions %}
-  <a class="btn btn-ghost" href="{{ url_for('hunter.titles') }}">Títulos ({{ unlocked_titles | length }}/{{ titles_total }})</a>
+  <a class="btn btn-ghost" href="{{ url_for('hunter.titles') }}">Conquistas ({{ unlocked_titles | length }}/{{ titles_total }})</a>
   <a class="btn btn-ghost" href="{{ url_for('hunter.ranks') }}">Ranks</a>
   <button class="btn" type="button" data-toggle="profile-form">Editar perfil</button>
 {% endblock %}
@@ -28,7 +28,7 @@
           {% endfor %}
         </select>
         <small class="muted">Só aparecem os títulos já conquistados. Veja como ganhar os outros em
-          <a href="{{ url_for('hunter.titles') }}">Títulos</a>.</small>
+          <a href="{{ url_for('hunter.titles') }}">Conquistas</a>.</small>
       </div>
       <noscript><div class="form-actions"><button class="btn" type="submit">Usar título</button></div></noscript>
     </form>

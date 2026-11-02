@@ -2,6 +2,8 @@ from flask import flash, redirect, render_template, request, url_for
 
 from app.core.errors import DomainError
 
+from app.modules.hunter import services as hunter
+
 from . import bp, services
 from .rules import FAILURE_REASONS, Rules
 
@@ -10,10 +12,12 @@ from .rules import FAILURE_REASONS, Rules
 def index():
     if request.method == "POST":
         services.save_rules(_rules_from_form())
+        hunter.set_achievement_rewards(request.form.get("achievement_rewards") == "on")
         flash("Regras do System atualizadas.", "success")
         return redirect(url_for("gamification.index"))
     return render_template("gamification/index.html", rules=services.get_rules(), history=services.history(),
-                           reasons=FAILURE_REASONS, pending_failures=services.pending_failures_count())
+                           reasons=FAILURE_REASONS, pending_failures=services.pending_failures_count(),
+                           achievement_rewards=hunter.achievement_rewards_enabled())
 
 
 @bp.get("/failures")
