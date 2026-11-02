@@ -11,9 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // clique (concluir quest, marcar hábito), normalmente toca. Se não tocar, toca no próximo clique.
   const flashes = Array.from(document.querySelectorAll(".flash"));
   const SOUND_BY_CATEGORY = {
-    success: "quest", levelup: "levelup", bonus: "bonus", penalty: "penalty", error: "error", info: "notify",
+    success: "quest", levelup: "levelup", achievement: "achievement", bonus: "bonus", penalty: "penalty",
+    error: "error", info: "notify",
   };
-  const priority = ["levelup", "penalty", "bonus", "success", "error", "info"];
+  const priority = ["levelup", "achievement", "penalty", "bonus", "success", "error", "info"];
   const categories = flashes.map((f) => f.dataset.category);
   const top = priority.find((c) => categories.includes(c));
   if (top && window.ShadowSound) {
@@ -22,8 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("pointerdown", playIt, { once: true });
     setTimeout(() => document.removeEventListener("pointerdown", playIt), 4000);
   }
+  showLevelUp(flashes);
   flashes.forEach((flash) => {
-    const sticky = ["levelup", "penalty"].includes(flash.dataset.category);
+    const sticky = ["levelup", "penalty", "achievement"].includes(flash.dataset.category);
     setTimeout(() => flash.classList.add("is-hidden"), sticky ? 9000 : 6000);
     flash.addEventListener("click", () => flash.classList.add("is-hidden"));
   });
@@ -74,3 +76,39 @@ document.addEventListener("DOMContentLoaded", () => {
     refresh();
   });
 });
+
+// Janela de LEVEL UP: aparece por cima de tudo quando uma mensagem de subida de nível chega.
+// Some sozinha em ~3,5 s, com clique ou Esc. Respeita "reduzir movimento".
+function showLevelUp(flashes) {
+  const levelFlash = flashes.find((f) => f.dataset.category === "levelup" && /LEVEL UP/i.test(f.textContent));
+  if (!levelFlash) return;
+  const level = (levelFlash.textContent.match(/n[ií]vel (\d+)/i) || [])[1];
+  const rankFlash = flashes.find((f) => f.dataset.category === "levelup" && /rank/i.test(f.textContent));
+  const rank = rankFlash ? rankFlash.textContent.replace(/^.*rank desbloqueado:\s*/i, "").replace(/\.$/, "").trim() : "";
+  const overlay = document.createElement("div");
+  overlay.className = "levelup-overlay";
+  overlay.setAttribute("role", "alertdialog");
+  overlay.setAttribute("aria-label", "Level up");
+  overlay.innerHTML = `
+    <div class="levelup-card">
+      <p class="levelup-tag">[SYSTEM]</p>
+      <p class="levelup-title">LEVEL UP!</p>
+      <p class="levelup-line">VOCÊ EVOLUIU.</p>
+      ${level ? `<p class="levelup-level"><span>NÍVEL</span> ${level}</p>` : ""}
+      <p class="levelup-line small">NOVO NÍVEL DESBLOQUEADO${rank ? ` · RANK ${escapeHtml(rank)}` : ""}</p>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => {
+    overlay.classList.add("is-leaving");
+    setTimeout(() => overlay.remove(), 400);
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (event) => { if (event.key === "Escape" || event.key === "Enter") close(); };
+  overlay.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  setTimeout(close, 3600);
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
