@@ -66,7 +66,12 @@ def callback():
     if request.args.get("error"):
         flash("Conexão com o Google cancelada.", "info")
         return redirect(url_for("google_calendar.index"))
-    oauth.exchange_code(request.url, state, code_verifier, scopes)
+    # A URL de retorno é montada a partir de GOOGLE_REDIRECT_URI (a registrada no Google), não de
+    # request.url: atrás de proxies (Render, Cloudflare) o app pode ver a requisição como http:// e o
+    # oauthlib recusa com InsecureTransportError.
+    query = request.query_string.decode()
+    authorization_response = f"{current_app.config['GOOGLE_REDIRECT_URI']}?{query}"
+    oauth.exchange_code(authorization_response, state, code_verifier, scopes)
     flash("Conta Google conectada.", "success")
     return redirect(return_to if return_to.startswith("/integrations/") else url_for("google_calendar.index"))
 

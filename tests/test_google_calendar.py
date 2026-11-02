@@ -212,3 +212,16 @@ def test_google_page_shows_render_secret_file_steps(tmp_path):
         db.create_all()
     html = app.test_client().get("/integrations/google/").get_data(as_text=True)
     assert "Secret Files" in html and "google_client_secret.json" in html
+
+
+def test_callback_uses_registered_https_redirect_behind_proxy(monkeypatch):
+    """No Render o app vê http://; o retorno passado ao oauthlib precisa ser o https registrado."""
+    app = create_app("testing", {"GOOGLE_REDIRECT_URI": "https://shadow.onrender.com/integrations/google/callback"})
+    seen = {}
+    monkeypatch.setattr(oauth, "exchange_code", lambda url, *a: seen.setdefault("url", url))
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session["google_oauth_state"] = "s1"
+    response = client.get("/integrations/google/callback?state=s1&code=abc")  # chega como http://localhost
+    assert response.status_code == 302
+    assert seen["url"] == "https://shadow.onrender.com/integrations/google/callback?state=s1&code=abc"
