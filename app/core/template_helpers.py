@@ -44,4 +44,13 @@ def register(app: Flask) -> None:
             for label, endpoint, icon in NAV_ITEMS
             if endpoint in app.view_functions
         ]
-        return {"nav_items": nav, "today": time.today()}
+        from . import experience
+
+        try:
+            boot = experience.boot_mode()
+        except Exception:  # noqa: BLE001 (banco ainda sem tabelas: a página abre sem a animação)
+            from app.extensions import db
+
+            db.session.rollback()
+            boot = "off"
+        return {"nav_items": nav, "today": time.today(), "boot_mode": boot, "manifesto": experience.MANIFESTO}

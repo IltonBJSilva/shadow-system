@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Personalizar dashboard{% endblock %}
-{% block heading %}Personalizar dashboard{% endblock %}
+{% block heading %}Personalizar{% endblock %}
 {% block content %}
   <section class="panel narrow">
     <form method="post" class="form">
@@ -9,6 +9,11 @@
         aparecerão aqui quando esses módulos forem implementados.</p>
       {% for key, label in widgets.items() %}
         <label class="check"><input type="checkbox" name="widgets" value="{{ key }}" {% if key in enabled %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+      <h2 class="section-gap">Inicialização do System</h2>
+      <p class="muted small">A animação de abertura com o manifesto. Pula com um clique ou Esc.</p>
+      {% for key, label in boot_modes.items() %}
+        <label class="check"><input type="radio" name="boot_mode" value="{{ key }}" {% if key == current_boot %}checked{% endif %}> {{ label }}</label>
       {% endfor %}
       <div class="form-actions">
         <a class="btn btn-ghost" href="{{ url_for('dashboard.index') }}">Cancelar</a>

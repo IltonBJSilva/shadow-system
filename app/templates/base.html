@@ -8,8 +8,29 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/shadow.css') }}">
   <script src="{{ url_for('static', filename='js/sounds.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/shadow.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/boot.js') }}" defer></script>
 </head>
 <body>
+  {% set show_boot = boot_mode != "off" and not (auth_enabled and not current_user) %}
+  {% if show_boot %}
+    <div class="boot" data-boot data-boot-mode="{{ boot_mode }}" data-boot-page="{{ request.endpoint or '' }}"
+         role="dialog" aria-label="Inicialização do sistema" hidden>
+      <div class="boot-grid" aria-hidden="true"></div>
+      <div class="boot-core">
+        <img class="boot-emblem" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="72" height="72">
+        <ol class="boot-log" aria-live="polite">
+          <li>INICIALIZANDO SISTEMA...</li>
+          <li>SINCRONIZANDO ATRIBUTOS...</li>
+          <li>CARREGANDO MISSÕES...</li>
+          <li>ANALISANDO JOGADOR...</li>
+          <li class="boot-ok">SISTEMA ATIVADO.</li>
+        </ol>
+        <div class="boot-bar" aria-hidden="true"><span></span></div>
+        <p class="boot-manifesto">{{ manifesto }}</p>
+        <button class="boot-skip" type="button" data-boot-skip>Pular (Esc)</button>
+      </div>
+    </div>
+  {% endif %}
   <div class="layout">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="/">

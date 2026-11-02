@@ -1,5 +1,7 @@
 from flask import flash, redirect, render_template, request, url_for
 
+from app.core import experience
+
 from . import bp, services
 
 
@@ -16,6 +18,8 @@ def index():
 def settings():
     if request.method == "POST":
         services.save_widgets(request.form.getlist("widgets"))
+        experience.set_boot_mode(request.form.get("boot_mode", experience.DEFAULT_BOOT_MODE))
         flash("Dashboard atualizado.", "success")
         return redirect(url_for("dashboard.index"))
-    return render_template("dashboard/settings.html", widgets=services.WIDGETS, enabled=services.enabled_widgets())
+    return render_template("dashboard/settings.html", widgets=services.WIDGETS, enabled=services.enabled_widgets(),
+                           boot_modes=experience.BOOT_MODES, current_boot=experience.boot_mode())

@@ -391,3 +391,55 @@ select.input[multiple] { min-height: 130px; }
 .training-day { padding: .9rem 1rem; }
 .training-text { min-height: 16rem; font-size: .85rem; line-height: 1.5; }
 .mail-filters { margin: 0; }
+
+/* ---------- Inicialização do System (boot.js) ---------- */
+.boot {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(ellipse at 50% 40%, rgba(37, 99, 235, 0.18), transparent 60%), #03030a;
+  color: var(--text); transition: opacity .45s ease, visibility .45s;
+}
+.boot[hidden] { display: none; }
+.boot.is-leaving { opacity: 0; visibility: hidden; }
+.boot-grid {
+  position: absolute; inset: 0; opacity: .25; pointer-events: none;
+  background-image: linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  animation: boot-grid 6s linear infinite;
+}
+@keyframes boot-grid { to { background-position: 0 48px, 48px 0; } }
+.boot-core { position: relative; width: min(560px, calc(100vw - 32px)); text-align: center; }
+.boot-emblem { filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.55)); animation: boot-pulse 1.6s ease-in-out infinite; }
+@keyframes boot-pulse { 50% { transform: scale(1.06); filter: drop-shadow(0 0 28px rgba(139, 92, 246, 0.7)); } }
+.boot-log {
+  list-style: none; margin: 1.4rem auto 1rem; padding: 0; text-align: left; width: fit-content;
+  font: 600 .85rem/1.9 var(--mono); letter-spacing: .14em; color: #7dd3fc;
+}
+.boot-log li { opacity: 0; transform: translateX(-6px); transition: opacity .2s, transform .2s; }
+.boot-log li::before { content: "› "; color: var(--purple); }
+.boot-log li.is-on { opacity: 1; transform: none; }
+.boot-log .boot-ok { color: #a5f3fc; text-shadow: 0 0 12px rgba(34, 211, 238, 0.7); }
+.boot-bar { height: 3px; background: rgba(56, 189, 248, 0.12); border-radius: 99px; overflow: hidden; margin: 0 auto; width: 80%; }
+.boot-bar span {
+  display: block; height: 100%; width: var(--boot-progress, 0%); transition: width .3s ease;
+  background: linear-gradient(90deg, #2563eb, #22d3ee, #8b5cf6); box-shadow: 0 0 12px #22d3ee;
+}
+.boot-manifesto {
+  margin: 1.6rem 0 0; font-weight: 800; font-size: clamp(1.05rem, 3.6vw, 1.6rem); line-height: 1.35;
+  letter-spacing: .06em; opacity: 0; transform: scale(.96); transition: opacity .5s ease, transform .5s ease;
+  background: linear-gradient(90deg, #e0f2fe, #67e8f9 40%, #c4b5fd); -webkit-background-clip: text;
+  background-clip: text; color: transparent; text-shadow: none;
+}
+.boot.show-manifesto .boot-manifesto { opacity: 1; transform: none; }
+.boot-skip {
+  position: absolute; top: calc(100% + 1.4rem); left: 50%; transform: translateX(-50%);
+  background: none; border: 1px solid rgba(148, 163, 184, 0.25); color: var(--muted);
+  border-radius: 99px; padding: .25rem .8rem; font-size: .75rem; cursor: pointer;
+}
+.boot-skip:hover, .boot-skip:focus-visible { color: var(--text); border-color: #22d3ee; outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  .boot-grid, .boot-emblem { animation: none; }
+  .boot-log li, .boot-manifesto { transition: none; }
+}
+.section-gap { margin-top: 1.4rem; }
