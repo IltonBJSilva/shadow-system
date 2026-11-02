@@ -495,3 +495,4 @@ select.input[multiple] { min-height: 130px; }
 .delta { font-size: .72rem; font-family: var(--mono); color: var(--muted); vertical-align: middle; }
 .delta.is-up { color: var(--success); }
 .delta.is-down { color: var(--warning); }
+.failure-form { margin-top: .5rem; flex-wrap: wrap; gap: .4rem; } .failure-form .input { flex: 1 1 220px; }

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Zona de Falha{% endblock %}
+{% block heading %}Zona de Falha{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('gamification.index') }}">Regras</a>{% endblock %}
+{% block content %}
+<div class="stack">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Análise de falhas</p>
+    <p class="muted small">Toda missão recorrente que passa do prazo aparece aqui. Diga o que aconteceu: o System
+      não pune do mesmo jeito uma procrastinação e um imprevisto. Motivos que devolvem o XP agora:
+      <strong>{% for key in rules.refund_reasons %}{{ reasons[key][0] }}{{ ", " if not loop.last }}{% else %}nenhum{% endfor %}</strong>
+      (mude em <a href="{{ url_for('gamification.index') }}">Regras</a>). O objetivo é ajustar a rotina, não sentir culpa.</p>
+    {% if stats %}
+      <div class="kpis">
+        {% for key, (label, _) in reasons.items() %}
+          <div class="kpi"><div class="kpi-value">{{ stats.get(key, 0) }}</div><div class="kpi-label">{{ label }}</div></div>
+        {% endfor %}
+        <div class="kpi"><div class="kpi-value">{{ stats.get("unknown", 0) }}</div><div class="kpi-label">Sem motivo</div></div>
+      </div>
+      <p class="muted small">Últimos 60 dias.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Sem motivo registrado</h2><span class="tag tag-blue">{{ pending | length }}</span></div>
+    {% if pending %}
+      <ul class="list">
+        {% for f in pending %}
+          <li class="list-item is-overdue">
+            <div class="item-main">
+              <div class="item-title">{{ f.quest_title }}</div>
+              <div class="item-meta">
+                <span>prazo {{ f.due_date | date_br }}</span>
+                {% if f.penalty_xp %}<span class="tag tag-danger">-{{ f.penalty_xp }} XP</span>{% endif %}
+              </div>
+              <form method="post" action="{{ url_for('gamification.classify', failure_id=f.id) }}" class="row failure-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input class="input" type="text" name="note" maxlength="500" placeholder="O que aconteceu? (opcional)"
+                       aria-label="Observação sobre {{ f.quest_title }}">
+                {% for key, (label, _) in reasons.items() %}
+                  <button class="btn btn-sm {{ 'btn-success' if key in rules.refund_reasons else '' }}" type="submit"
+                          name="reason" value="{{ key }}">{{ label }}</button>
+                {% endfor %}
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhuma falha esperando análise.") }}
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Histórico</h2></div>
+    {% if history %}
+      <ul class="list">
+        {% for f in history %}
+          <li class="list-item">
+            <div class="item-main">
+              <div class="item-title">{{ f.quest_title }}</div>
+              <div class="item-meta">
+                <span class="tag">{{ reasons[f.reason][0] }}</span>
+                <span>prazo {{ f.due_date | date_br }}</span>
+                {% if f.refunded and f.penalty_xp %}<span class="tag tag-success">+{{ f.penalty_xp }} XP devolvidos</span>
+                {% elif f.penalty_xp %}<span class="tag tag-danger">-{{ f.penalty_xp }} XP</span>{% endif %}
+                {% if f.note %}<span>“{{ f.note }}”</span>{% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ ui.empty("Nenhuma falha analisada ainda.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -170,3 +170,69 @@ def test_settings_page_saves_rules(client):
 def test_invalid_rule_value_is_rejected(client):
     client.post("/gamification/", data={"first_quest_bonus_xp": "muito", "penalty_xp_percent": "10"})
     assert gamification.get_rules().first_quest_bonus_xp == 10
+
+
+# ---------- Zona de Falha ----------
+
+def _miss(title: str = "Estudar", xp: int = 50) -> None:
+    quests.create_quest(QuestInput(title=title, recurrence="daily", due_date=time.today() - timedelta(days=1),
+                                   xp_reward=xp))
+    quests.roll_over_recurring()
+
+
+def test_missed_quest_is_recorded_as_pending_failure(app):
+    _only(penalty_xp_percent=20, penalty_quest_enabled=True)
+    _give_xp(progression.total_xp_for_level(3) + 40)
+    _miss()
+    [failure] = gamification.list_failures(pending_only=True)
+    assert failure.quest_title == "Estudar" and failure.penalty_xp == 10 and failure.penalty_quest_id
+    assert gamification.pending_failures_count() == 1
+
+
+def test_unexpected_reason_refunds_xp_and_cancels_penalty_quest(app):
+    _only(penalty_xp_percent=20, penalty_quest_enabled=True)
+    _give_xp(progression.total_xp_for_level(3) + 40)
+    _miss()
+    failure = gamification.list_failures(pending_only=True)[0]
+    message, category = gamification.classify_failure(failure.id, "unexpected", "Fiquei doente")
+    assert "+10 XP devolvidos" in message and category == "bonus"
+    assert hunter.get_status().progress.xp_into_level == 40
+    assert not any(r.is_penalty_quest(q.title) for q in quests.quests_for_today())
+    assert gamification.list_failures()[0].note == "Fiquei doente"
+    gamification.classify_failure(failure.id, "real_limit")  # mudar de ideia não devolve duas vezes
+    assert hunter.get_status().progress.xp_into_level == 40
+
+
+def test_procrastination_keeps_the_penalty_and_gives_advice(app):
+    _only(penalty_xp_percent=20, penalty_quest_enabled=True)
+    _give_xp(progression.total_xp_for_level(3) + 40)
+    _miss()
+    failure = gamification.list_failures(pending_only=True)[0]
+    message, _ = gamification.classify_failure(failure.id, "procrastination")
+    assert "15 minutos" in message
+    assert hunter.get_status().progress.xp_into_level == 30
+    assert gamification.failure_stats() == {"procrastination": 1}
+
+
+def test_refund_reasons_are_configurable(client):
+    client.post("/gamification/", data={"penalties_enabled": "on", "penalty_xp_percent": "10",
+                                        "refund_reasons": ["planning"], "first_quest_bonus_xp": "0",
+                                        "daily_combo_percent": "0", "daily_combo_min_xp": "0",
+                                        "early_bonus_percent": "0"})
+    assert gamification.get_rules().refund_reasons == ["planning"]
+
+
+def test_failures_page_and_classify_route(client):
+    _only(penalty_xp_percent=20, penalty_quest_enabled=True)
+    _miss("Ler")
+    html = client.get("/gamification/failures").get_data(as_text=True)
+    assert "Ler" in html and "Imprevisto" in html and "Limitação real" in html
+    failure = gamification.list_failures(pending_only=True)[0]
+    client.post(f"/gamification/failures/{failure.id}", data={"reason": "planning", "note": "dia cheio"})
+    assert gamification.list_failures()[0].reason == "planning"
+
+
+def test_failure_is_recorded_even_with_penalties_off(app):
+    gamification.save_rules(Rules(penalties_enabled=False))
+    _miss()
+    assert gamification.list_failures(pending_only=True)[0].penalty_xp == 0

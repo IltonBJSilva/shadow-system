@@ -9,6 +9,7 @@ from typing import Any, Callable
 from app.core import settings, time
 from app.integrations import buffer, gmail
 from app.modules.calendar import services as calendar
+from app.modules.gamification import services as gamification
 from app.modules.habits import services as habits
 from app.modules.hunter import services as hunter
 from app.modules.quests import services as quests
@@ -72,6 +73,10 @@ def _notifications() -> list[tuple[str, str]]:
     penalties = [q for q in quests.quests_for_today() if q.title.startswith("[PENALTY]")]
     if penalties:
         notes.append((f"Penalty Zone: {len(penalties)} Penalty Quest(s) para cumprir hoje e recuperar XP.", "warning"))
+    pending_failures = gamification.pending_failures_count()
+    if pending_failures:
+        notes.append((f"Zona de Falha: {pending_failures} missão(ões) não realizada(s) esperando o motivo "
+                      "(imprevisto e limitação real devolvem o XP).", "warning"))
     pending_habits = [h for h in habits.list_habits() if not h.done_today]
     if pending_habits:
         notes.append((f"{len(pending_habits)} hábito(s) ainda não marcados hoje.", "info"))

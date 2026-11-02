@@ -3,7 +3,7 @@ from flask import flash, redirect, render_template, request, url_for
 from app.core.errors import DomainError
 
 from . import bp, services
-from .rules import Rules
+from .rules import FAILURE_REASONS, Rules
 
 
 @bp.route("/", methods=["GET", "POST"])
@@ -12,7 +12,23 @@ def index():
         services.save_rules(_rules_from_form())
         flash("Regras do System atualizadas.", "success")
         return redirect(url_for("gamification.index"))
-    return render_template("gamification/index.html", rules=services.get_rules(), history=services.history())
+    return render_template("gamification/index.html", rules=services.get_rules(), history=services.history(),
+                           reasons=FAILURE_REASONS, pending_failures=services.pending_failures_count())
+
+
+@bp.get("/failures")
+def failures():
+    return render_template("gamification/failures.html", pending=services.list_failures(pending_only=True),
+                           history=[f for f in services.list_failures() if f.reason], reasons=FAILURE_REASONS,
+                           stats=services.failure_stats(), rules=services.get_rules())
+
+
+@bp.post("/failures/<int:failure_id>")
+def classify(failure_id: int):
+    message, category = services.classify_failure(failure_id, request.form.get("reason", ""),
+                                                  request.form.get("note", ""))
+    flash(message, category)
+    return redirect(url_for("gamification.failures"))
 
 
 def _rules_from_form() -> Rules:
@@ -42,4 +58,5 @@ def _rules_from_form() -> Rules:
         penalties_enabled=form.get("penalties_enabled") == "on",
         penalty_xp_percent=number("penalty_xp_percent", 0, 100),
         penalty_quest_enabled=form.get("penalty_quest_enabled") == "on",
+        refund_reasons=[key for key in FAILURE_REASONS if key in form.getlist("refund_reasons")],
     )

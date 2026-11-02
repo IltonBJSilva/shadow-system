@@ -35,7 +35,7 @@
     </section>
 
     <section class="panel system-window">
-      <p class="system-label">[SYSTEM] PUNIÇÕES · PENALTY ZONE</p>
+      <p class="system-label">[SYSTEM] PUNIÇÕES · PENALTY ZONE · <a href="{{ url_for('gamification.failures') }}">Zona de Falha{% if pending_failures %} ({{ pending_failures }} sem motivo){% endif %}</a></p>
       <div class="form">
         <label class="check"><input type="checkbox" name="penalties_enabled" {% if rules.penalties_enabled %}checked{% endif %}> Punições ligadas</label>
         <div class="field"><label class="label">XP perdido por quest recorrente não feita (% do XP dela)</label>
@@ -43,6 +43,10 @@
         <label class="check"><input type="checkbox" name="penalty_quest_enabled" {% if rules.penalty_quest_enabled %}checked{% endif %}> Gerar Penalty Quest (cumprir no dia devolve o XP)</label>
         <p class="muted small">A punição nunca faz você perder nível: o máximo que sai é o XP já ganho no nível atual.
           Quests sem repetição e Penalty Quests não geram punição.</p>
+        <span class="label">Ao registrar o motivo na Zona de Falha, devolver o XP e cancelar a Penalty Quest quando foi:</span>
+        {% for key, (label, _) in reasons.items() %}
+          <label class="check"><input type="checkbox" name="refund_reasons" value="{{ key }}" {% if key in rules.refund_reasons %}checked{% endif %}> {{ label }}</label>
+        {% endfor %}
       </div>
     </section>
 
