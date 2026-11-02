@@ -45,18 +45,26 @@ testadas.
 
 ## Funcionalidades
 
-### Implementado (MVP)
+### Implementado
 
-- [x] **Hunter Profile**: nível, rank configurável (E → SS → especiais), XP com curva linear, 8 atributos, histórico de evolução
-- [x] **Títulos por conquista**: desbloqueados por nível, XP, quests, sequência de hábitos e treinos; você escolhe qual exibir e pode criar os seus
+- [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
+- [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
+- [x] **Metas**: registre objetivos ("Passar em Cálculo II"); o Arquiteto sugere o próximo passo e uma sessão semanal
+- [x] **Zona de Falha**: toda missão recorrente não feita fica registrada; você diz o motivo (procrastinação, planejamento, imprevisto, limitação real) e os motivos escolhidos devolvem o XP e cancelam a Penalty Quest
+- [x] **Conquistas**: 21 conquistas com ícone, recompensa em XP (uma vez) e título; notificação especial ao desbloquear
+- [x] **LEVEL UP** em tela cheia com o novo nível e o novo rank
+
+- [x] **Hunter Profile**: nível, rank configurável (E → SS → especiais), XP com curva linear, 10 atributos (incluindo Sabedoria e Carisma), evolução semanal dos atributos, histórico
+- [x] **Títulos**: cada conquista dá um título; você escolhe qual exibir e pode criar os seus
 - [x] **Quest System**: 8 tipos (Daily, Weekly, Monthly, Main, Side, Habit, Emergency, Custom), categorias, prioridade, dificuldade, prazo, critérios, recompensas, atributos, histórico
+- [x] **Categorias sugeridas**: Faculdade, Carreira, Estudos, Treino, Saúde, Finanças, Música e arte, Hobbies, Organização, Espiritualidade, Projetos pessoais e Conteúdo, já ligadas aos atributos
 - [x] **Quests recorrentes** (diária, semanal, mensal) sem punição por dia perdido
 - [x] **Ações em massa** nas quests: marcar várias e cancelar ou excluir
 - [x] **Gamificação**: bônus, punições configuráveis, Penalty Quests com redenção, sons e janelas do *System*
 - [x] **Hábitos**: todos os dias ou em dias escolhidos (folga não quebra a sequência), streak atual e recorde, correção de dias esquecidos, estorno exato de XP
 - [x] **Treinos**: rotinas prontas (ABC, Full body, Superior/Inferior, PPL, em casa, corrida), texto colado ou documento (PDF, Word, texto) viram quests semanais, eventos no calendário, hábito de treino e sugestão de progressão de carga
 - [x] **Calendário interno**: visão mensal, eventos ligados a quests, prazos de quests, aviso de conflito de horário
-- [x] **Dashboard** estilo janela de status, com widgets configuráveis
+- [x] **Dashboard** estilo janela de status, com widgets configuráveis: sequência de dias evoluindo, semana atual x anterior, concluídas hoje, quanto falta para o próximo nível
 - [x] **Google Calendar**: OAuth 2.0, importar e enviar eventos sem duplicar, disponibilidade (opcional)
 - [x] **Gmail** (somente leitura): não lidos no dashboard, busca por texto com filtros (remetente, período, anexo, pasta), e-mail vira quest (opcional)
 - [x] **Notion**: importar páginas de bancos de dados como quests, sem duplicar (opcional)
@@ -73,7 +81,6 @@ testadas.
 - [ ] Career System (pipeline de candidaturas)
 - [ ] Hobbies (Gaming, Música, Game Dev, Writing e personalizados)
 - [ ] Social Media e Instagram Stories (planejamento de sequências, calendário editorial)
-- [ ] Shadow AI (objetivos → quests, relatórios, sugestões)
 - [ ] Automações agendadas e relatórios semanais
 
 Detalhes e ordem em [ROADMAP.md](ROADMAP.md).
