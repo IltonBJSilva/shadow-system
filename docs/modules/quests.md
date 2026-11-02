@@ -50,6 +50,10 @@ recorrente vencida ──rollover──▶ missed                  (sem perda de
   XP, e a próxima aparece já para hoje (não acumula uma pilha de atrasadas). Isso roda ao abrir a lista
   de quests ou o dashboard, e também por `flask quests rollover` (idempotente).
 - **Remover** uma quest apaga ela e o histórico dela, mas o XP já ganho continua no histórico do Hunter.
+- **Em massa** (lista de Quests): marque as caixas (ou *Marcar todas*) e use **Cancelar selecionadas**
+  (só as ativas; sem perda de XP) ou **Excluir selecionadas**. Rota `POST /quests/bulk`, funções
+  `cancel_quests(ids)` e `delete_quests(ids)`. As caixas ficam fora do formulário de cada linha e se
+  ligam ao formulário de ações pelo atributo `form="bulk-quests"`.
 
 ## Para outros módulos
 
@@ -61,6 +65,13 @@ recorrente vencida ──rollover──▶ missed                  (sem perda de
 | `quest_choices()` / `quest_title(id)` | | Vincular eventos a quests |
 | `create_quest(QuestInput)` | `Quest` | Ex.: University gerando quests de revisão, IA no futuro |
 | `stats()` | `dict` | Contadores |
+| `completed_count()` | `int` | Quests concluídas (métrica dos títulos) |
+| `active_in_series(series_id)` | `Quest \| None` | Ocorrência ativa de uma recorrente (Treinos) |
+| `update_description(id, text)` | | Troca a descrição; a próxima ocorrência herda (Treinos) |
+| `cancel_quests(ids)` / `delete_quests(ids)` | `int` | Ações em massa |
+
+`QuestView.series_id` diz a que série recorrente a quest pertence. É assim que o módulo Treinos
+reconhece, no evento `quest.completed`, que a quest concluída é um treino.
 
 ## Geração com IA (futuro)
 
