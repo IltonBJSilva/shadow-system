@@ -59,5 +59,6 @@ RULE_LABELS: dict[str, str] = {
     "quests_completed": "quests concluídas",
     "habit_best_streak": "dias seguidos (melhor sequência)",
     "workouts_completed": "treinos concluídos",
+    "evolution_days": "dias seguidos evoluindo (com XP)",
     "custom": "criado por você",
 }

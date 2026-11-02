@@ -205,6 +205,48 @@ def attribute_history(weeks: int = 8, today: date | None = None) -> tuple[list[d
     return mondays, trends
 
 
+def xp_between(start: date, end: date) -> int:
+    """XP líquido (ganhos menos estornos e punições) entre start e end, inclusive."""
+    total = db.session.scalar(select(func.sum(XpEvent.amount)).where(
+        XpEvent.created_at >= datetime.combine(start, datetime.min.time()),
+        XpEvent.created_at < datetime.combine(end + timedelta(days=1), datetime.min.time())))
+    return int(total or 0)
+
+
+def evolution_streak(today: date | None = None) -> int:
+    """Dias seguidos com XP líquido positivo, até hoje (ou até ontem, se hoje ainda está zerado)."""
+    today = today or time.today()
+    days = {d for d, amount in _xp_per_day_since(today - timedelta(days=400)) if amount > 0}
+    cursor = today if today in days else today - timedelta(days=1)
+    streak = 0
+    while cursor in days:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
+def best_evolution_streak() -> int:
+    """Maior sequência de dias com XP positivo já feita (métrica das conquistas)."""
+    days = sorted(d for d, amount in _xp_per_day_since(None) if amount > 0)
+    best = run = 0
+    previous = None
+    for day in days:
+        run = run + 1 if previous and (day - previous).days == 1 else 1
+        best, previous = max(best, run), day
+    return best
+
+
+def _xp_per_day_since(start: date | None) -> list[tuple[date, int]]:
+    query = select(func.date(XpEvent.created_at), func.sum(XpEvent.amount)).group_by(func.date(XpEvent.created_at))
+    if start is not None:
+        query = query.where(XpEvent.created_at >= datetime.combine(start, datetime.min.time()))
+    result = []
+    for day, amount in db.session.execute(query):
+        day = day if isinstance(day, date) else date.fromisoformat(str(day))
+        result.append((day, int(amount or 0)))
+    return result
+
+
 # ---------- Escrita ----------
 
 def award_xp(amount: int, *, source: str, description: str, source_id: int | None = None,
@@ -362,7 +404,8 @@ def register_metric(rule: str, provider: Callable[[], int]) -> None:
 
 def _metric_values() -> dict[str, int]:
     hunter = get_hunter()
-    values = {"level": progression.level_progress(hunter.total_xp).level, "total_xp": hunter.total_xp}
+    values = {"level": progression.level_progress(hunter.total_xp).level, "total_xp": hunter.total_xp,
+              "evolution_days": best_evolution_streak()}
     for rule, provider in _metrics.items():
         values[rule] = int(provider() or 0)
     return values
