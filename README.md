@@ -132,6 +132,13 @@ flask --app wsgi run --debug --port 5050
    agendados e cria posts novos, com texto diferente para LinkedIn e Instagram.
 6. Volte ao **Dashboard** e conclua quests e hábitos direto de lá.
 
+### Online (sem o PC ligado)
+
+Em produção o Shadow System roda no **Render** (app) com o banco no **Supabase** (PostgreSQL), os dois
+no plano gratuito, e um keep-alive (cron-job.org + GitHub Actions) para o app não dormir. Cada
+`git push` na `main` faz deploy sozinho. Passo a passo em [docs/deployment.md](docs/deployment.md);
+erros comuns em [docs/troubleshooting.md](docs/troubleshooting.md).
+
 ## Configuração
 
 Tudo fica no `.env` (veja os comentários no [.env.example](.env.example)).
@@ -265,7 +272,8 @@ Completo em [ROADMAP.md](ROADMAP.md).
 | [docs/testing.md](docs/testing.md) | Como os testes são organizados e rodados |
 | [docs/integrations.md](docs/integrations.md) | Google Calendar, Gmail, Buffer, Notion, WhatsApp, como criar novas |
 | [docs/security.md](docs/security.md) | Credenciais, login, CSRF, backups |
-| [docs/deployment.md](docs/deployment.md) | Hospedar online de graça e só com seu acesso (PythonAnywhere) |
+| [docs/deployment.md](docs/deployment.md) | Hospedar online de graça e só com seu acesso (Render + Supabase; PythonAnywhere como alternativa) |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Erros conhecidos (deploy, Google, Notion, Buffer) e como resolver |
 | [docs/modules/](docs/modules/) | [Hunter](docs/modules/hunter.md), [Quests](docs/modules/quests.md), [Hábitos](docs/modules/habits.md), [Calendário](docs/modules/calendar.md), [Dashboard](docs/modules/dashboard.md), [Gamificação](docs/modules/gamification.md) |
 | [docs/decisions/architecture-decisions.md](docs/decisions/architecture-decisions.md) | Decisões e seus motivos |
 
@@ -277,6 +285,7 @@ Completo em [ROADMAP.md](ROADMAP.md).
 - CSRF em todos os formulários, cabeçalhos de segurança (CSP, X-Frame-Options), redirecionamentos só internos.
 - Logs não registram conteúdo pessoal nem tokens.
 - Backups: `flask backup create` (SQLite) ou `pg_dump` (PostgreSQL).
+- Online: tokens das integrações no banco com RLS ligado, segredos só no painel do Render (o repositório é público). Ver [docs/security.md](docs/security.md).
 
 Detalhes em [docs/security.md](docs/security.md).
 
