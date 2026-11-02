@@ -23,9 +23,15 @@ proxy HTTPS) e login bloqueado por 15 minutos após 5 senhas erradas. Ver [secur
   Notion e WhatsApp funcionam. O disco é apagado a cada deploy e reinício, por isso **nada fica em
   arquivo**: os dados e os tokens ficam no banco.
 - **Supabase** (plano gratuito) guarda o banco PostgreSQL.
-- **GitHub Actions** (`.github/workflows/keep-alive.yml`) chama `/health` a cada 10 minutos. Assim o
-  Render não dorme (o gratuito dorme após 15 min sem acesso) e o Supabase não pausa (o gratuito pausa
-  após 7 dias sem uso).
+- **Keep-alive**: o **cron-job.org** (principal, a cada 5 min) e o **GitHub Actions** (reserva,
+  `.github/workflows/keep-alive.yml`) chamam `/health`. Assim o Render não dorme (o gratuito dorme
+  após 15 min sem acesso) e o Supabase não pausa (o gratuito pausa após 7 dias sem uso).
+
+```
+navegador ──HTTPS──> Render (Ohio, Flask + waitress) ──Postgres──> Supabase (Ohio, us-east-2)
+                          ^                │
+cron-job.org / GitHub ────┘ /health        └──> Google, Buffer, Notion, WhatsApp (sem bloqueio)
+```
 
 A configuração do Render está em `render.yaml` (Blueprint). Nenhum segredo fica no repositório.
 
