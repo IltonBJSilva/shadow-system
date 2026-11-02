@@ -1,16 +1,19 @@
-/* Shadow System — tema escuro inspirado em janelas de "System" de RPG.
+/* Shadow System — tema escuro de HUD de RPG: azul profundo, azul elétrico e ciano, com roxo nos
+   detalhes. Brilho só onde algo importa (barra de XP, janela do System, level up).
    Cores principais ficam nas variáveis abaixo: mude aqui para alterar o visual inteiro. */
 :root {
-  --bg: #06050b;
-  --bg-elevated: #0d0b17;
-  --panel: rgba(17, 14, 32, 0.86);
-  --panel-border: rgba(124, 92, 255, 0.28);
-  --text: #e6e4f2;
-  --muted: #8d89a6;
+  --bg: #040714;
+  --bg-elevated: #0a1024;
+  --panel: rgba(10, 17, 38, 0.86);
+  --panel-border: rgba(56, 132, 255, 0.24);
+  --text: #e3eaf7;
+  --muted: #8592ad;
   --purple: #8b5cf6;
-  --purple-deep: #5b21b6;
+  --purple-deep: #4c1d95;
   --blue: #38bdf8;
-  --blue-glow: rgba(56, 189, 248, 0.35);
+  --electric: #3b82f6;
+  --cyan: #22d3ee;
+  --blue-glow: rgba(34, 211, 238, 0.35);
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
@@ -25,8 +28,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse at 15% -10%, rgba(91, 33, 182, 0.28), transparent 55%),
-    radial-gradient(ellipse at 100% 0%, rgba(56, 189, 248, 0.12), transparent 45%),
+    radial-gradient(ellipse at 10% -10%, rgba(37, 99, 235, 0.26), transparent 55%),
+    radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, 0.14), transparent 45%),
+    radial-gradient(ellipse at 50% 120%, rgba(34, 211, 238, 0.07), transparent 50%),
     var(--bg);
   color: var(--text);
   font: 15px/1.5 var(--font);
@@ -75,10 +79,10 @@ h3 { font-size: 1rem; }
 .nav-link.is-active {
   color: var(--text);
   border-color: var(--panel-border);
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.22), transparent);
-  box-shadow: inset 2px 0 0 var(--blue);
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.28), transparent);
+  box-shadow: inset 2px 0 0 var(--cyan);
 }
-.nav-icon { width: 1.2rem; text-align: center; color: var(--purple); }
+.nav-icon { width: 1.2rem; text-align: center; color: var(--cyan); }
 .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: .6rem; padding: 0 .4rem; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -158,7 +162,7 @@ h3 { font-size: 1rem; }
 .progress { height: 8px; border-radius: 99px; background: rgba(139, 92, 246, 0.14); overflow: hidden; }
 .progress-fill {
   height: 100%; border-radius: inherit;
-  background: linear-gradient(90deg, var(--purple), var(--blue));
+  background: linear-gradient(90deg, var(--electric), var(--cyan) 70%, #a5f3fc);
   box-shadow: 0 0 10px var(--blue-glow);
   transition: width .6s ease;
 }
@@ -209,8 +213,8 @@ h3 { font-size: 1rem; }
 }
 .btn:hover { background: rgba(139, 92, 246, 0.24); text-decoration: none; border-color: var(--purple); }
 .btn:focus-visible, .input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.btn-primary { background: linear-gradient(135deg, var(--purple-deep), var(--purple)); border-color: var(--purple); }
-.btn-primary:hover { box-shadow: 0 0 16px -2px var(--purple); }
+.btn-primary { background: linear-gradient(135deg, #1d4ed8, var(--electric) 55%, #6d5cf6); border-color: var(--electric); }
+.btn-primary:hover { box-shadow: 0 0 16px -2px var(--cyan); }
 .btn-success { border-color: rgba(52, 211, 153, 0.5); background: rgba(52, 211, 153, 0.12); }
 .btn-success:hover { background: rgba(52, 211, 153, 0.24); border-color: var(--success); }
 .btn-danger { border-color: rgba(248, 113, 113, 0.45); background: rgba(248, 113, 113, 0.08); }
@@ -308,6 +312,7 @@ select.input[multiple] { min-height: 130px; }
     linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
   background-size: 22px 22px;
   background-color: var(--panel);
+  border-color: rgba(34, 211, 238, 0.3);
 }
 .flash-tag { font-family: var(--mono); color: var(--blue); font-size: .78rem; }
 
