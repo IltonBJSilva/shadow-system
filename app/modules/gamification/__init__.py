@@ -8,4 +8,4 @@ from flask import Blueprint
 
 bp = Blueprint("gamification", __name__, url_prefix="/gamification")
 
-from . import handlers, routes  # noqa: E402,F401  (handlers registra as assinaturas dos eventos)
+from . import handlers, models, routes  # noqa: E402,F401  (handlers registra as assinaturas dos eventos)

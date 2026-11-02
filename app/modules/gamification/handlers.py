@@ -12,7 +12,7 @@ from app.modules.quests import services as quests
 from app.modules.quests.services import QuestInput
 
 from . import rules as r
-from .services import get_rules
+from .services import get_rules, record_failure
 
 
 def _bonus(amount: int, source: str, description: str, source_id: int | None = None) -> list[tuple[str, str]]:
@@ -58,8 +58,11 @@ def on_quest_completed(quest: quests.QuestView, completed_at: datetime):
 @subscribe("quest.missed")
 def on_quest_missed(quest: quests.QuestView, today: date):
     rules = get_rules()
-    if not rules.penalties_enabled or r.is_penalty_quest(quest.title):
+    if r.is_penalty_quest(quest.title):
         return []
+    if not rules.penalties_enabled:
+        record_failure(quest, penalty_xp=0, penalty_quest_id=None)
+        return [(f"'{quest.title}' não foi realizada. Registre o motivo na Zona de Falha.", "info")]
     status = hunter.get_status()
     loss = r.penalty_amount(quest.xp_reward, rules.penalty_xp_percent, status.progress.xp_into_level)
     messages: list[tuple[str, str]] = []
@@ -67,8 +70,9 @@ def on_quest_missed(quest: quests.QuestView, today: date):
         hunter.award_xp(-loss, source="penalty", source_id=quest.id,
                         description=f"Penalidade: '{quest.title}' não realizada")
     text = f"'{quest.title}' não foi realizada ({quest.due_date:%d/%m})." + (f" -{loss} XP." if loss else "")
+    penalty_quest = None
     if rules.penalty_quest_enabled:
-        quests.create_quest(QuestInput(
+        penalty_quest = quests.create_quest(QuestInput(
             title=f"{r.PENALTY_PREFIX} {quest.title}"[:160],
             quest_type="emergency",
             priority="critical",
@@ -79,6 +83,8 @@ def on_quest_missed(quest: quests.QuestView, today: date):
             completion_criteria=f"Fazer hoje o que '{quest.title}' pedia.",
         ), note="Penalty Quest gerada pelo System")
         text += " Penalty Quest liberada: cumpra hoje para recuperar."
+    record_failure(quest, penalty_xp=loss, penalty_quest_id=penalty_quest.id if penalty_quest else None)
+    text += " Foi imprevisto? Registre o motivo na Zona de Falha."
     messages.append((text, "penalty"))
     return messages
 

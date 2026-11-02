@@ -11,6 +11,14 @@ from dataclasses import asdict, dataclass, field, fields
 
 PENALTY_PREFIX = "[PENALTY]"
 
+# Motivos de falha: (rótulo, o que o System sugere). A escolha é sua, depois que a falha acontece.
+FAILURE_REASONS: dict[str, tuple[str, str]] = {
+    "procrastination": ("Procrastinação", "Divida a missão em uma parte de 15 minutos e comece por ela amanhã cedo."),
+    "planning": ("Falta de planejamento", "Reveja o prazo e a recorrência: talvez o dia ou o horário não caibam na rotina."),
+    "unexpected": ("Imprevisto", "Acontece. A punição foi desfeita; siga na próxima ocorrência."),
+    "real_limit": ("Limitação real", "Saúde, cansaço ou falta de recurso contam. A punição foi desfeita; ajuste a meta ao seu momento."),
+}
+
 
 @dataclass
 class Rules:
@@ -25,6 +33,8 @@ class Rules:
     penalties_enabled: bool = True
     penalty_xp_percent: int = 10       # % do XP da quest recorrente não feita
     penalty_quest_enabled: bool = True  # cria Penalty Quest para recuperar o XP
+    # Motivos que devolvem o XP da punição e cancelam a Penalty Quest ao serem escolhidos.
+    refund_reasons: list[str] = field(default_factory=lambda: ["unexpected", "real_limit"])
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "Rules":
