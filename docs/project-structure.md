@@ -17,7 +17,8 @@ shadow-system/
 │   │   ├── events.py            publish/subscribe entre módulos
 │   │   ├── security.py          login opcional, cabeçalhos HTTP, `flask security hash-password` e `lock-db`
 │   │   ├── routes.py            /health (público, faz SELECT 1; usado pelo keep-alive)
-│   │   ├── template_helpers.py  filtros (date_br, datetime_br, hour) e menu lateral
+│   │   ├── template_helpers.py  filtros (date_br, datetime_br, hour), menu lateral e modo da inicialização
+│   │   ├── experience.py        modo da inicialização do System e o manifesto
 │   │   └── cli.py               `flask backup create|list`
 │   │
 │   ├── modules/
@@ -54,8 +55,10 @@ shadow-system/
 │   │
 │   └── static/
 │       ├── css/shadow.css       tema (variáveis de cor no topo)
-│       ├── js/shadow.js         menu mobile, colapsáveis, autosubmit, som das mensagens
-│       ├── js/sounds.js         efeitos sonoros (Web Audio, sintetizados)
+│       ├── js/shadow.js         menu mobile, colapsáveis, autosubmit, som das mensagens, seleção em massa,
+│       │                        janela de LEVEL UP, botões "trabalhando" em formulários demorados
+│       ├── js/sounds.js         efeitos sonoros (Web Audio, sintetizados): quest, level up, conquista, boot...
+│       ├── js/boot.js           sequência de inicialização com o manifesto
 │       └── img/                 favicon.svg, emblem.svg (arte original)
 │
 ├── migrations/
