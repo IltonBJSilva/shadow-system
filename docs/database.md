@@ -8,6 +8,7 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 | Tabela | Módulo | O que guarda |
 |---|---|---|
 | `app_settings` | core | Configurações do usuário em JSON (ex.: widgets do dashboard) |
+| `stored_secrets` | core | Tokens das integrações cadastrados pela tela, em JSON (`google_token`, `buffer_token`, `credentials:<nome>`). Ver [security.md](security.md) |
 | `hunters` | hunter | O perfil (nome, título, `total_xp`) |
 | `ranks` | hunter | Ranks configuráveis (`code`, `min_level` únicos) |
 | `attributes` | hunter | Atributos e seus pontos |
@@ -64,10 +65,26 @@ mantém as migrations previsíveis.
 
 ## PostgreSQL
 
-1. `pip install "psycopg[binary]==3.2.3"` (já listado, comentado, no `requirements.txt`).
-2. Crie o banco: `createdb shadow_system`.
-3. `.env`: `DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/shadow_system`
-4. `flask --app wsgi db upgrade`.
+Em produção o banco é o PostgreSQL do Supabase (ver [deployment.md](deployment.md)). O driver
+`psycopg[binary]` já está no `requirements.txt`.
+
+- O `DATABASE_URL` pode vir como `postgresql://` ou `postgres://`; o app converte para
+  `postgresql+psycopg://` (`app/config.py`).
+- Com PostgreSQL o app usa `pool_pre_ping` e `pool_recycle=300`: conexões paradas (app dormindo,
+  pooler do Supabase) são testadas e renovadas antes do uso.
+- Depois de `flask db upgrade`, rode `flask --app wsgi security lock-db` para ligar RLS em todas as
+  tabelas (o build do Render já faz isso). Necessário sempre que uma migration criar tabela nova.
+- `flask --app wsgi db check` confere se os modelos e o banco batem. As migrations foram validadas num
+  PostgreSQL real, não só no SQLite.
+
+PostgreSQL local, se quiser:
+
+1. Crie o banco: `createdb shadow_system`.
+2. `.env`: `DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/shadow_system`
+3. `flask --app wsgi db upgrade`.
+
+**Backup do Supabase:** o plano gratuito não guarda backups que você possa baixar. De vez em quando:
+`pg_dump "URI_DO_SESSION_POOLER" -Fc -f shadow-backup.dump`.
 
 Para levar os dados do SQLite para o PostgreSQL não há ferramenta pronta ainda; o volume de um uso
 pessoal permite exportar/importar por script quando for necessário.
