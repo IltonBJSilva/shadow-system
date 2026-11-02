@@ -74,10 +74,35 @@ Guarde o resultado (começa com `scrypt:`). Ele vira o `OWNER_PASSWORD_HASH`.
    - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` e `SUPABASE_BUCKET`: só se for enviar imagens do
      computador nos posts; senão deixe vazio.
 3. **Apply**. O build instala as dependências, roda `flask db upgrade` e `flask security lock-db`.
-   Leva uns 3 a 5 minutos.
-4. Abra `https://SEU-APP.onrender.com`: deve aparecer a tela de login.
+   Leva uns 3 a 5 minutos. No log, deu certo quando aparecem, nesta ordem:
+   `Running upgrade ... -> d82ccedcb0a2, stored secrets`, `RLS ligado em 17 tabelas.` e
+   `==> Your service is live`.
+4. Abra `https://SEU-APP.onrender.com/health`: deve aparecer `{"database":true,"ok":true}`. Depois abra
+   `https://SEU-APP.onrender.com`: deve aparecer a tela de login.
 
-`SECRET_KEY` é gerada pelo próprio Render. Não troque, senão as sessões caem.
+**O endereço do app não é sempre `shadow-system.onrender.com`.** Endereços no Render são únicos para
+todo mundo; como `shadow-system` já era de outra pessoa, o serviço ganhou um final aleatório (no nosso
+caso `shadow-system-5v0w.onrender.com`). O endereço certo é o link roxo no topo da página do serviço.
+Use **esse** endereço no `GOOGLE_REDIRECT_URI`, no Google Cloud e no keep-alive. Se abrir um endereço
+de outra pessoa, aparece algo como `Cannot GET /...` (resposta de um app Node/Express, não do Flask).
+
+Variáveis do serviço (**Environment**):
+
+| Variável | Valor | Quem define |
+|---|---|---|
+| `SHADOW_ENV` | `production` | `render.yaml` |
+| `AUTH_ENABLED` | `true` | `render.yaml` |
+| `SECRET_KEY` | aleatória | Render (`generateValue`); não troque, senão as sessões caem |
+| `PYTHON_VERSION` | `3.12.7` | `render.yaml` |
+| `TIMEZONE` | `America/Sao_Paulo` | `render.yaml` |
+| `GOOGLE_CLIENT_SECRETS_FILE` | `/etc/secrets/google_client_secret.json` | `render.yaml` |
+| `OWNER_USERNAME` | seu usuário de login | você |
+| `OWNER_PASSWORD_HASH` | `scrypt:...` do passo 2 | você |
+| `DATABASE_URL` | URI do Session pooler com a senha | você |
+| `GOOGLE_REDIRECT_URI` | `https://SEU-APP.onrender.com/integrations/google/callback` | você |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_BUCKET` | vazias (só para enviar imagens do PC) | você |
+
+Depois de mudar uma variável: **Save, rebuild, and deploy**.
 
 ### 4. Google no Render
 
