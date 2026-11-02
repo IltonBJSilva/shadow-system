@@ -34,9 +34,20 @@ A configuração do Render está em `render.yaml` (Blueprint). Nenhum segredo fi
 1. https://supabase.com/dashboard > **New project**. Use um projeto só para o Shadow System, separado
    do da Kausa. Região: **East US (Ohio)** (`us-east-2`), a mesma do Render (`region: ohio` no `render.yaml`).
 2. Gere uma senha do banco **só com letras e números** (caracteres como `@`, `#` e `/` quebram a URL).
-3. Depois de criado: botão **Connect** > **Connection String** > **Session pooler** e copie a URI:
-   `postgresql://postgres.REF:SENHA@aws-0-us-east-2.pooler.supabase.com:5432/postgres`.
+3. Depois de criado: botão **Connect** (topo) > aba **Connection String** > **Method: Session pooler**
+   (aparece como *Shared pooler*) e copie a URI:
+   `postgresql://postgres.REF:[YOUR-PASSWORD]@aws-0-us-east-2.pooler.supabase.com:5432/postgres`.
    Use o *Session pooler*, não a *Direct connection*: a direta só tem IPv6, e o Render não alcança.
+4. Troque `[YOUR-PASSWORD]` pela senha **sem os colchetes**. A URI final tem um único `@`.
+
+**Esqueceu a senha?** O Supabase não mostra a senha depois de criar o projeto. Gere outra em
+**Database** (ícone de cilindro no menu da esquerda) > **Settings** > **Database password** >
+**Reset database password** (endereço direto: `supabase.com/dashboard/project/REF/database/settings`).
+Ela **não** fica em *Project Settings > General*.
+
+**Não use** o que a aba *App Frameworks* do botão Connect sugere (`pip install supabase`,
+`SUPABASE_KEY=sb_publishable_...`, `create_client`): aquilo é para falar com a API REST do Supabase.
+O Shadow System conecta direto no PostgreSQL pelo `DATABASE_URL`.
 
 As tabelas não são criadas à mão: o build do Render roda as migrations.
 
