@@ -192,10 +192,30 @@ Usa a **mesma conta e o mesmo cliente OAuth do Google Calendar**. O escopo do Gm
 1. No mesmo projeto do Google Cloud Console, ative a **Gmail API**.
 2. Abra `/integrations/gmail/` > **Autorizar Gmail** (o Google mostra a permissão de leitura).
 
-O que faz: mostra os não lidos da caixa de entrada (também no widget do dashboard) e o botão
-**Virar quest** cria `Responder: <assunto>` com prazo hoje. Não envia, não marca e não apaga e-mails.
+O que faz: mostra os não lidos da caixa de entrada (também no widget do dashboard), com **busca e
+filtros**, e o botão **Virar quest**. Não envia, não marca e não apaga e-mails.
 
-API (biblioteca oficial): `users.labels.get` (contagem), `users.messages.list` (`q="is:unread in:inbox"`),
+**Busca e filtros** (`MailFilter` em `app/integrations/gmail/client.py`), convertidos nos mesmos
+operadores da caixa de busca do Gmail:
+
+| Campo | Vira |
+|---|---|
+| Buscar | o texto como está (assunto, corpo, remetente) |
+| Remetente | `from:(...)` |
+| Situação | `is:unread` (não lidos) ou nada (lidos e não lidos) |
+| Período | `newer_than:1d`, `7d` ou `30d` |
+| Onde | `in:inbox` ou nada (inclui arquivados) |
+| Só com anexo | `has:attachment` |
+
+Parênteses, aspas e chaves digitados são removidos para não quebrar a busca; valores fora da lista
+voltam ao padrão. Mostra até 25 resultados; o número ao lado é a estimativa do Gmail (nos não lidos
+sem filtro, é a contagem exata).
+
+**Virar quest** serve para e-mails que pedem uma ação (responder um cliente, se candidatar a uma vaga,
+pagar um boleto): cria a Side Quest `Responder: <assunto>` com prazo hoje e o link do e-mail na
+descrição. Ao concluir, você ganha XP. Depois de criar, a tela volta para a mesma busca.
+
+API (biblioteca oficial): `users.labels.get` (contagem), `users.messages.list` (`q` montado pelos filtros),
 `users.messages.get` (`format="metadata"`, só remetente/assunto/data e o trecho).
 
 Problemas comuns:
@@ -223,6 +243,9 @@ Cuidados que fazem a lista ficar vazia (*"Nenhum banco compartilhado"*):
 - *Visualização vinculada* (linked view, com ↗ no nome) não é o banco: abra o banco original e
   compartilhe nele.
 - Pode levar um ou dois minutos para um compartilhamento novo aparecer na busca.
+
+Páginas **sem título** aparecem como *(sem título)* e não podem ser importadas: viraria uma quest sem
+nome. Dê um nome à página no Notion e importe de novo (ela não fica marcada como importada).
 
 Teste rápido: crie uma página "Shadow Teste" com uma tabela (colunas *Data* e *Status*), compartilhe
 a página com a integração e recarregue `/integrations/notion/`.
