@@ -6,7 +6,7 @@ services:
     name: shadow-system
     runtime: python
     plan: free
-    region: virginia          # mesma região do projeto Supabase (East US / North Virginia)
+    region: ohio              # mesma região do projeto Supabase (us-east-2 / Ohio)
     branch: main
     autoDeploy: true
     # As migrations rodam no build porque o plano gratuito não tem "pre-deploy command".

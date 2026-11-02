@@ -32,10 +32,10 @@ A configuração do Render está em `render.yaml` (Blueprint). Nenhum segredo fi
 ### 1. Banco no Supabase
 
 1. https://supabase.com/dashboard > **New project**. Use um projeto só para o Shadow System, separado
-   do da Kausa. Região: **East US (North Virginia)**, a mesma do Render.
+   do da Kausa. Região: **East US (Ohio)** (`us-east-2`), a mesma do Render (`region: ohio` no `render.yaml`).
 2. Gere uma senha do banco **só com letras e números** (caracteres como `@`, `#` e `/` quebram a URL).
 3. Depois de criado: botão **Connect** > **Connection String** > **Session pooler** e copie a URI:
-   `postgresql://postgres.REF:SENHA@aws-0-us-east-1.pooler.supabase.com:5432/postgres`.
+   `postgresql://postgres.REF:SENHA@aws-0-us-east-2.pooler.supabase.com:5432/postgres`.
    Use o *Session pooler*, não a *Direct connection*: a direta só tem IPv6, e o Render não alcança.
 
 As tabelas não são criadas à mão: o build do Render roda as migrations.
