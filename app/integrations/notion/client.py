@@ -103,4 +103,5 @@ def _page(item: dict) -> NotionPage:
                 due = None
         elif kind in ("status", "select") and status is None and prop.get(kind):
             status = prop[kind].get("name")
-    return NotionPage(item["id"], title or "(sem título)", item.get("url", ""), due, status)
+    # Título vazio fica vazio: a tela mostra "(sem título)" e a importação pula a página.
+    return NotionPage(item["id"], title.strip(), item.get("url", ""), due, status)

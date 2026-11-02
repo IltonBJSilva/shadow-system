@@ -51,5 +51,8 @@ def import_selected(database_id: str):
     chosen = set(request.form.getlist("pages"))
     pages = [p for p in get_client().pages(database_id) if p.id in chosen]
     created = import_pages(pages)
+    untitled = sum(1 for p in pages if not p.title)
     flash(f"{created} quest(s) importada(s) do Notion.", "success")
+    if untitled:
+        flash(f"{untitled} página(s) sem título foram puladas. Dê um nome a elas no Notion e importe de novo.", "info")
     return redirect(url_for("notion.database", database_id=database_id))

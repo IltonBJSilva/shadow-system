@@ -14,13 +14,14 @@
         {% for page in pages %}
           <li class="list-item {% if page.id in imported %}is-done{% endif %}">
             <label class="check item-main">
-              <input type="checkbox" name="pages" value="{{ page.id }}" {% if page.id in imported %}disabled{% endif %}>
-              <span class="item-title">{{ page.title }}</span>
+              <input type="checkbox" name="pages" value="{{ page.id }}" {% if page.id in imported or not page.title %}disabled{% endif %}>
+              <span class="item-title">{{ page.title or "(sem título)" }}</span>
             </label>
             <div class="item-meta">
               {% if page.status %}<span class="tag">{{ page.status }}</span>{% endif %}
               {% if page.due %}<span>{{ page.due | date_br }}</span>{% endif %}
               {% if page.id in imported %}<span class="tag tag-success">importada</span>{% endif %}
+              {% if not page.title %}<span class="tag tag-muted">sem título: dê um nome no Notion</span>{% endif %}
             </div>
           </li>
         {% endfor %}

@@ -257,3 +257,13 @@ def test_integrations_page_lists_all(client):
     html = client.get("/integrations/").get_data(as_text=True)
     for name in ("Google Calendar", "Gmail", "Buffer", "Notion", "WhatsApp", "Shadow AI"):
         assert name in html
+
+
+def test_notion_import_skips_untitled_pages(app):
+    from app.integrations.notion.client import NotionPage
+
+    pages = [NotionPage("p1", "", "https://notion.so/p1", None, None),
+             NotionPage("p2", "Com nome", "https://notion.so/p2", None, None)]
+    assert notion.import_pages(pages) == 1
+    assert [q.title for q in quests.list_quests("active")] == ["Com nome"]
+    assert "p1" not in notion.imported_ids()  # depois de ganhar um nome, ainda dá para importar

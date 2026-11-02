@@ -54,11 +54,14 @@ def imported_ids() -> set[str]:
 
 
 def import_pages(pages: list[NotionPage]) -> int:
-    """Cria uma quest por página ainda não importada. Retorna quantas foram criadas."""
+    """Cria uma quest por página ainda não importada. Retorna quantas foram criadas.
+
+    Páginas sem título são puladas: viraria uma quest "(sem título)" sem como saber o que é.
+    """
     done = imported_ids()
     created = 0
     for page in pages:
-        if page.id in done:
+        if page.id in done or not page.title:
             continue
         quests.create_quest(QuestInput(
             title=page.title[:160],
