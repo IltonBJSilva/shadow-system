@@ -52,6 +52,7 @@ class QuestView:
     category_name: str | None
     category_color: str | None
     is_overdue: bool
+    series_id: int | None = None  # ocorrências de uma recorrente compartilham o id da primeira
 
 
 # ---------- Leitura ----------
@@ -125,6 +126,18 @@ def quest_choices() -> list[tuple[int, str]]:
 def quest_title(quest_id: int | None) -> str | None:
     quest = db.session.get(Quest, quest_id) if quest_id else None
     return quest.title if quest else None
+
+
+def active_in_series(series_id: int) -> Quest | None:
+    """A ocorrência ativa (pendente ou em andamento) de uma quest recorrente."""
+    return db.session.scalar(select(Quest).where(Quest.series_id == series_id,
+                                                 Quest.status.in_(constants.ACTIVE_STATUSES)).order_by(Quest.id.desc()))
+
+
+def update_description(quest_id: int, description: str) -> None:
+    """Troca só a descrição (ex.: treino com carga nova). A próxima ocorrência herda o texto."""
+    get_quest(quest_id).description = description.strip()
+    db.session.commit()
 
 
 def completed_count() -> int:
@@ -430,4 +443,5 @@ def _view(quest: Quest, today: date) -> QuestView:
         category_name=quest.category.name if quest.category else None,
         category_color=quest.category.color if quest.category else None,
         is_overdue=bool(quest.due_date and quest.due_date < today and quest.status in constants.ACTIVE_STATUSES),
+        series_id=quest.series_id,
     )
