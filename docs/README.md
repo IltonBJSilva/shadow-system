@@ -24,3 +24,4 @@ Comece por aqui se for mexer no código.
 | Dashboard | [modules/dashboard.md](modules/dashboard.md) |
 | Gamificação | [modules/gamification.md](modules/gamification.md) |
 | Treinos | [modules/training.md](modules/training.md) |
+| Arquiteto | [modules/architect.md](modules/architect.md) |

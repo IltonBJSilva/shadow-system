@@ -10,7 +10,7 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 | `app_settings` | core | Configurações do usuário em JSON (ex.: widgets do dashboard) |
 | `stored_secrets` | core | Tokens das integrações cadastrados pela tela, em JSON (`google_token`, `buffer_token`, `credentials:<nome>`). Ver [security.md](security.md) |
 | `hunters` | hunter | O perfil (nome, título exibido, `total_xp`) |
-| `titles` | hunter | Títulos: regra de desbloqueio (`rule` + `threshold`), `unlocked_at`; `rule="custom"` = criado por você |
+| `titles` | hunter | Conquistas e títulos: regra (`rule` + `threshold`), `unlocked_at`, `icon`, `reward_xp`; `rule="custom"` = criado por você |
 | `ranks` | hunter | Ranks configuráveis (`code`, `min_level` únicos) |
 | `attributes` | hunter | Atributos e seus pontos |
 | `xp_events` | hunter | Histórico de XP (origem, valor, data) |
@@ -28,6 +28,10 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 | `workout_days` | training | Dias de treino (dia da semana, nome, `quest_series_id` da quest semanal) |
 | `workout_exercises` | training | Exercícios (séries, repetições, carga, descanso, observação) |
 | `workout_sessions` | training | Treinos feitos (data, dia, quest) |
+| `quest_failures` | gamification | Zona de Falha: quest não realizada, XP perdido, Penalty Quest, motivo, observação, se devolveu o XP |
+| `architect_goals` | architect | Metas (título, área, por quê, prazo, situação) |
+| `architect_suggestions` | architect | Missões sugeridas (regra ou IA), com motivo, `rule_key` e situação (pendente/aceita/descartada) |
+| `architect_messages` | architect | Conversa com o Arquiteto (pergunta e resposta) |
 
 ## Relações principais
 
