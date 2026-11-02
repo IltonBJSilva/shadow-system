@@ -14,7 +14,8 @@ Janela de status inspirada no *System* de Solo Leveling, montada com dados reais
 | Chave | Mostra | Fonte |
 |---|---|---|
 | `status` | Rank, nível, XP, atributos, quests concluídas/ativas, maior streak | `hunter.get_status`, `quests.stats`, `habits.best_current_streak` |
-| `notifications` | Quests vencidas, hábitos pendentes hoje, eventos de hoje | calculado na hora |
+| `notifications` | Quests vencidas, Penalty Zone, falhas sem motivo, hábitos pendentes hoje, eventos de hoje | calculado na hora |
+| `progress` | Dias seguidos evoluindo, XP e missões desta semana x o mesmo trecho da anterior, concluídas hoje | `hunter.evolution_streak`, `hunter.xp_between`, `quests.completed_between`, `quests.completed_on` |
 | `today_quests` | Quests até hoje + Daily Quests sem data (com botão concluir) | `quests.quests_for_today` |
 | `habits` | Hábitos com botão de check | `habits.list_habits` |
 | `priority_quests` | Alta/crítica, Main e Emergency | `quests.priority_quests` |
@@ -27,8 +28,19 @@ Janela de status inspirada no *System* de Solo Leveling, montada com dados reais
 Widgets desligados não fazem consulta. Ao abrir o dashboard, `quests.roll_over_recurring()` roda
 para que as Daily Quests do dia já apareçam.
 
-Treinos, resumo financeiro e progresso acadêmico entram como widgets quando os módulos Fitness,
-Finance e University existirem; não são exibidos antes disso.
+**Widgets novos aparecem ligados** mesmo para quem já tinha salvo a escolha: `dashboard.widgets_known`
+guarda os widgets que existiam no último salvamento, e um widget fora dessa lista entra ligado até você
+salvar de novo.
+
+Resumo financeiro e progresso acadêmico entram como widgets quando os módulos Finance e University
+existirem; não são exibidos antes disso.
+
+## Personalizar (`/dashboard/settings`)
+
+Além dos widgets, escolhe o modo da **inicialização do System** (`ui.boot_mode` em `app_settings`, lido
+por `app/core/experience.py`): uma vez por sessão do navegador (padrão), sempre que abrir o Dashboard, ou
+desligada. A animação (`static/js/boot.js`) dura cerca de 3,5 s, pula com clique ou qualquer tecla,
+respeita "reduzir movimento" e nunca aparece na tela de login.
 
 ## Adicionar um widget
 
