@@ -350,7 +350,7 @@ def check_titles() -> list[str]:
 
 
 def title_unlock_messages(names: list[str]) -> list[tuple[str, str]]:
-    return [(f"[SYSTEM] Título desbloqueado: {name}. Escolha-o no seu perfil.", "levelup") for name in names]
+    return [(f"Título desbloqueado: {name}. Escolha-o no seu perfil.", "achievement") for name in names]
 
 
 def list_titles() -> list[TitleView]:
