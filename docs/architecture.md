@@ -9,7 +9,7 @@ para crescer módulo a módulo.
 ```
 app/
 ├── core/          compartilhado, não conhece os módulos
-├── modules/       domínio (hunter, quests, habits, calendar, dashboard)
+├── modules/       domínio (hunter, quests, habits, training, calendar, gamification, dashboard)
 └── integrations/  serviços externos (google_calendar, buffer)
 ```
 
@@ -46,6 +46,7 @@ gamification ──▶ hunter, quests   (e assina eventos de quests/habits)
 quests    ──▶ hunter
 habits    ──▶ hunter
 calendar  ──▶ quests
+training  ──▶ quests, habits, calendar, hunter   (e assina quest.completed)
 integrations.google_calendar ──▶ calendar
 ```
 
@@ -55,6 +56,15 @@ Quando um módulo precisa reagir ao que acontece em outro que já depende dele, 
 (`app/core/events.py`): `quests` publica `quest.completed`/`quest.missed`, `habits` publica
 `habit.checked`/`habit.unchecked`, e `gamification` assina. Quem publica não conhece quem assina,
 então não há dependência circular. Os handlers rodam na mesma transação e podem devolver mensagens.
+`training` também assina `quest.completed` para registrar o treino quando a quest do dia é concluída.
+
+### Métricas registradas
+
+O Hunter precisa de números de outros módulos para os títulos (quests concluídas, melhor sequência de
+hábito, treinos feitos), mas não pode importar esses módulos (eles dependem do Hunter). Cada módulo
+registra a própria métrica ao ser importado:
+`hunter.services.register_metric("quests_completed", services.completed_count)`. O Hunter só chama a
+função. É a mesma ideia dos eventos: quem fornece o dado conhece o Hunter, não o contrário.
 
 O banco é central, então tabelas de módulos diferentes podem ter FK entre si (ex.: `quest_attributes`
 aponta para `attributes.id`). Isso é aceitável num monólito; o que não se faz é usar o *modelo* de outro
