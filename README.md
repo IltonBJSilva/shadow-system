@@ -158,6 +158,38 @@ seguidos com XP), 30 dias de evolução, primeiro projeto (Main Quest), 10/50/10
 e uma recompensa em XP paga uma vez (desligável em Gamificação). Lista completa em
 [docs/modules/hunter.md](docs/modules/hunter.md#conquistas-e-títulos).
 
+## O Arquiteto
+
+O mentor do sistema (menu **Arquiteto**). Ele não dá ordens nem frases motivacionais: lê os seus dados e
+aponta o que fazer.
+
+**Modo regras (sempre ligado, sem custo).** Funciona sem internet e sem chave:
+
+- **Leitura do momento:** ritmo desta semana x a anterior, sequência de evolução, level up perto,
+  missões atrasadas acumulando, sequências de hábito em risco, áreas com taxa de conclusão baixa (desafio
+  acima do momento) ou alta com dificuldade baixa (pronto para subir), padrão nas falhas, atributos parados,
+  treino da semana incompleto e metas sem nenhuma missão ligada. Cada item cita o número que o gerou.
+- **Faça primeiro:** até 3 missões, na ordem atrasadas → prazo hoje → prioridade.
+- **Missões sugeridas:** rascunhos com o motivo ("Só 0% das missões de Faculdade foram feitas..."). Você
+  aceita (vira quest) ou descarta (a mesma regra não volta por 14 dias).
+- **Metas:** sem missão ligada, a meta ganha a sugestão de um próximo passo e de uma sessão semanal.
+
+**Modo IA (opcional, com o Claude da Anthropic).** Em Arquiteto > *Ligar a IA*, cadastre uma chave da API
+(console.anthropic.com). Ela é conferida antes de salvar, fica só no servidor e nunca volta para a tela.
+Com ela:
+
+- **Conversa:** perguntas sobre rotina, prioridades e metas, respondidas com base nos seus dados reais. O
+  Arquiteto lembra da conversa (últimas 20 falas).
+- **Plano de missões:** de 3 a 6 missões para os próximos 7 dias, com foco opcional, em formato
+  estruturado. Elas entram como sugestões: nada vira quest sem você aceitar.
+- Modelo padrão: Claude Opus 5.5 (dá para trocar por Sonnet 5.5 ou Haiku 5.5, mais baratos). Se o filtro de
+  segurança recusar um pedido, a própria API tenta num modelo alternativo (`fallbacks: "default"`).
+- **Custo:** cobrado pela Anthropic na sua conta, por uso (em geral centavos por pergunta).
+- **O que é enviado:** nível, atributos, missões ativas, desempenho por área, falhas por motivo, hábitos,
+  treinos e metas. Tokens, senhas e e-mails nunca são enviados.
+
+Detalhes em [docs/modules/architect.md](docs/modules/architect.md).
+
 ## Screenshots
 
 > Ainda sem capturas. Quando houver, ficarão em `docs/images/` e serão referenciadas aqui com caminhos
@@ -245,8 +277,8 @@ Tudo fica no `.env` (veja os comentários no [.env.example](.env.example)).
 
 **Integrações são opcionais.** Sem nenhuma, o app funciona por completo. Os tokens de Buffer, Notion e
 WhatsApp são cadastrados **pela tela**, só quando você gerar (Integrações > escolha a integração). Como configurar cada uma:
-[docs/integrations.md](docs/integrations.md). A Shadow AI ainda não foi implementada, então não há
-configuração de IA por enquanto.
+[docs/integrations.md](docs/integrations.md). A chave da IA do Arquiteto também é cadastrada pela tela
+(Arquiteto > Ligar a IA), não no `.env`.
 
 ## Arquitetura
 
