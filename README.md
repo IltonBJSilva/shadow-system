@@ -290,13 +290,15 @@ responsabilidades separadas.
 | Python 3.12, Flask 3 | Aplicação web (Application Factory + Blueprints) |
 | SQLAlchemy 2, Flask-SQLAlchemy | Modelos e consultas |
 | Flask-Migrate (Alembic) | Migrations |
-| SQLite / PostgreSQL | SQLite local; PostgreSQL suportado via `DATABASE_URL` |
+| SQLite / PostgreSQL | SQLite local; PostgreSQL (Supabase) em produção, via `DATABASE_URL` |
 | Flask-WTF | Formulários, validação e CSRF |
 | httpx | Cliente HTTP do Buffer (GraphQL) |
-| google-auth-oauthlib, google-api-python-client | Google Calendar |
-| HTML, CSS e JavaScript puros | Interface, sem framework de frontend nem CDN |
+| google-auth-oauthlib, google-api-python-client | Google Calendar e Gmail |
+| anthropic (SDK oficial) | IA opcional do Arquiteto (Claude), só no servidor |
+| pypdf | Ler rotinas de treino enviadas em PDF |
+| HTML, CSS e JavaScript puros | Interface, sem framework de frontend nem CDN; sons sintetizados com Web Audio |
 | pytest | Testes |
-| waitress | Servidor WSGI no Windows |
+| waitress | Servidor WSGI (Windows e Render) |
 
 ```
                  ┌──────────────── app (Flask) ─────────────────┐
@@ -305,11 +307,12 @@ responsabilidades separadas.
                  │        └── core: config, segurança, erros,    │
                  │            tempo, settings, templates         │
                  │                                               │
-                 │ módulos: dashboard → hunter, quests, habits,  │
-                 │          calendar     (via services.py)       │
+                 │ módulos: dashboard, architect → hunter,       │
+                 │          quests, habits, training, calendar,  │
+                 │          gamification   (via services.py)     │
                  │                                               │
                  │ integrations: google, gmail, buffer, notion,  │ ──▶ APIs externas
-                 │               whatsapp                        │
+                 │               whatsapp · architect/ai → Claude │
                  └───────────────────────────────────────────────┘
 ```
 
@@ -329,10 +332,12 @@ shadow-system/
 │   ├── core/                  compartilhado: models base, settings, time, errors, security, cli
 │   ├── modules/
 │   │   ├── dashboard/         janela de status e widgets
-│   │   ├── hunter/            perfil, XP, níveis, ranks, atributos
+│   │   ├── hunter/            perfil, XP, níveis, ranks, atributos, conquistas e títulos
+│   │   ├── architect/         o Arquiteto: análise, sugestões, metas, chat (IA opcional)
+│   │   ├── training/          rotinas de treino → quests, calendário, hábito, progressão
 │   │   ├── quests/            quests, categorias, recorrência
 │   │   ├── habits/            hábitos e streaks
-│   │   ├── gamification/      bônus, punições, Penalty Quests (via eventos)
+│   │   ├── gamification/      bônus, punições, Penalty Quests, Zona de Falha (via eventos)
 │   │   └── calendar/          calendário interno
 │   ├── integrations/
 │   │   ├── google_calendar/   OAuth, cliente da API, sincronização
@@ -342,7 +347,7 @@ shadow-system/
 │   │   ├── credentials.py     tokens cadastrados pela tela (banco: stored_secrets)
 │   │   └── buffer/            token, cliente GraphQL, regras por rede, agendamento
 │   ├── templates/             Jinja2, uma pasta por módulo
-│   └── static/                css/shadow.css, js/shadow.js, img/
+│   └── static/                css/shadow.css, js/ (shadow, sounds, boot), img/
 ├── migrations/                Alembic (uma migration por feature)
 ├── tests/                     pytest
 ├── docs/                      documentação técnica
