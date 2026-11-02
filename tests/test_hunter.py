@@ -42,7 +42,7 @@ def test_get_hunter_seeds_defaults(app):
     status = services.get_status()
     assert status.progress.level == 1
     assert status.rank.code == "E"
-    assert len(status.attributes) == 8
+    assert len(status.attributes) == 10  # 8 originais + Wisdom e Charisma
 
 
 def test_award_xp_levels_up_and_records_history(app):
@@ -125,3 +125,15 @@ def test_flash_messages_carry_sound_category(client):
     quest = quests.create_quest(QuestInput(title="Som", xp_reward=150))
     html = client.post(f"/quests/{quest.id}/complete", follow_redirects=True).get_data(as_text=True)
     assert 'data-category="levelup"' in html and "sounds.js" in html
+
+
+def test_wisdom_and_charisma_are_added_to_old_databases(app):
+    from sqlalchemy import delete
+
+    from app.modules.hunter.models import Attribute
+
+    services.get_hunter()
+    db.session.execute(delete(Attribute).where(Attribute.key.in_(["wisdom", "charisma"])))
+    db.session.commit()
+    keys = [a.key for a in services.list_attributes()]
+    assert "wisdom" in keys and "charisma" in keys and len(keys) == 10

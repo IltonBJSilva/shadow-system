@@ -26,6 +26,8 @@ DEFAULT_ATTRIBUTES: list[tuple[str, str, str]] = [
     ("creativity", "Creativity", "Música, escrita, game dev, criação de conteúdo."),
     ("financial_intelligence", "Financial Intelligence", "Organização financeira, orçamento, investimentos."),
     ("spirituality", "Spirituality", "Atividades espirituais, reflexão, gratidão."),
+    ("wisdom", "Wisdom", "Sabedoria: aplicar o que aprendeu, revisar, refletir, ensinar."),
+    ("charisma", "Charisma", "Carisma: comunicação, música e palco, conteúdo, networking, relações."),
 ]
 
 # Títulos padrão: (key, nome, descrição, regra, limite). Nomes originais, não do anime.

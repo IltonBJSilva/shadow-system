@@ -77,9 +77,7 @@ def seed_defaults() -> None:
     if db.session.scalar(select(func.count(Rank.id))) == 0:
         for code, name, min_level, color in defaults.DEFAULT_RANKS:
             db.session.add(Rank(code=code, name=name, min_level=min_level, color=color))
-    if db.session.scalar(select(func.count(Attribute.id))) == 0:
-        for order, (key, name, description) in enumerate(defaults.DEFAULT_ATTRIBUTES):
-            db.session.add(Attribute(key=key, name=name, description=description, sort_order=order))
+    _seed_missing_attributes()
     _seed_titles()
     db.session.commit()
 
@@ -113,6 +111,9 @@ def get_status() -> HunterStatus:
 
 def list_attributes() -> list[AttributeView]:
     get_hunter()  # garante os atributos padrão na primeira execução
+    if db.session.scalar(select(func.count(Attribute.id))) < len(defaults.DEFAULT_ATTRIBUTES):
+        _seed_missing_attributes()  # banco antigo: ganha os atributos novos (Wisdom, Charisma)
+        db.session.commit()
     rows = db.session.scalars(select(Attribute).order_by(Attribute.sort_order, Attribute.id))
     return [AttributeView(a.id, a.key, a.name, a.description, a.points) for a in rows]
 
@@ -406,6 +407,17 @@ def delete_title(title_id: int) -> None:
         hunter.title = defaults.DEFAULT_HUNTER_TITLE
     db.session.delete(title)
     db.session.commit()
+
+
+def _seed_missing_attributes() -> None:
+    """Cria os atributos padrão que faltarem pela chave (bancos antigos ganham Wisdom e Charisma).
+
+    Atributos renomeados por você continuam com o seu nome: a comparação é pela chave.
+    """
+    existing = set(db.session.scalars(select(Attribute.key)))
+    for order, (key, name, description) in enumerate(defaults.DEFAULT_ATTRIBUTES):
+        if key not in existing:
+            db.session.add(Attribute(key=key, name=name, description=description, sort_order=order))
 
 
 def _seed_titles() -> None:
