@@ -25,9 +25,11 @@ shadow-system/
 │   │   ├── hunter/              progression.py, defaults.py, models, services, forms, routes, cli
 │   │   ├── quests/              constants.py, recurrence.py, models, services, forms, routes, cli
 │   │   ├── habits/              streaks.py (com dias de folga), models, services, forms, routes
+│   │   ├── architect/           context.py (retrato real), analysis.py (regras), ai.py (Claude), models,
+│   │   │                        services, forms, routes
 │   │   ├── training/            parser.py (texto → plano), library.py (rotinas prontas), documents.py
 │   │   │                        (txt/md/docx/pdf), progression.py, handlers.py, models, services, forms, routes
-│   │   ├── gamification/        rules.py, handlers.py (eventos), services, routes
+│   │   ├── gamification/        rules.py, handlers.py (eventos), models (Zona de Falha), services, routes
 │   │   ├── calendar/            models, services, forms, routes
 │   │   └── dashboard/           services (widgets), routes
 │   │
