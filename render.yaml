@@ -1,0 +1,47 @@
+# Blueprint do Render: https://render.com/docs/blueprint-spec
+# Passo a passo em docs/deployment.md (seção "Render + Supabase").
+# Nenhum segredo fica aqui: os valores com `sync: false` são pedidos pelo painel do Render.
+services:
+  - type: web
+    name: shadow-system
+    runtime: python
+    plan: free
+    region: virginia          # mesma região do projeto Supabase (East US / North Virginia)
+    branch: main
+    autoDeploy: true
+    # As migrations rodam no build porque o plano gratuito não tem "pre-deploy command".
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      flask --app wsgi db upgrade &&
+      flask --app wsgi security lock-db
+    startCommand: waitress-serve --host=0.0.0.0 --port=$PORT --threads=8 wsgi:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SHADOW_ENV
+        value: production
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: TIMEZONE
+        value: America/Sao_Paulo
+      - key: SECRET_KEY
+        generateValue: true
+      - key: OWNER_USERNAME
+        sync: false
+      - key: OWNER_PASSWORD_HASH     # flask --app wsgi security hash-password
+        sync: false
+      - key: DATABASE_URL            # Supabase > Connect > Session pooler
+        sync: false
+      # Google: envie o JSON do cliente OAuth como Secret File com este nome.
+      - key: GOOGLE_CLIENT_SECRETS_FILE
+        value: /etc/secrets/google_client_secret.json
+      - key: GOOGLE_REDIRECT_URI     # https://SEU-APP.onrender.com/integrations/google/callback
+        sync: false
+      # Opcional: hospedagem das imagens dos posts (Supabase Storage).
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        sync: false

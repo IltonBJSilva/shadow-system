@@ -1,0 +1,39 @@
+# Mantém o app do Render acordado (o plano gratuito dorme após 15 min sem acesso) e o projeto do
+# Supabase ativo (o /health faz um SELECT 1; o plano gratuito pausa após 7 dias sem uso).
+#
+# Configure a URL em: GitHub > Settings > Secrets and variables > Actions > Variables >
+#   APP_URL = https://SEU-APP.onrender.com
+# Sem APP_URL o workflow não faz nada.
+#
+# O GitHub pode atrasar execuções agendadas em horários de pico e desliga workflows agendados após
+# 60 dias sem commits no repositório. Ver docs/deployment.md para um reforço com o cron-job.org.
+name: keep-alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "APP_URL não configurada; nada a fazer."
+            exit 0
+          fi
+          # Se o app estiver dormindo, a primeira resposta pode levar até ~60 s.
+          curl --fail --silent --show-error --max-time 90 \
+               --retry 3 --retry-delay 10 --retry-all-errors \
+               "${APP_URL%/}/health"

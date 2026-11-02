@@ -1,7 +1,8 @@
 # Deploy
 
 Localmente: `.\run.ps1` (http://localhost:5050). Para ter o sistema online com o PC desligado, de graça
-e só com o seu acesso, o caminho recomendado é o **PythonAnywhere** (abaixo).
+e só com o seu acesso, o caminho recomendado é **Render + Supabase** (abaixo). O PythonAnywhere
+gratuito também funciona, mas bloqueia Buffer, Notion e WhatsApp até o suporte liberar os domínios.
 
 ## Segurança em produção (automática)
 
@@ -13,6 +14,100 @@ Com `SHADOW_ENV=production` o app **se recusa a iniciar** se faltar qualquer um 
 
 Também em produção: cookie de sessão só por HTTPS, `TRUST_PROXY=true` (lê `X-Forwarded-Proto` do
 proxy HTTPS) e login bloqueado por 15 minutos após 5 senhas erradas. Ver [security.md](security.md).
+
+---
+
+## Render + Supabase (recomendado)
+
+- **Render** (plano gratuito) roda o app Flask. Ele não restringe a internet de saída, então Buffer,
+  Notion e WhatsApp funcionam. O disco é apagado a cada deploy e reinício, por isso **nada fica em
+  arquivo**: os dados e os tokens ficam no banco.
+- **Supabase** (plano gratuito) guarda o banco PostgreSQL.
+- **GitHub Actions** (`.github/workflows/keep-alive.yml`) chama `/health` a cada 10 minutos. Assim o
+  Render não dorme (o gratuito dorme após 15 min sem acesso) e o Supabase não pausa (o gratuito pausa
+  após 7 dias sem uso).
+
+A configuração do Render está em `render.yaml` (Blueprint). Nenhum segredo fica no repositório.
+
+### 1. Banco no Supabase
+
+1. https://supabase.com/dashboard > **New project**. Use um projeto só para o Shadow System, separado
+   do da Kausa. Região: **East US (North Virginia)**, a mesma do Render.
+2. Gere uma senha do banco **só com letras e números** (caracteres como `@`, `#` e `/` quebram a URL).
+3. Depois de criado: botão **Connect** > **Connection String** > **Session pooler** e copie a URI:
+   `postgresql://postgres.REF:SENHA@aws-0-us-east-1.pooler.supabase.com:5432/postgres`.
+   Use o *Session pooler*, não a *Direct connection*: a direta só tem IPv6, e o Render não alcança.
+
+As tabelas não são criadas à mão: o build do Render roda as migrations.
+
+### 2. Hash da senha de login
+
+No seu PC, na pasta do projeto:
+
+```powershell
+.venv\Scripts\flask --app wsgi security hash-password
+```
+
+Guarde o resultado (começa com `scrypt:`). Ele vira o `OWNER_PASSWORD_HASH`.
+
+### 3. Criar o serviço no Render
+
+1. https://dashboard.render.com > **New** > **Blueprint** > conecte o GitHub e escolha o repositório
+   `shadow-system`. O Render lê o `render.yaml`.
+2. Ele pede os valores marcados como `sync: false`:
+   - `OWNER_USERNAME`: o seu usuário de login;
+   - `OWNER_PASSWORD_HASH`: o hash do passo 2;
+   - `DATABASE_URL`: a URI do Session pooler do passo 1;
+   - `GOOGLE_REDIRECT_URI`: `https://shadow-system.onrender.com/integrations/google/callback`
+     (troque pelo endereço que o Render mostrar, se for outro);
+   - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` e `SUPABASE_BUCKET`: só se for enviar imagens do
+     computador nos posts; senão deixe vazio.
+3. **Apply**. O build instala as dependências, roda `flask db upgrade` e `flask security lock-db`.
+   Leva uns 3 a 5 minutos.
+4. Abra `https://shadow-system.onrender.com`: deve aparecer a tela de login.
+
+`SECRET_KEY` é gerada pelo próprio Render. Não troque, senão as sessões caem.
+
+### 4. Google no Render
+
+1. No serviço: **Environment** > **Secret Files** > **Add Secret File**. Nome
+   `google_client_secret.json`, conteúdo igual ao `instance/google_client_secret.json` do seu PC.
+   (O `render.yaml` já aponta `GOOGLE_CLIENT_SECRETS_FILE` para `/etc/secrets/google_client_secret.json`.)
+2. Google Cloud > **Google Auth Platform** > **Clientes** > seu cliente Web > **URIs de
+   redirecionamento autorizados** > adicione a mesma URL do `GOOGLE_REDIRECT_URI`.
+3. No sistema online: **Integrações > Google Calendar > Conectar** e **Gmail > Autorizar**.
+
+### 5. Keep-alive
+
+1. GitHub > repositório > **Settings** > **Secrets and variables** > **Actions** > aba **Variables** >
+   **New repository variable**: `APP_URL` = `https://shadow-system.onrender.com`.
+2. **Actions** > **keep-alive** > **Run workflow** para testar. Deve terminar verde e mostrar
+   `{"database":true,"ok":true}`.
+
+Limitações do GitHub e um reforço opcional:
+
+- Em horários de pico o GitHub pode atrasar execuções agendadas. Se passar de 15 minutos, o app
+  dorme e o próximo acesso demora uns 30 a 60 s.
+- Em repositório público, o GitHub **desliga workflows agendados após 60 dias sem commits** (ele
+  avisa por e-mail; reative em Actions > keep-alive > *Enable workflow*).
+- Reforço gratuito: em https://cron-job.org crie um job para `https://SEU-APP.onrender.com/health`
+  a cada 5 minutos. Os dois juntos não atrapalham.
+- O Render gratuito dá 750 horas por mês somadas entre os serviços gratuitos. Um serviço ligado o mês
+  inteiro usa cerca de 744 h, então **não crie outro serviço gratuito** na mesma conta.
+
+### Atualizar
+
+Cada `git push` na `main` faz deploy sozinho (`autoDeploy`), já rodando as migrations.
+
+### Backup
+
+O Supabase gratuito não guarda backups que você possa baixar. Faça um de vez em quando no seu PC:
+
+```powershell
+pg_dump "URI_DO_SESSION_POOLER" -Fc -f shadow-backup.dump
+```
+
+(`pg_dump` vem com o PostgreSQL: https://www.postgresql.org/download/windows/)
 
 ---
 
