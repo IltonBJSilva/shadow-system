@@ -12,6 +12,8 @@
     <div class="item-meta">
       <span>🔥 {{ h.current_streak }} dia{{ '' if h.current_streak == 1 else 's' }}</span>
       <span>recorde {{ h.best_streak }}</span>
+      {% if h.weekdays %}<span class="tag">{{ h.schedule }}</span>{% endif %}
+      {% if not h.expected_today and not h.done_today %}<span class="tag tag-muted">descanso hoje</span>{% endif %}
     </div>
   </div>
   {% if show_days %}

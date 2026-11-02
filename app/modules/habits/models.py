@@ -1,4 +1,4 @@
-"""Tabelas de hábitos. Um hábito é diário: cada dia feito vira uma linha em habit_logs."""
+"""Tabelas de hábitos. Cada dia feito vira uma linha em habit_logs; `weekdays` diz quais dias contam."""
 from datetime import date, datetime
 
 from sqlalchemy import (Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, String,
@@ -25,6 +25,8 @@ class Habit(TimestampMixin, db.Model):
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     xp_per_check: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Dias esperados ("0,2,4" = seg, qua, sex). Vazio = todos os dias. Ver streaks.py.
+    weekdays: Mapped[str] = mapped_column(String(20), default="", server_default="", nullable=False)
 
     logs: Mapped[list["HabitLog"]] = relationship(back_populates="habit", cascade="all, delete-orphan")
 

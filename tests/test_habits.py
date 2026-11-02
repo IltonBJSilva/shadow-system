@@ -108,3 +108,43 @@ def test_pages_render(client):
     habit = services.save_habit("Página", "", 5, [])
     assert client.get("/habits/").status_code == 200
     assert client.get(f"/habits/{habit.id}/edit").status_code == 200
+
+
+# ---------- dias da semana (folga não quebra a sequência) ----------
+
+def test_rest_days_do_not_break_streak():
+    from datetime import date as d
+
+    from app.modules.habits import streaks as st
+
+    mon_wed_fri = {0, 2, 4}
+    # seg 02/11, qua 04/11, sex 06/11/2026 feitos; terça e quinta são folga
+    done = {d(2026, 11, 2), d(2026, 11, 4), d(2026, 11, 6)}
+    assert st.current_streak(done, d(2026, 11, 8), mon_wed_fri) == 3   # domingo: folga, segue valendo
+    assert st.current_streak(done, d(2026, 11, 10), mon_wed_fri) == 0  # perdeu a segunda 09/11
+    assert st.best_streak(done, mon_wed_fri) == 3
+    assert st.current_streak(done, d(2026, 11, 8)) == 0                # sem agenda: terça quebrava
+
+
+def test_weekday_helpers():
+    from app.modules.habits import streaks as st
+
+    assert st.parse_weekdays("0, 2,4,9,x") == {0, 2, 4}
+    assert st.format_weekdays([4, 0, 2, 2]) == "0,2,4"
+    assert st.describe_weekdays({0, 2, 4}) == "Seg, Qua, Sex"
+    assert st.describe_weekdays(set()) == "Todos os dias"
+
+
+def test_save_habit_with_weekdays(app):
+    habit = services.save_habit("Treinar", "", 15, [], weekdays=[0, 2, 4])
+    view = next(h for h in services.list_habits() if h.id == habit.id)
+    assert view.schedule == "Seg, Qua, Sex"
+    services.save_habit("Treinar", "", 15, [], habit.id, weekdays=list(range(7)))
+    assert services.get_habit(habit.id).weekdays == ""  # todos os dias = sem agenda
+
+
+def test_habit_form_accepts_weekdays(client):
+    client.post("/habits/", data={"name": "Correr", "xp_per_check": "10", "weekdays": ["1", "3"]})
+    habit = services.list_habits()[0]
+    assert habit.schedule == "Ter, Qui"
+    assert 'name="weekdays"' in client.get(f"/habits/{habit.id}/edit").get_data(as_text=True)

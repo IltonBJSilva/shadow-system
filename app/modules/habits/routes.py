@@ -25,7 +25,7 @@ def create():
     form = HabitForm()
     if form.validate_on_submit():
         services.save_habit(form.name.data, form.description.data or "", form.xp_per_check.data,
-                            list(form.attribute_ids.data or []))
+                            list(form.attribute_ids.data or []), weekdays=list(form.weekdays.data or []))
         flash("Hábito criado.", "success")
     else:
         flash("Confira os campos do hábito.", "error")
@@ -38,9 +38,11 @@ def edit(habit_id: int):
     form = HabitForm(obj=habit)
     if request.method == "GET":
         form.attribute_ids.data = services.attribute_ids_for(habit)
+        form.weekdays.data = sorted(services.weekdays_for(habit))
     if form.validate_on_submit():
         services.save_habit(form.name.data, form.description.data or "", form.xp_per_check.data,
-                            list(form.attribute_ids.data or []), habit_id)
+                            list(form.attribute_ids.data or []), habit_id,
+                            weekdays=list(form.weekdays.data or []))
         flash("Hábito atualizado.", "success")
         return redirect(url_for("habits.index"))
     return render_template("habits/form.html", form=form, habit=habit)

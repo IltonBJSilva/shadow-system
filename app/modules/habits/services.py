@@ -26,6 +26,12 @@ class HabitView:
     current_streak: int
     best_streak: int
     last_days: list[tuple[date, bool]]  # (dia, feito) dos últimos HISTORY_DAYS dias
+    weekdays: frozenset[int] = frozenset()
+    expected_today: bool = True
+
+    @property
+    def schedule(self) -> str:
+        return streaks.describe_weekdays(set(self.weekdays))
 
 
 # ---------- Leitura ----------
@@ -53,7 +59,13 @@ def best_streak_ever() -> int:
     days_by_habit: dict[int, set[date]] = {}
     for habit_id, day in db.session.execute(select(HabitLog.habit_id, HabitLog.day)):
         days_by_habit.setdefault(habit_id, set()).add(day)
-    return max((streaks.best_streak(days) for days in days_by_habit.values()), default=0)
+    schedules = dict(db.session.execute(select(Habit.id, Habit.weekdays)).all())
+    return max((streaks.best_streak(days, streaks.parse_weekdays(schedules.get(habit_id)))
+                for habit_id, days in days_by_habit.items()), default=0)
+
+
+def weekdays_for(habit: Habit) -> set[int]:
+    return streaks.parse_weekdays(habit.weekdays)
 
 
 def attribute_ids_for(habit: Habit) -> list[int]:
@@ -65,13 +77,16 @@ def attribute_ids_for(habit: Habit) -> list[int]:
 # ---------- Escrita ----------
 
 def save_habit(name: str, description: str, xp_per_check: int, attribute_ids: list[int],
-               habit_id: int | None = None) -> Habit:
+               habit_id: int | None = None, weekdays: list[int] | None = None) -> Habit:
     if not name.strip():
         raise DomainError("O hábito precisa de um nome.")
     if xp_per_check < 0:
         raise DomainError("XP não pode ser negativo.")
     habit = get_habit(habit_id) if habit_id else Habit()
     habit.name, habit.description, habit.xp_per_check = name.strip(), description.strip(), xp_per_check
+    if weekdays is not None:
+        days = set(weekdays)
+        habit.weekdays = "" if len(days) in (0, 7) else streaks.format_weekdays(days)
     db.session.add(habit)
     db.session.flush()
     db.session.execute(delete(habit_attributes).where(habit_attributes.c.habit_id == habit.id))
@@ -116,7 +131,8 @@ def check_in(habit_id: int, day: date | None = None) -> hunter.AwardResult:
         attribute_points=1,
     )
     db.session.flush()
-    streak = streaks.current_streak({entry.day for entry in habit.logs} | {day}, today)
+    streak = streaks.current_streak({entry.day for entry in habit.logs} | {day}, today,
+                                    streaks.parse_weekdays(habit.weekdays))
     result.extra.extend(events.publish("habit.checked", habit_id=habit.id, habit_name=habit.name,
                                        log_id=log.id, streak=streak, base_xp=habit.xp_per_check))
     db.session.commit()
@@ -151,6 +167,7 @@ def _log_for(habit_id: int, day: date) -> HabitLog | None:
 
 def _view(habit: Habit, today: date) -> HabitView:
     days_done = {log.day for log in habit.logs}
+    weekdays = streaks.parse_weekdays(habit.weekdays)
     window = [today - timedelta(days=offset) for offset in range(HISTORY_DAYS - 1, -1, -1)]
     return HabitView(
         id=habit.id,
@@ -158,7 +175,9 @@ def _view(habit: Habit, today: date) -> HabitView:
         description=habit.description,
         xp_per_check=habit.xp_per_check,
         done_today=today in days_done,
-        current_streak=streaks.current_streak(days_done, today),
-        best_streak=streaks.best_streak(days_done),
+        current_streak=streaks.current_streak(days_done, today, weekdays),
+        best_streak=streaks.best_streak(days_done, weekdays),
         last_days=[(day, day in days_done) for day in window],
+        weekdays=frozenset(weekdays),
+        expected_today=not weekdays or today.weekday() in weekdays,
     )
