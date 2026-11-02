@@ -22,6 +22,7 @@ def profile():
         profile_form=ProfileForm(obj=hunter),
         events=services.recent_events(limit=25),
         unlocked_titles=[t for t in titles if t.unlocked],
+        history=services.attribute_history(),
         titles_total=len(titles),
     )
 

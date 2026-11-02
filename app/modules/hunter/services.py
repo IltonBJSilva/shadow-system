@@ -172,6 +172,39 @@ def xp_by_day(end: date, days: int = 7) -> list[tuple[date, int]]:
             for i in range(days)]
 
 
+@dataclass(frozen=True)
+class AttributeTrend:
+    name: str
+    weekly: list[int]  # pontos ganhos em cada semana, da mais antiga para a atual
+    total: int         # pontos atuais
+
+    @property
+    def gained(self) -> int:
+        return sum(self.weekly)
+
+
+def attribute_history(weeks: int = 8, today: date | None = None) -> tuple[list[date], list[AttributeTrend]]:
+    """Pontos ganhos por atributo em cada uma das últimas `weeks` semanas (segunda a domingo).
+
+    Vem do histórico real (AttributeGain de cada XpEvent). Estornos contam negativo.
+    """
+    today = today or time.today()
+    first_monday = today - timedelta(days=today.weekday()) - timedelta(weeks=weeks - 1)
+    mondays = [first_monday + timedelta(weeks=i) for i in range(weeks)]
+    rows = db.session.execute(
+        select(AttributeGain.attribute_id, AttributeGain.points, XpEvent.created_at)
+        .join(XpEvent, XpEvent.id == AttributeGain.event_id)
+        .where(XpEvent.created_at >= datetime.combine(first_monday, datetime.min.time()))
+    ).all()
+    buckets: dict[int, list[int]] = {}
+    for attribute_id, points, created_at in rows:
+        index = (created_at.date() - first_monday).days // 7
+        if 0 <= index < weeks:
+            buckets.setdefault(attribute_id, [0] * weeks)[index] += points
+    trends = [AttributeTrend(a.name, buckets.get(a.id, [0] * weeks), a.points) for a in list_attributes()]
+    return mondays, trends
+
+
 # ---------- Escrita ----------
 
 def award_xp(amount: int, *, source: str, description: str, source_id: int | None = None,

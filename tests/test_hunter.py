@@ -145,3 +145,23 @@ def test_default_xp_weighs_effort_more_than_importance():
     assert progression.xp_for_difficulty(3, "low") == 40
     assert progression.xp_for_difficulty(1, "critical") == 15   # trivial "crítica" continua pouco XP
     assert progression.xp_for_difficulty(5, "high") == 240
+
+
+def test_attribute_history_buckets_points_by_week(app):
+    from datetime import date as d
+
+    strength = next(a for a in services.list_attributes() if a.key == "strength")
+    services.award_xp(10, source="manual", description="treino", attribute_ids=[strength.id], attribute_points=3)
+    db.session.commit()
+    mondays, trends = services.attribute_history(weeks=4)
+    assert len(mondays) == 4 and mondays[-1].weekday() == 0
+    row = next(t for t in trends if t.name == strength.name)
+    assert row.weekly[-1] == 3 and row.gained == 3 and row.total == 3
+
+
+def test_profile_shows_attribute_evolution(client):
+    strength = next(a for a in services.list_attributes() if a.key == "strength")
+    services.award_xp(10, source="manual", description="treino", attribute_ids=[strength.id])
+    db.session.commit()
+    html = client.get("/hunter/").get_data(as_text=True)
+    assert "Evolução dos atributos" in html and "trend-bar" in html

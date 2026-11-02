@@ -57,6 +57,32 @@
     </section>
 
     <section class="panel">
+      <div class="panel-header"><h2>Evolução dos atributos</h2><span class="muted small">últimas 8 semanas</span></div>
+      {% set mondays, trends = history %}
+      {% set peak = [1] + trends | map(attribute="weekly") | map("max") | list %}
+      {% set peak = peak | max %}
+      {% if trends | selectattr("gained") | list %}
+        <table class="table small trend-table">
+          <thead><tr><th>Atributo</th>{% for m in mondays %}<th class="mono" title="semana de {{ m | date_br }}">{{ m.strftime("%d/%m") }}</th>{% endfor %}<th>Total</th></tr></thead>
+          <tbody>
+            {% for t in trends %}
+              <tr>
+                <td>{{ t.name }}</td>
+                {% for points in t.weekly %}
+                  <td><span class="trend-bar" style="--h: {{ (points * 100 / peak) | int if points > 0 else 0 }}%"
+                            title="{{ '%+d' % points }} pts"></span></td>
+                {% endfor %}
+                <td class="mono">{{ t.total }} <span class="muted">({{ '%+d' % t.gained }})</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        {{ ui.empty("Sem pontos de atributo nas últimas 8 semanas. Quests e hábitos ligados a atributos aparecem aqui.") }}
+      {% endif %}
+    </section>
+
+    <section class="panel">
       <div class="panel-header"><h2>Histórico de evolução</h2></div>
       {% if events %}
         <ul class="list">

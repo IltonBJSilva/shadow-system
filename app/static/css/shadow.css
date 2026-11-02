@@ -482,3 +482,13 @@ select.input[multiple] { min-height: 130px; }
 @media (prefers-reduced-motion: reduce) {
   .levelup-overlay, .levelup-title, .flash-achievement { animation: none; }
 }
+
+/* Evolução dos atributos (Hunter) */
+.trend-table td, .trend-table th { padding: .3rem .35rem; text-align: center; }
+.trend-table td:first-child, .trend-table th:first-child { text-align: left; white-space: nowrap; }
+.trend-bar {
+  display: inline-block; width: 12px; height: 34px; border-radius: 3px; vertical-align: bottom;
+  background: linear-gradient(to top, var(--electric), var(--cyan)) bottom / 100% var(--h, 0%) no-repeat,
+              rgba(56, 132, 255, 0.1);
+}
+@media (max-width: 720px) { .trend-table { display: block; overflow-x: auto; } }
