@@ -25,7 +25,7 @@
       </div>
       {{ ui.progress(status.progress.xp_into_level, status.progress.xp_for_next, "xp") }}
       <div class="stat-line small muted" style="margin-top: .3rem">
-        <span>Total acumulado: {{ status.progress.total_xp }} XP</span>
+        <span>Total acumulado: {{ status.progress.total_xp }} XP · faltam {{ status.progress.xp_for_next - status.progress.xp_into_level }} XP para o nível {{ status.progress.level + 1 }}</span>
         {% if status.next_rank %}<span>Próximo rank: {{ status.next_rank.code }} no nível {{ status.next_rank.min_level }}</span>{% endif %}
       </div>
     </div>
