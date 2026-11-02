@@ -2,7 +2,7 @@
 // São sons originais (nenhum arquivo de áudio, nada copiado do anime): tons curtos, brilhantes e
 // "holográficos" para ganhos, e graves para alertas e punições.
 //
-// Uso: ShadowSound.play("quest" | "levelup" | "penalty" | "error" | "notify" | "bonus")
+// Uso: ShadowSound.play("quest" | "levelup" | "penalty" | "error" | "notify" | "bonus" | "boot" | "activate" | "achievement")
 // Liga/desliga fica salvo no navegador (localStorage "shadow.sound").
 (function () {
   const STORAGE_KEY = "shadow.sound";
@@ -77,6 +77,22 @@
       tone(ac, { freq: 220, duration: 0.35, type: "sawtooth", gain: 0.1, slideTo: 110, echo: false });
       tone(ac, { freq: 196, start: 0.4, duration: 0.5, type: "sawtooth", gain: 0.1, slideTo: 82, echo: false });
       tone(ac, { freq: 55, duration: 0.9, type: "sine", gain: 0.2, echo: false });
+    },
+    // Inicialização: zumbido grave subindo, como um sistema ligando
+    boot(ac) {
+      tone(ac, { freq: 60, duration: 1.4, type: "sine", gain: 0.16, slideTo: 140, echo: false });
+      tone(ac, { freq: 240, start: 0.15, duration: 1.1, type: "triangle", gain: 0.05, slideTo: 480 });
+      [0.35, 0.7, 1.05].forEach((t) => tone(ac, { freq: 1900, start: t, duration: 0.04, gain: 0.05, echo: false }));
+    },
+    // Sistema ativado: acorde aberto com brilho
+    activate(ac) {
+      [392, 587, 784].forEach((f) => tone(ac, { freq: f, duration: 0.9, type: "triangle", gain: 0.09 }));
+      tone(ac, { freq: 1568, start: 0.12, duration: 0.5, gain: 0.07 });
+    },
+    // Conquista desbloqueada: sino em quinta + cintilar
+    achievement(ac) {
+      [880, 1319].forEach((f, i) => tone(ac, { freq: f, start: i * 0.12, duration: 0.6, gain: 0.12 }));
+      [1760, 2093, 2637].forEach((f, i) => tone(ac, { freq: f, start: 0.3 + i * 0.06, duration: 0.18, gain: 0.06 }));
     },
     // Erro: dois bipes graves
     error(ac) {
