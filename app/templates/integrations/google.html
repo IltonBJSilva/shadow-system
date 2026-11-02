@@ -14,8 +14,15 @@
         <li>Configure a tela de consentimento OAuth (tipo Externo, modo Teste) e adicione seu e-mail como usuário de teste.</li>
         <li>Crie uma credencial <strong>ID do cliente OAuth</strong> do tipo <strong>Aplicativo da Web</strong>, com a URI de redirecionamento:
           <br><span class="mono">{{ redirect_uri }}</span></li>
+        {% if config.GOOGLE_CLIENT_SECRETS_FILE.startswith("/etc/secrets/") %}
+        <li>Baixe o JSON. No Render: serviço &gt; <strong>Environment</strong> &gt; <strong>Secret Files</strong> &gt;
+          <strong>Add Secret File</strong>, nome <span class="mono">{{ config.GOOGLE_CLIENT_SECRETS_FILE.rsplit("/", 1)[-1] }}</span>
+          e cole o conteúdo do JSON.</li>
+        <li>Salve e faça um novo deploy (<strong>Manual Deploy</strong> &gt; <strong>Deploy latest commit</strong>).</li>
+        {% else %}
         <li>Baixe o JSON, salve em <span class="mono">instance/google_client_secret.json</span>.</li>
         <li>No <span class="mono">.env</span>: <span class="mono">GOOGLE_CLIENT_SECRETS_FILE=instance/google_client_secret.json</span> e reinicie.</li>
+        {% endif %}
       </ol>
       <p class="muted small">Passo a passo detalhado em docs/integrations.md.</p>
     </section>

@@ -204,3 +204,11 @@ def test_google_page_renders_setup_instructions(client):
 def test_sync_without_connection_shows_error(client):
     response = client.post("/integrations/google/sync")
     assert response.status_code == 302
+
+
+def test_google_page_shows_render_secret_file_steps(tmp_path):
+    app = create_app("testing", {"GOOGLE_CLIENT_SECRETS_FILE": "/etc/secrets/google_client_secret.json"})
+    with app.app_context():
+        db.create_all()
+    html = app.test_client().get("/integrations/google/").get_data(as_text=True)
+    assert "Secret Files" in html and "google_client_secret.json" in html
