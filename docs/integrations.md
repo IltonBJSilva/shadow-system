@@ -72,6 +72,12 @@ Nenhum endpoint é montado à mão.
 > Abra o app por `http://localhost:5050` (não `127.0.0.1`) para o cookie da sessão sobreviver ao retorno
 > do Google, já que a URI de redirecionamento usa `localhost`.
 
+**No Render (online):** o mesmo cliente OAuth serve. Adicione também a URI
+`https://SEU-APP.onrender.com/integrations/google/callback`, envie o JSON como **Secret File**
+(`google_client_secret.json`) e defina `GOOGLE_REDIRECT_URI` com essa URI. Passo a passo e erros
+comuns (`redirect_uri_mismatch`, botão Salvar cinza, `InsecureTransportError`) em
+[deployment.md](deployment.md#4-google-no-render) e [troubleshooting.md](troubleshooting.md#google).
+
 ### Como funciona
 
 - **Escopos**: `calendar.events` (ler/criar/editar/excluir eventos) e `calendar.readonly` (listar
@@ -206,7 +212,20 @@ Problemas comuns:
 
 1. Em https://www.notion.so/my-integrations crie uma integração **interna** com *Read content*.
 2. Copie o **Internal Integration Secret** e cole em `/integrations/notion/` (conferido com `GET /v1/users/me`).
-3. No Notion, em cada banco de dados: **••• > Conexões** > escolha a integração.
+3. No Notion, compartilhe com a integração: na página (ou no banco aberto em página inteira)
+   **••• > Conexões > + Adicionar conexões** > a integração > **Confirmar**. Compartilhar uma página
+   compartilha também os bancos dentro dela.
+
+Cuidados que fazem a lista ficar vazia (*"Nenhum banco compartilhado"*):
+
+- A integração só enxerga o **workspace onde foi criada**. Um banco de outro workspace não aparece,
+  mesmo que lá exista uma integração com o mesmo nome (cada uma tem o próprio token).
+- *Visualização vinculada* (linked view, com ↗ no nome) não é o banco: abra o banco original e
+  compartilhe nele.
+- Pode levar um ou dois minutos para um compartilhamento novo aparecer na busca.
+
+Teste rápido: crie uma página "Shadow Teste" com uma tabela (colunas *Data* e *Status*), compartilhe
+a página com a integração e recarregue `/integrations/notion/`.
 
 O que faz: lista os bancos compartilhados (`POST /v1/search`), mostra as páginas
 (`POST /v1/databases/{id}/query`) e importa as escolhidas como quests: título → título, primeira
