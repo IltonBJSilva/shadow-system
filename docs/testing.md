@@ -53,20 +53,20 @@ real, que é o banco de produção (Supabase):
 
 1. Suba um PostgreSQL descartável (Docker: `docker run --rm -e POSTGRES_PASSWORD=pw -p 55432:5432 postgres:16`,
    ou o pacote `pgserver` instalado fora do projeto).
-2. Aponte para ele **e para uma pasta temporária de tokens**, senão a importação de arquivos antigos
-   move os tokens reais de `instance/` para o banco descartável e apaga os arquivos (`app/core/secret_store.py`):
+2. Rode as migrations nele:
 
    ```powershell
    $env:DATABASE_URL = "postgresql://postgres:pw@localhost:55432/postgres"
-   $tmp = New-Item -ItemType Directory -Force "$env:TEMP\shadow-pg-test"
-   $env:GOOGLE_TOKEN_FILE = "$tmp\google_token.json"   # ver nota abaixo
-   .venv\Scripts\flask --app wsgi db upgrade
-   .venv\Scripts\flask --app wsgi security lock-db
-   .venv\Scripts\flask --app wsgi db check
+   .venv\Scriptslask --app wsgi db upgrade
+   .venv\Scriptslask --app wsgi security lock-db
+   .venv\Scriptslask --app wsgi db check
    ```
 
-   Nota: `GOOGLE_TOKEN_FILE`, `BUFFER_TOKEN_FILE` e `CREDENTIALS_DIR` não são lidos do ambiente; num script
-   Python use `create_app(overrides={...})` com caminhos temporários, como faz `tests/conftest.py`.
+   Os comandos acima não leem tokens. Mas **não abra páginas do app** apontado para o banco
+   descartável usando a `instance/` real: a importação de arquivos antigos (`app/core/secret_store.py`)
+   moveria os tokens do PC para esse banco e apagaria os arquivos. Para navegar nas páginas, use um
+   script com `create_app(overrides={"GOOGLE_TOKEN_FILE": ..., "BUFFER_TOKEN_FILE": ..., "CREDENTIALS_DIR": ...})`
+   apontando para uma pasta temporária, como faz `tests/conftest.py`.
 3. `db check` sem diferenças = modelos e migrations batem.
 
 Os testes de integração nunca chamam serviços reais: Buffer, Notion e WhatsApp usam `httpx.MockTransport`.
