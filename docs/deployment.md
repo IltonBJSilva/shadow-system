@@ -58,13 +58,13 @@ Guarde o resultado (começa com `scrypt:`). Ele vira o `OWNER_PASSWORD_HASH`.
    - `OWNER_USERNAME`: o seu usuário de login;
    - `OWNER_PASSWORD_HASH`: o hash do passo 2;
    - `DATABASE_URL`: a URI do Session pooler do passo 1;
-   - `GOOGLE_REDIRECT_URI`: `https://shadow-system.onrender.com/integrations/google/callback`
-     (troque pelo endereço que o Render mostrar, se for outro);
+   - `GOOGLE_REDIRECT_URI`: `https://SEU-APP.onrender.com/integrations/google/callback`
+     (o endereço aparece no topo da página do serviço no Render; se o nome já existir, ele ganha um final, como `shadow-system-ab12`);
    - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` e `SUPABASE_BUCKET`: só se for enviar imagens do
      computador nos posts; senão deixe vazio.
 3. **Apply**. O build instala as dependências, roda `flask db upgrade` e `flask security lock-db`.
    Leva uns 3 a 5 minutos.
-4. Abra `https://shadow-system.onrender.com`: deve aparecer a tela de login.
+4. Abra `https://SEU-APP.onrender.com`: deve aparecer a tela de login.
 
 `SECRET_KEY` é gerada pelo próprio Render. Não troque, senão as sessões caem.
 
@@ -80,7 +80,7 @@ Guarde o resultado (começa com `scrypt:`). Ele vira o `OWNER_PASSWORD_HASH`.
 ### 5. Keep-alive
 
 1. GitHub > repositório > **Settings** > **Secrets and variables** > **Actions** > aba **Variables** >
-   **New repository variable**: `APP_URL` = `https://shadow-system.onrender.com`.
+   **New repository variable**: `APP_URL` = `https://SEU-APP.onrender.com`.
 2. **Actions** > **keep-alive** > **Run workflow** para testar. Deve terminar verde e mostrar
    `{"database":true,"ok":true}`.
 
