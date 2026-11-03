@@ -10,11 +10,11 @@ from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Float, ForeignK
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import time
-from app.core.models import TimestampMixin
+from app.core.models import TimestampMixin, UserOwnedMixin
 from app.extensions import db
 
 
-class WorkoutPlan(TimestampMixin, db.Model):
+class WorkoutPlan(UserOwnedMixin, TimestampMixin, db.Model):
     __tablename__ = "workout_plans"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -44,7 +44,7 @@ class WorkoutPlan(TimestampMixin, db.Model):
     )
 
 
-class WorkoutDay(db.Model):
+class WorkoutDay(UserOwnedMixin, db.Model):
     __tablename__ = "workout_days"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -60,7 +60,7 @@ class WorkoutDay(db.Model):
     __table_args__ = (CheckConstraint("weekday BETWEEN 0 AND 6", name="weekday_range"),)
 
 
-class WorkoutExercise(db.Model):
+class WorkoutExercise(UserOwnedMixin, db.Model):
     __tablename__ = "workout_exercises"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -78,7 +78,7 @@ class WorkoutExercise(db.Model):
     __table_args__ = (CheckConstraint("sets BETWEEN 1 AND 20", name="sets_range"),)
 
 
-class WorkoutSession(db.Model):
+class WorkoutSession(UserOwnedMixin, db.Model):
     """Um treino feito (a quest do dia foi concluída)."""
 
     __tablename__ = "workout_sessions"

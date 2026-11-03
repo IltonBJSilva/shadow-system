@@ -1,16 +1,16 @@
 """Tabelas do módulo Hunter. Outros módulos não importam daqui: usam hunter.services."""
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import time
-from app.core.models import TimestampMixin
+from app.core.models import TimestampMixin, UserOwnedMixin
 from app.extensions import db
 
 
-class Hunter(TimestampMixin, db.Model):
-    """O perfil do usuário. Existe um só (sistema pessoal)."""
+class Hunter(UserOwnedMixin, TimestampMixin, db.Model):
+    """O perfil do jogador. Um por usuário (o filtro por user_id é automático, ver core/tenancy.py)."""
 
     __tablename__ = "hunters"
 
@@ -25,34 +25,40 @@ class Hunter(TimestampMixin, db.Model):
     __table_args__ = (CheckConstraint("total_xp >= 0", name="total_xp_non_negative"),)
 
 
-class Rank(db.Model):
+class Rank(UserOwnedMixin, db.Model):
     """Rank configurável (E, D, C, ... SS e especiais), liberado ao atingir min_level."""
 
     __tablename__ = "ranks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    code: Mapped[str] = mapped_column(String(4), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(String(4), nullable=False)
     name: Mapped[str] = mapped_column(String(60), nullable=False)
-    min_level: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    min_level: Mapped[int] = mapped_column(Integer, nullable=False)
     color: Mapped[str] = mapped_column(String(9), default="#8b5cf6", nullable=False)
 
-    __table_args__ = (CheckConstraint("min_level >= 1", name="min_level_positive"),)
+    __table_args__ = (
+        CheckConstraint("min_level >= 1", name="min_level_positive"),
+        UniqueConstraint("user_id", "code", name="uq_ranks_user_code"),
+        UniqueConstraint("user_id", "min_level", name="uq_ranks_user_min_level"),
+    )
 
 
-class Attribute(db.Model):
+class Attribute(UserOwnedMixin, db.Model):
     """Atributo pessoal (Strength, Focus...). É um indicador de evolução, não uma avaliação."""
 
     __tablename__ = "attributes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    key: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    key: Mapped[str] = mapped_column(String(40), nullable=False)
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     points: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_attributes_user_key"),)
 
-class XpEvent(db.Model):
+
+class XpEvent(UserOwnedMixin, db.Model):
     """Histórico de evolução: cada ganho (ou estorno) de XP com sua origem."""
 
     __tablename__ = "xp_events"
@@ -69,7 +75,7 @@ class XpEvent(db.Model):
     )
 
 
-class AttributeGain(db.Model):
+class AttributeGain(UserOwnedMixin, db.Model):
     """Pontos de atributo concedidos por um XpEvent."""
 
     __tablename__ = "attribute_gains"
@@ -83,7 +89,7 @@ class AttributeGain(db.Model):
     attribute: Mapped[Attribute] = relationship()
 
 
-class Title(db.Model):
+class Title(UserOwnedMixin, db.Model):
     """Título que o Hunter pode exibir. Desbloqueado quando a métrica `rule` chega em `threshold`.
 
     rule: "level", "total_xp" ou uma métrica registrada por outro módulo (ex.: "quests_completed").
@@ -93,8 +99,8 @@ class Title(db.Model):
     __tablename__ = "titles"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    key: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)
-    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    key: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     rule: Mapped[str] = mapped_column(String(40), nullable=False)
     threshold: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -107,4 +113,6 @@ class Title(db.Model):
     __table_args__ = (
         CheckConstraint("threshold >= 0", name="threshold_non_negative"),
         CheckConstraint("reward_xp >= 0", name="reward_xp_non_negative"),
+        UniqueConstraint("user_id", "key", name="uq_titles_user_key"),
+        UniqueConstraint("user_id", "name", name="uq_titles_user_name"),
     )

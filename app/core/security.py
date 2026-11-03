@@ -1,36 +1,50 @@
-"""Segurança: login opcional do dono, cabeçalhos HTTP e comando para gerar hash de senha.
+"""Segurança: login (dono e usuários de teste), convites, cabeçalhos HTTP e comandos.
 
-O Shadow System tem um único usuário (você). Com AUTH_ENABLED=false o app fica aberto e deve
-rodar só em 127.0.0.1. Antes de expor em rede, ligue o login (ver docs/security.md).
+Com AUTH_ENABLED=false o app fica aberto (quem acessa é o dono) e deve rodar só em 127.0.0.1.
+Antes de expor em rede, ligue o login (ver docs/security.md). Contas: core/accounts.py.
 """
-import hmac
 import time
+from functools import wraps
 
 import click
-from flask import (Blueprint, Flask, current_app, flash, redirect, render_template, request,
+from flask import (Blueprint, Flask, abort, current_app, flash, g, redirect, render_template, request,
                    session, url_for)
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
+
+from . import accounts
+from . import time as clock
+from .errors import DomainError
+from .tenancy import OWNER_ID
 
 bp = Blueprint("security", __name__)
 
-PUBLIC_ENDPOINTS = {"security.login", "static", "core.health"}
+PUBLIC_ENDPOINTS = {"security.login", "security.invite", "static", "core.health", "core.manifest",
+                    "core.service_worker"}
 
 # Política de conteúdo: scripts e estilos só do próprio app. 'unsafe-inline' em estilos é necessário
 # para larguras de barras de progresso definidas no template (style="width: 40%").
 # Imagens HTTPS externas são permitidas para as miniaturas dos posts do Buffer.
+# media-src 'self' blob:: músicas e efeitos do System são servidos pelo próprio app.
 CSP = (
     "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
-    "script-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+    "script-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
 )
 
 
-def check_credentials(username: str, password: str) -> bool:
-    cfg = current_app.config
-    password_hash = cfg.get("OWNER_PASSWORD_HASH", "")
-    if not password_hash:
-        return False
-    same_user = hmac.compare_digest(username.encode(), cfg.get("OWNER_USERNAME", "").encode())
-    return same_user and check_password_hash(password_hash, password)
+def owner_required(view):
+    """Páginas só do dono (usuários de teste, mídias do sistema)."""
+
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not is_owner():
+            abort(403)
+        return view(*args, **kwargs)
+
+    return wrapper
+
+
+def is_owner() -> bool:
+    return g.get("user_id", OWNER_ID) == OWNER_ID
 
 
 def register(app: Flask) -> None:
@@ -38,11 +52,27 @@ def register(app: Flask) -> None:
 
     @app.before_request
     def require_login():
+        # Quem é o usuário desta requisição (filtro automático dos dados, ver core/tenancy.py).
+        g.user_id = session.get("uid") or OWNER_ID
+        if g.user_id != OWNER_ID and not _session_user_valid(g.user_id):
+            session.clear()  # conta apagada ou bloqueada pelo dono
+            g.user_id = OWNER_ID
+            if app.config.get("AUTH_ENABLED") and request.endpoint not in PUBLIC_ENDPOINTS:
+                return redirect(url_for("security.login"))
         if not app.config.get("AUTH_ENABLED") or request.endpoint in PUBLIC_ENDPOINTS:
             return None
-        if session.get("user"):
+        if session.get("uid") or session.get("user"):
             return None
         return redirect(url_for("security.login", next=request.path))
+
+    @app.after_request
+    def turbo_form_errors(response):
+        # A navegação sem recarregar (Turbo, ver static/js/vendor) só mostra a resposta de um formulário
+        # com erro se ela vier como 4xx. As rotas devolvem 200 ao reexibir o formulário: vira 422 aqui.
+        if (request.method == "POST" and response.status_code == 200
+                and request.headers.get("X-Turbo-Request-Id") and response.mimetype == "text/html"):
+            response.status_code = 422
+        return response
 
     @app.after_request
     def security_headers(response):
@@ -54,7 +84,15 @@ def register(app: Flask) -> None:
 
     @app.context_processor
     def inject_auth():
-        return {"auth_enabled": app.config.get("AUTH_ENABLED"), "current_user": session.get("user")}
+        uid = g.get("user_id", OWNER_ID)
+        logged = bool(session.get("uid") or session.get("user"))
+        account = accounts.get_user(uid) if uid != OWNER_ID else None
+        return {
+            "auth_enabled": app.config.get("AUTH_ENABLED"),
+            "current_user": (account.label if account else session.get("user")) if logged else None,
+            "is_owner": uid == OWNER_ID,
+            "is_tester": uid != OWNER_ID,
+        }
 
     @app.cli.group("security")
     def security_cli():
@@ -97,25 +135,95 @@ def login():
         if _is_locked(client):
             flash("Muitas tentativas erradas. Espere alguns minutos e tente de novo.", "error")
             return render_template("security/login.html"), 429
-        username = request.form.get("username", "")
-        if check_credentials(username, request.form.get("password", "")):
+        user = accounts.authenticate(request.form.get("username", ""), request.form.get("password", ""))
+        if user is not None:
             _FAILURES.pop(client, None)
-            session.clear()
-            session["user"] = username
-            session.permanent = True
+            _start_session(user)
             return redirect(_safe_next(request.args.get("next", "")))
         _FAILURES.setdefault(client, []).append(time.monotonic())
         flash("Usuário ou senha incorretos.", "error")
     return render_template("security/login.html")
 
 
+@bp.route("/convite/<code>", methods=["GET", "POST"])
+def invite(code: str):
+    """Link de convite: a pessoa escolhe nome e senha e já entra. Sem Google, sem cadastro longo."""
+    client = request.remote_addr or "?"
+    if _is_locked(client):
+        flash("Muitas tentativas. Espere alguns minutos e tente de novo.", "error")
+        return render_template("security/invite.html", invited=None), 429
+    invited = accounts.user_for_invite(code)
+    if invited is None:
+        _FAILURES.setdefault(client, []).append(time.monotonic())
+        return render_template("security/invite.html", invited=None), 404
+    if request.method == "POST":
+        try:
+            user = accounts.accept_invite(code, request.form.get("name", ""), request.form.get("password", ""))
+        except DomainError as exc:
+            flash(str(exc), "error")
+            return render_template("security/invite.html", invited=invited)
+        _start_session(user)
+        flash("Acesso liberado. Bem-vindo ao System, Hunter.", "levelup")
+        return redirect("/")
+    return render_template("security/invite.html", invited=invited)
+
+
 @bp.post("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("security.login"))
+    return redirect(url_for("security.login") if current_app.config.get("AUTH_ENABLED") else "/")
 
 
-# Tentativas erradas por IP (memória do processo). Simples, suficiente para um único usuário.
+@bp.get("/usuarios-de-teste")
+@owner_required
+def testers():
+    return render_template("security/testers.html", testers=accounts.list_testers(),
+                           new_link=session.pop("new_invite_link", None), invite_days=accounts.INVITE_DAYS,
+                           now=clock.now())
+
+
+@bp.post("/usuarios-de-teste")
+@owner_required
+def invite_tester():
+    try:
+        user, code = accounts.invite_tester(request.form.get("email", ""), request.form.get("name", ""))
+    except DomainError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("security.testers"))
+    session["new_invite_link"] = {"email": user.email, "url": url_for("security.invite", code=code, _external=True)}
+    flash(f"Convite criado para {user.email}. Copie o link e envie para a pessoa.", "success")
+    return redirect(url_for("security.testers"))
+
+
+@bp.post("/usuarios-de-teste/<int:user_id>/ativo")
+@owner_required
+def toggle_tester(user_id: int):
+    user = accounts.set_tester_active(user_id, request.form.get("active") == "1")
+    flash(f"{user.label}: acesso {'liberado' if user.active else 'bloqueado'}.", "info")
+    return redirect(url_for("security.testers"))
+
+
+@bp.post("/usuarios-de-teste/<int:user_id>/apagar")
+@owner_required
+def delete_tester(user_id: int):
+    accounts.delete_tester(user_id)
+    flash("Usuário de teste e todos os dados dele apagados.", "info")
+    return redirect(url_for("security.testers"))
+
+
+def _start_session(user) -> None:
+    session.clear()
+    session["uid"] = user.id
+    session["user"] = user.username
+    session.permanent = True
+
+
+def _session_user_valid(user_id: int) -> bool:
+    user = accounts.get_user(user_id)
+    return bool(user and user.active and not user.is_owner)
+
+
+# Tentativas erradas por IP (memória do processo). Simples, suficiente para poucos usuários.
 _FAILURES: dict[str, list[float]] = {}
 
 

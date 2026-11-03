@@ -45,7 +45,12 @@
         {% endfor %}
       </nav>
       <div class="sidebar-footer">
-        {% if auth_enabled and current_user %}
+        {% if is_owner %}
+          <a class="nav-link nav-link-sm {% if request.endpoint == 'security.testers' %}is-active{% endif %}"
+             href="{{ url_for('security.testers') }}"><span class="nav-icon">⚇</span>Usuários de teste</a>
+        {% endif %}
+        {% if current_user %}<span class="muted small">Jogador: {{ current_user }}</span>{% endif %}
+        {% if current_user %}
           <form method="post" action="{{ url_for('security.logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-ghost btn-block" type="submit">Sair</button>

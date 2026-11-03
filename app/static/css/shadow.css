@@ -511,3 +511,8 @@ select.input[multiple] { min-height: 130px; }
 .chat-who { display: block; font: 600 .7rem var(--mono); letter-spacing: .12em; color: var(--cyan); margin-bottom: .2rem; }
 .chat-text { white-space: pre-wrap; line-height: 1.55; }
 .btn.is-busy { cursor: progress; }
+
+/* ---------- Usuários de teste ---------- */
+.invite-box { margin-top: 1rem; padding: .9rem; border: 1px dashed rgba(34, 211, 238, 0.45); border-radius: var(--radius);
+  background: rgba(34, 211, 238, 0.05); display: grid; gap: .6rem; }
+.nav-link-sm { font-size: .85rem; padding-top: .35rem; padding-bottom: .35rem; }

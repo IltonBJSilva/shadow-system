@@ -9,10 +9,11 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Tex
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core import time
+from app.core.models import UserOwnedMixin
 from app.extensions import db
 
 
-class QuestFailure(db.Model):
+class QuestFailure(UserOwnedMixin, db.Model):
     __tablename__ = "quest_failures"
 
     id: Mapped[int] = mapped_column(primary_key=True)

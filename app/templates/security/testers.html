@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Usuários de teste{% endblock %}
+{% block heading %}Usuários de teste{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Convidar um novo Hunter</p>
+    <form method="post" action="{{ url_for('security.invite_tester') }}" class="form" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="label" for="email">E-mail da pessoa</label>
+        <input class="input" id="email" name="email" type="email" inputmode="email" required placeholder="amigo@gmail.com">
+      </div>
+      <div class="field">
+        <label class="label" for="name">Nome (opcional)</label>
+        <input class="input" id="name" name="name" maxlength="80">
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Gerar link de convite</button></div>
+    </form>
+    {% if new_link %}
+      <div class="invite-box" data-copy-box>
+        <p class="system-label">Link para {{ new_link.email }} (vale {{ invite_days }} dias, uso único)</p>
+        <input class="input mono" value="{{ new_link.url }}" readonly data-copy-source aria-label="Link de convite">
+        <div class="row">
+          <button class="btn btn-primary btn-sm" type="button" data-copy>Copiar link</button>
+          <a class="btn btn-sm" target="_blank" rel="noopener"
+             href="https://wa.me/?text={{ ('Seu acesso ao Shadow System: ' ~ new_link.url) | urlencode }}">Enviar pelo WhatsApp</a>
+        </div>
+        <p class="muted small">Este link só aparece agora. Se perder, gere outro (o antigo deixa de valer).</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Como funciona</h2></div>
+    <ol>
+      <li>Cadastre o e-mail e envie o link para a pessoa.</li>
+      <li>Ela abre o link, escolhe nome e senha e já entra (uns 30 segundos). Depois entra com e-mail e senha.</li>
+      <li>Cada usuário tem os próprios dados: Hunter, missões, hábitos, treinos, conquistas e configurações. Ninguém vê os seus.</li>
+      <li>Não precisa conectar o Google. Para usar Google Calendar ou Gmail, a pessoa conecta a própria conta em
+        <strong>Integrações</strong>. Enquanto o app do Google estiver em modo teste, o e-mail dela também precisa estar em
+        <em>Google Cloud &gt; Google Auth Platform &gt; Público-alvo &gt; Usuários de teste</em>.</li>
+      <li>Tokens e chaves (Buffer, Notion, WhatsApp, Anthropic) são por usuário: os seus não são compartilhados.</li>
+    </ol>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><h2>Convidados</h2></div>
+  {% if testers %}
+    <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Pessoa</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead>
+      <tbody>
+      {% for user in testers %}
+        <tr>
+          <td><strong>{{ user.label }}</strong><br><span class="muted small">{{ user.email }}</span></td>
+          <td>
+            {% if not user.active %}<span class="tag tag-danger">Bloqueado</span>
+            {% elif user.password_hash %}<span class="tag tag-success">Ativo</span>
+            {% elif user.invite_expires_at and user.invite_expires_at >= now %}<span class="tag">Convite enviado</span>
+            {% else %}<span class="tag tag-warning">Convite vencido</span>{% endif %}
+          </td>
+          <td class="small">{{ user.last_login_at | datetime_br or "—" }}</td>
+          <td class="row">
+            <form method="post" action="{{ url_for('security.invite_tester') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="email" value="{{ user.email }}">
+              <button class="btn btn-ghost btn-sm" type="submit">Novo link</button>
+            </form>
+            <form method="post" action="{{ url_for('security.toggle_tester', user_id=user.id) }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="active" value="{{ '0' if user.active else '1' }}">
+              <button class="btn btn-ghost btn-sm" type="submit">{{ "Bloquear" if user.active else "Liberar" }}</button>
+            </form>
+            <form method="post" action="{{ url_for('security.delete_tester', user_id=user.id) }}" class="inline-form"
+                  data-confirm="Apagar {{ user.label }} e todos os dados dessa conta?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-danger btn-sm" type="submit">Apagar</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% else %}
+    {{ ui.empty("Nenhum usuário de teste ainda.") }}
+  {% endif %}
+</section>
+{% endblock %}

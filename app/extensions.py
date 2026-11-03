@@ -16,6 +16,8 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION))
+from app.core.tenancy import TenantSession  # noqa: E402 (filtro por usuário, ver core/tenancy.py)
+
+db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION), session_options={"class_": TenantSession})
 migrate = Migrate()
 csrf = CSRFProtect()

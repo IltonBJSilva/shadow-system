@@ -19,6 +19,9 @@ def app(tmp_path):
     })
     with app.app_context():
         _db.create_all()
+        from app.core import accounts
+
+        accounts.ensure_owner()  # dono (id 1): dono dos dados criados fora de uma requisição
         # Recompensa das conquistas desligada nos testes: eles medem uma regra de XP de cada vez.
         # test_titles.py liga de novo onde a recompensa é o que se testa.
         from app.modules.hunter import services as hunter

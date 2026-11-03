@@ -6,11 +6,11 @@ os modelos do Hunter: nomes de atributos vêm de hunter.services.
 from datetime import date, datetime
 
 from sqlalchemy import (CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, String, Table,
-                        Text)
+                        Text, UniqueConstraint)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import time
-from app.core.models import TimestampMixin
+from app.core.models import TimestampMixin, UserOwnedMixin
 from app.extensions import db
 
 quest_attributes = Table(
@@ -28,17 +28,19 @@ category_attributes = Table(
 )
 
 
-class QuestCategory(db.Model):
+class QuestCategory(UserOwnedMixin, db.Model):
     """Categoria (Treino, Estudos, Finanças...). Define os atributos padrão das quests dela."""
 
     __tablename__ = "quest_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(60), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(60), nullable=False)
     color: Mapped[str] = mapped_column(String(9), default="#8b5cf6", nullable=False)
 
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_quest_categories_user_name"),)
 
-class Quest(TimestampMixin, db.Model):
+
+class Quest(UserOwnedMixin, TimestampMixin, db.Model):
     __tablename__ = "quests"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -92,7 +94,7 @@ class Quest(TimestampMixin, db.Model):
     )
 
 
-class QuestLog(db.Model):
+class QuestLog(UserOwnedMixin, db.Model):
     """Histórico da quest: criada, iniciada, concluída, não realizada, cancelada, editada."""
 
     __tablename__ = "quest_logs"

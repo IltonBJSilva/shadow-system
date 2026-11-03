@@ -48,6 +48,7 @@ testadas.
 ### Implementado
 
 - [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
+- [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
 - [x] **Metas**: registre objetivos ("Passar em Cálculo II"); o Arquiteto sugere o próximo passo e uma sessão semanal
 - [x] **Zona de Falha**: toda missão recorrente não feita fica registrada; você diz o motivo (procrastinação, planejamento, imprevisto, limitação real) e os motivos escolhidos devolvem o XP e cancelam a Penalty Quest
@@ -253,6 +254,22 @@ flask --app wsgi run --debug --port 5050
    O token é conferido no Buffer antes de salvar e nunca é mostrado de novo. Depois disso você vê os posts
    agendados e cria posts novos, com texto diferente para LinkedIn e Instagram.
 6. Volte ao **Dashboard** e conclua quests e hábitos direto de lá.
+
+### Usuários de teste (outra pessoa testar o sistema)
+
+1. Entre como dono e abra **Usuários de teste** (menu lateral, embaixo).
+2. Cadastre o e-mail da pessoa e clique em *Gerar link de convite*.
+3. Copie o link ou envie direto pelo WhatsApp. Ele vale 7 dias e só funciona uma vez.
+4. A pessoa abre o link, escolhe nome e senha e já cai no Dashboard, com um Hunter novo e vazio (uns 30 segundos).
+   Depois ela entra pela tela de login com e-mail e senha.
+
+Cada conta tem os próprios dados (Hunter, missões, hábitos, treinos, conquistas, configurações e tokens): ninguém vê
+os dados de ninguém. Você pode bloquear, gerar link novo ou apagar a conta (com todos os dados) na mesma tela.
+
+**Google é opcional.** O login do sistema é por senha; conectar Google Calendar ou Gmail é uma autorização separada,
+em **Integrações**, feita por cada pessoa com a própria conta Google. Enquanto o app do Google estiver em modo teste,
+o e-mail Google dela também precisa estar em *Google Cloud > Google Auth Platform > Público-alvo > Usuários de teste*.
+Detalhes de segurança em [docs/security.md](docs/security.md#contas-e-isolamento-dos-dados).
 
 ### Online (sem o PC ligado)
 

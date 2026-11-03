@@ -5,11 +5,11 @@ from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core import time
-from app.core.models import TimestampMixin
+from app.core.models import TimestampMixin, UserOwnedMixin
 from app.extensions import db
 
 
-class ArchitectGoal(TimestampMixin, db.Model):
+class ArchitectGoal(UserOwnedMixin, TimestampMixin, db.Model):
     """Uma meta sua ("Passar em Cálculo II", "Correr 5 km"). O Arquiteto sugere missões para ela."""
 
     __tablename__ = "architect_goals"
@@ -24,7 +24,7 @@ class ArchitectGoal(TimestampMixin, db.Model):
     __table_args__ = (CheckConstraint("status IN ('active', 'done', 'dropped')", name="goal_status"),)
 
 
-class ArchitectSuggestion(db.Model):
+class ArchitectSuggestion(UserOwnedMixin, db.Model):
     """Missão sugerida. Só vira quest quando você aceita."""
 
     __tablename__ = "architect_suggestions"
@@ -51,7 +51,7 @@ class ArchitectSuggestion(db.Model):
     )
 
 
-class ArchitectMessage(db.Model):
+class ArchitectMessage(UserOwnedMixin, db.Model):
     """Uma fala da conversa com o Arquiteto (só existe com a IA configurada)."""
 
     __tablename__ = "architect_messages"

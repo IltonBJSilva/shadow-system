@@ -6,7 +6,7 @@ from sqlalchemy import (Boolean, CheckConstraint, Column, Date, DateTime, Foreig
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import time
-from app.core.models import TimestampMixin
+from app.core.models import TimestampMixin, UserOwnedMixin
 from app.extensions import db
 
 habit_attributes = Table(
@@ -17,7 +17,7 @@ habit_attributes = Table(
 )
 
 
-class Habit(TimestampMixin, db.Model):
+class Habit(UserOwnedMixin, TimestampMixin, db.Model):
     __tablename__ = "habits"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -33,7 +33,7 @@ class Habit(TimestampMixin, db.Model):
     __table_args__ = (CheckConstraint("xp_per_check >= 0", name="xp_non_negative"),)
 
 
-class HabitLog(db.Model):
+class HabitLog(UserOwnedMixin, db.Model):
     """Um dia em que o hábito foi feito. xp_awarded guarda o XP dado, para estornar o valor certo."""
 
     __tablename__ = "habit_logs"

@@ -10,27 +10,28 @@ from pathlib import Path
 from app.extensions import db
 
 from .models import StoredSecret
+from .tenancy import OWNER_ID, current_user_id
 
 
 def load(name: str, legacy_file: str | Path | None = None) -> dict:
-    row = db.session.get(StoredSecret, name)
+    row = _row(name)
     if row is not None:
         try:
             return json.loads(row.value)
         except json.JSONDecodeError:
             return {}
-    return (_import_legacy(name, legacy_file) if legacy_file else None) or {}
+    return (_import_legacy(name, legacy_file) if _legacy_allowed(legacy_file) else None) or {}
 
 
 def exists(name: str, legacy_file: str | Path | None = None) -> bool:
-    if db.session.get(StoredSecret, name) is not None:
+    if _row(name) is not None:
         return True
-    return bool(legacy_file) and _import_legacy(name, legacy_file) is not None
+    return _legacy_allowed(legacy_file) and _import_legacy(name, legacy_file) is not None
 
 
 def save(name: str, values: dict) -> None:
     payload = json.dumps(values, ensure_ascii=False)
-    row = db.session.get(StoredSecret, name)
+    row = _row(name)
     if row is None:
         db.session.add(StoredSecret(name=name, value=payload))
     else:
@@ -39,12 +40,17 @@ def save(name: str, values: dict) -> None:
 
 
 def delete(name: str, legacy_file: str | Path | None = None) -> None:
-    row = db.session.get(StoredSecret, name)
+    row = _row(name)
     if row is not None:
         db.session.delete(row)
         db.session.commit()
     if legacy_file:
         Path(legacy_file).unlink(missing_ok=True)
+
+
+def _legacy_allowed(legacy_file) -> bool:
+    """Arquivos antigos eram do dono: nunca são importados para a conta de outro usuário."""
+    return bool(legacy_file) and current_user_id() == OWNER_ID
 
 
 def _import_legacy(name: str, legacy_file: str | Path) -> dict | None:
@@ -59,3 +65,7 @@ def _import_legacy(name: str, legacy_file: str | Path) -> dict | None:
     save(name, values)
     path.unlink(missing_ok=True)
     return values
+
+
+def _row(name: str) -> StoredSecret | None:
+    return db.session.get(StoredSecret, (current_user_id(), name))

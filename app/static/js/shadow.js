@@ -77,6 +77,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// Copiar link (convites): botão [data-copy] copia o campo [data-copy-source] do mesmo bloco.
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-copy]");
+  if (!button) return;
+  const box = button.closest("[data-copy-box]") || document;
+  const source = box.querySelector("[data-copy-source]");
+  if (!source) return;
+  const done = () => { button.textContent = "Copiado!"; setTimeout(() => { button.textContent = "Copiar link"; }, 2000); };
+  if (navigator.clipboard) navigator.clipboard.writeText(source.value).then(done, () => { source.select(); });
+  else { source.select(); document.execCommand("copy"); done(); }
+});
+
+// Ações destrutivas: <form data-confirm="pergunta"> pede confirmação antes de enviar.
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("form[data-confirm]");
+  if (form && !window.confirm(form.dataset.confirm)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+}, true);
+
 // Formulários demorados (IA): desliga o botão e mostra que está trabalhando, sem envio duplo.
 document.addEventListener("submit", (event) => {
   const form = event.target.closest("[data-busy-form], form");

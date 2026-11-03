@@ -2,7 +2,7 @@
 
 Fica no banco (tabela stored_secrets, nome "buffer_token"). O token nunca é mostrado
 de volta na tela nem escrito em log: só os 4 últimos caracteres aparecem.
-Se não houver token salvo pela tela, vale BUFFER_API_KEY do .env.
+Se não houver token salvo pela tela, vale BUFFER_API_KEY do .env (só para o dono).
 
 Tokens pessoais do Buffer vencem em 90 dias; a data de criação serve para avisar antes.
 """
@@ -52,7 +52,14 @@ def _load() -> dict:
 
 
 def api_key() -> str:
-    return _load().get("api_key") or current_app.config.get("BUFFER_API_KEY", "")
+    return _load().get("api_key") or _env_key()
+
+
+def _env_key() -> str:
+    """BUFFER_API_KEY do .env é do dono: usuários de teste só usam o token que cadastrarem."""
+    from app.core.tenancy import OWNER_ID, current_user_id
+
+    return current_app.config.get("BUFFER_API_KEY", "") if current_user_id() == OWNER_ID else ""
 
 
 def organization_id() -> str | None:

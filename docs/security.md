@@ -39,7 +39,8 @@ workflows. Onde cada segredo fica:
 - A chave `sb_publishable_...` do Supabase é pública por natureza. O que impede que ela leia as tabelas
   é o RLS ligado pelo `flask security lock-db`.
 - O `/health` é público, mas só responde `{"ok":..., "database":...}`, sem nenhum dado.
-- Login: um usuário, senha com hash scrypt, bloqueio após 5 tentativas erradas, cookie só por HTTPS.
+- Login: dono (senha do `.env`) e usuários de teste (senha escolhida no convite), hash scrypt, bloqueio após 5
+  tentativas erradas, cookie só por HTTPS.
 - Testes e scripts que usam outro banco **não podem apontar para `instance/` real**: a importação de
   arquivos antigos (`secret_store`) apagaria os tokens do PC. Os testes já usam uma pasta temporária
   (`tests/conftest.py`); scripts avulsos devem fazer o mesmo (`GOOGLE_TOKEN_FILE`, `BUFFER_TOKEN_FILE`,
@@ -54,6 +55,21 @@ hábitos, treinos ativos e metas (título, área, por quê e prazo). **Não** v�
 e-mails, conteúdo do Gmail/Notion/Buffer nem o histórico de XP detalhado. A conversa fica salva na tabela
 `architect_messages` e pode ser apagada pela tela. Para parar de enviar qualquer coisa: Arquiteto >
 Ligar a IA > *Remover chave*.
+
+## Contas e isolamento dos dados
+
+- **Dono** (id 1): entra com `OWNER_USERNAME` + `OWNER_PASSWORD_HASH`. Só ele vê *Usuários de teste*.
+- **Usuário de teste**: o dono cadastra o e-mail e recebe um link `/convite/<código>` (7 dias, uso único;
+  só o hash sha256 do código fica no banco). A pessoa escolhe nome e senha e entra; depois usa e-mail e senha.
+  O dono pode bloquear (a sessão cai na próxima página) ou apagar a conta com todos os dados.
+- **Isolamento**: toda tabela de dados tem `user_id`. O filtro por usuário é automático em toda consulta ORM e
+  em `session.get` (`core/tenancy.py`), e toda linha nova nasce com o `user_id` de quem está logado. Testes em
+  `tests/test_accounts.py` conferem que um usuário não lê, não altera e não apaga linhas de outro.
+- **Login x Google**: entrar no sistema não usa Google. Conectar Google Calendar/Gmail é uma autorização à
+  parte, em Integrações, feita por cada usuário; o token fica na conta dele. Enquanto o app OAuth estiver em
+  modo teste, o e-mail Google da pessoa precisa estar em *Público-alvo > Usuários de teste* no Google Cloud.
+- Tokens e chaves (Buffer, Notion, WhatsApp, Anthropic) são por usuário. `BUFFER_API_KEY` do `.env` só vale
+  para o dono, e arquivos antigos de token em `instance/` só são importados para a conta do dono.
 
 ## Acesso
 

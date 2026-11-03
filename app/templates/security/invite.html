@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Convite{% endblock %}
+{% block heading %}Convite{% endblock %}
+{% block content %}
+  <section class="panel system-window narrow">
+    {% if invited %}
+      <p class="system-label">[SYSTEM] Você foi escolhido como Jogador.</p>
+      <p>Defina como quer ser chamado e uma senha. Você entra na hora, sem precisar de conta Google.</p>
+      <form method="post" class="form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label class="label" for="name">Seu nome de Hunter</label>
+          <input class="input" id="name" name="name" maxlength="80" value="{{ invited.display_name }}" autocomplete="nickname">
+        </div>
+        <div class="field">
+          <label class="label" for="login">Login</label>
+          <input class="input" id="login" value="{{ invited.email }}" readonly autocomplete="username">
+        </div>
+        <div class="field">
+          <label class="label" for="password">Senha (mínimo 8 caracteres)</label>
+          <input class="input" id="password" name="password" type="password" minlength="8" required autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Aceitar e entrar</button>
+      </form>
+    {% else %}
+      <p class="system-label">[SYSTEM] Convite inválido.</p>
+      <p>Este link venceu ou já foi usado. Peça um novo para quem te convidou.</p>
+      {% if auth_enabled %}<a class="btn btn-block" href="{{ url_for('security.login') }}">Já tenho senha: entrar</a>{% endif %}
+    {% endif %}
+  </section>
+{% endblock %}
