@@ -59,6 +59,8 @@ h3 { font-size: 1rem; }
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto; /* menu longo: rola dentro da barra, o rodapé (áudio, sair) continua alcançável */
+  scrollbar-width: thin;
 }
 
 .brand { display: flex; align-items: center; gap: .6rem; margin: 0 .4rem 1.6rem; color: var(--text); }

@@ -64,6 +64,10 @@
   let sfxBus = null;
 
   function audio() {
+    // Antes do primeiro toque/tecla o navegador não deixa o áudio começar: nem cria o contexto (evita o
+    // aviso no console). O som que pediu agora toca no próximo gesto (shadow.js tenta de novo).
+    const activation = navigator.userActivation;
+    if (!ctx && activation && !activation.hasBeenActive) return null;
     if (!ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
