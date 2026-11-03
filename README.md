@@ -51,6 +51,7 @@ testadas.
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
+- [x] **Finanças**: contas, cartões, lançamentos, parcelas, recorrentes, orçamentos, metas, relatórios e missões financeiras (privado)
 - [x] **Avatar**: gerado da sua foto com estilos do System, moldura que evolui com o rank e foto original privada
 - [x] **Memórias**: álbum de fotos das atividades, sem metadados, com filtros e privacidade
 - [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
@@ -254,6 +255,37 @@ com a especialização da sombra. Várias sombras na mesma especialização acum
 forte vale inteira e cada outra vale metade. Depois disso valem os tetos gerais (até 50% do XP base e 30 XP por
 missão, 150 XP por dia). O detalhamento da missão mostra XP base, cada bônus e os limites aplicados. Para criar
 uma sombra nova, inclua um `Shadow(...)` em `shadows/catalog.py`.
+
+## Finanças
+
+Em **Finanças**, a gestão financeira pessoal, **privada por padrão**: nenhum valor aparece na Arena, no feed ou para
+outros usuários, e nenhum outro módulo lê essas tabelas. Sem integração bancária: tudo é lançado por você.
+
+- **Contas e cartões:** conta corrente, poupança/reserva, carteira, investimentos e cartão de crédito (limite, dia
+  de fechamento e vencimento). Saldo = saldo inicial + receitas - despesas ± transferências. No cartão, o valor é a
+  fatura em aberto; pagar a fatura é uma transferência da conta para o cartão.
+- **Lançamentos:** receitas, despesas e transferências, com categoria, data e conta. Compras parceladas no cartão
+  são divididas em até 48 meses (centavos distribuídos sem perder nada). Busca e filtros por mês, conta, categoria e tipo.
+- **Categorias** padrão (Alimentação, Transporte, Moradia, Faculdade, Saúde, Academia, Lazer, Assinaturas,
+  Investimentos, Salário, Freelance, Outras receitas) e as suas; cada despesa pode ser marcada como não essencial.
+- **Recorrentes:** salário, aluguel, assinaturas; lançadas sozinhas todo mês, uma vez só.
+- **Orçamento mensal** por categoria, com barra de uso e alerta ao estourar.
+- **Metas financeiras:** por aportes manuais ou acompanhando o saldo de uma conta.
+- **Relatórios:** receitas, despesas e saldo do mês, gastos por categoria e comparação dos últimos 6 meses (gráficos em CSS).
+- Valores guardados em **centavos inteiros** (sem erro de arredondamento); aceita "1.234,56", "R$ 10" ou "9.9".
+
+**Missões financeiras** (`finance/missions.py`), com XP pequeno e uma vez por período, nunca por gastar:
+
+| Missão | Quando paga | XP |
+|---|---|---|
+| Registrar todas as despesas do dia | Você confirma que anotou tudo hoje (uma vez por dia) | 10 |
+| Semana sem gastos desnecessários | Nenhum gasto em categorias não essenciais na semana anterior, com lançamentos em pelo menos 5 dias | 30 |
+| Cumprir o orçamento mensal | Mês anterior com todas as categorias dentro do limite e lançamentos em pelo menos 15 dias | 50 |
+| Economizar no mês | Mês anterior com saldo (receitas - despesas) acima da sua meta de economia | 50 |
+| Criar uma reserva financeira | Uma meta financeira alcançada (uma vez por meta) | 100 |
+
+As missões de semana e mês exigem lançamentos registrados naquele período, para que não dê para ganhar XP
+simplesmente deixando de anotar os gastos.
 
 ## Avatar do Hunter
 

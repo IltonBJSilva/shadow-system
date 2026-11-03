@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Finanças{% endblock %}
+{% block heading %}Finanças{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('finance.index', mes=prev_month) }}" aria-label="Mês anterior">‹</a>
+  <span class="mono">{{ month }}</span>
+  <a class="btn btn-ghost" href="{{ url_for('finance.index', mes=next_month) }}" aria-label="Próximo mês">›</a>
+  <a class="btn" href="{{ url_for('finance.transactions', mes=month) }}">Lançamentos</a>
+  <a class="btn btn-ghost" href="{{ url_for('finance.settings') }}">Configurar</a>
+{% endblock %}
+{% block content %}
+<p class="muted small">🔒 Privado: nenhum valor aparece na Arena, no feed ou para outros usuários.</p>
+<div class="kpis">
+  <div class="kpi"><div class="kpi-value fin-in">{{ summary.income | brl }}</div><div class="kpi-label">Receitas do mês</div></div>
+  <div class="kpi"><div class="kpi-value fin-out">{{ summary.expense | brl }}</div><div class="kpi-label">Despesas do mês</div></div>
+  <div class="kpi"><div class="kpi-value {{ 'fin-in' if summary.net >= 0 else 'fin-out' }}">{{ summary.net | brl }}</div><div class="kpi-label">Saldo do mês</div></div>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] NOVO LANÇAMENTO</p>
+    {% include "finance/_tx_form.html" %}
+  </section>
+  <section class="panel">
+    <div class="panel-header"><h2>Missões financeiras</h2></div>
+    {% for m in missions %}
+      <div class="fin-mission fin-{{ m.state }}">
+        <div><strong>{{ m.title }}</strong> <span class="xp-tag">+{{ m.xp }} XP</span><br><span class="small muted">{{ m.detail }}</span></div>
+        {% if m.key == "daily" %}
+          {% if m.state == "done" %}<span class="tag tag-success">Feito hoje</span>
+          {% else %}{{ ui.post_button(url_for('finance.claim_daily'), "Registrei tudo hoje", "btn btn-sm btn-primary") }}{% endif %}
+        {% endif %}
+      </div>
+    {% endfor %}
+    <p class="muted small">XP só por bons hábitos (registrar, cumprir orçamento, economizar, reservar), nunca por gastar.</p>
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Contas e cartões</h2></div>
+    <table class="table">
+      {% for account, value in balances %}
+        <tr><td>{{ account.name }}<br><span class="small muted">{{ "Fatura em aberto" if account.kind == "credit_card" else "Saldo" }}</span></td>
+          <td class="mono {{ 'fin-out' if (account.kind == 'credit_card' and value > 0) or value < 0 else '' }}">{{ value | brl }}
+            {% if account.kind == "credit_card" and account.limit_cents %}<br><span class="small muted">limite {{ account.limit_cents | brl }}</span>{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  <section class="panel">
+    <div class="panel-header"><h2>Gastos por categoria</h2></div>
+    {% set top = (summary.by_category | map(attribute=2) | max) if summary.by_category else 1 %}
+    {% for name, color, cents in summary.by_category %}
+      <div class="fin-bar"><span>{{ name }}</span><span class="mono">{{ cents | brl }}</span>
+        <div class="fin-bar-track"><div class="fin-bar-fill" style="width: {{ (100 * cents / top) | round }}%; background: {{ color }}"></div></div></div>
+    {% else %}{{ ui.empty("Nenhuma despesa neste mês.") }}{% endfor %}
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Últimos 6 meses</h2></div>
+    <div class="fin-months">
+      {% for m in history %}
+        <div class="fin-month" title="{{ m.month }}: receitas {{ m.income | brl }}, despesas {{ m.expense | brl }}">
+          <div class="fin-month-bars">
+            <span class="fin-col fin-col-in" style="height: {{ (100 * m.income / peak) | round }}%"></span>
+            <span class="fin-col fin-col-out" style="height: {{ (100 * m.expense / peak) | round }}%"></span>
+          </div>
+          <span class="small muted">{{ m.month[5:] }}/{{ m.month[2:4] }}</span>
+          <span class="small mono {{ 'fin-in' if m.net >= 0 else 'fin-out' }}">{{ (m.net / 100) | round | int }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    <p class="small muted"><span class="fin-in">■</span> receitas · <span class="fin-out">■</span> despesas · número = saldo do mês (R$)</p>
+  </section>
+  <section class="panel">
+    <div class="panel-header"><h2>Orçamento do mês</h2><a class="small" href="{{ url_for('finance.settings') }}#orcamento">editar →</a></div>
+    {% for b in budgets %}
+      <div class="fin-bar"><span>{{ b.category }}</span><span class="mono {{ 'fin-out' if b.over else '' }}">{{ b.spent | brl }} / {{ b.limit | brl }}</span>
+        {{ ui.progress(b.spent, b.limit, "progress-danger" if b.over else "") }}</div>
+    {% else %}{{ ui.empty("Sem orçamento. Defina limites por categoria em Configurar.") }}{% endfor %}
+    <div class="panel-header section-gap"><h2>Metas</h2></div>
+    {% for g in goals %}
+      <div class="fin-bar"><span>{{ g.goal.name }}{% if g.reached %} ✓{% endif %}</span><span class="mono">{{ g.saved | brl }} / {{ g.goal.target_cents | brl }}</span>
+        {{ ui.progress(g.saved, g.goal.target_cents) }}</div>
+    {% else %}{{ ui.empty("Nenhuma meta. Que tal uma reserva de emergência?") }}{% endfor %}
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><h2>Lançamentos recentes</h2><a class="small" href="{{ url_for('finance.transactions', mes=month) }}">todos →</a></div>
+  {% include "finance/_tx_table.html" %}
+</section>
+{% endblock %}

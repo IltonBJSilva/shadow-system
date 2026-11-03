@@ -13,6 +13,7 @@ def register_modules(app: Flask) -> None:
     from .calendar import bp as calendar_bp
     from .character import bp as character_bp
     from .dashboard import bp as dashboard_bp
+    from .finance import bp as finance_bp
     from .gamification import bp as gamification_bp
     from .habits import bp as habits_bp
     from .hunter import bp as hunter_bp
@@ -21,6 +22,6 @@ def register_modules(app: Flask) -> None:
     from .shadows import bp as shadows_bp
     from .training import bp as training_bp
 
-    blueprints = [dashboard_bp, hunter_bp, character_bp, shadows_bp, arena_bp, memories_bp, architect_bp, quests_bp, habits_bp, training_bp, calendar_bp, gamification_bp]
+    blueprints = [dashboard_bp, hunter_bp, character_bp, shadows_bp, arena_bp, memories_bp, architect_bp, quests_bp, habits_bp, training_bp, finance_bp, calendar_bp, gamification_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)

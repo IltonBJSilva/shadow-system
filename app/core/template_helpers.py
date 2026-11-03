@@ -20,6 +20,7 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("Hábitos", "habits.index", "✦"),
     ("Treinos", "training.index", "⚒"),
     ("Gamificação", "gamification.index", "⚡"),
+    ("Finanças", "finance.index", "＄"),
     ("Calendário", "calendar.index", "▦"),
     ("Postagens", "buffer.index", "✎"),
     ("Integrações", "integrations.index", "⇄"),

@@ -1,0 +1,23 @@
+{# Tabela de lançamentos. Espera `recent` (ou `rows`). #}
+{% set items = rows if rows is defined else recent %}
+{% if items %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th></th></tr></thead>
+  <tbody>
+  {% for t in items %}
+    <tr>
+      <td class="small">{{ t.day | date_br }}</td>
+      <td>{{ t.description }}</td>
+      <td class="small">{% if t.category %}<span style="color: {{ t.category.color }}">●</span> {{ t.category.name }}{% elif t.kind == "transfer" %}→ {{ t.to_account.name }}{% else %}—{% endif %}</td>
+      <td class="small">{{ t.account.name }}</td>
+      <td class="mono {{ 'fin-in' if t.kind == 'income' else ('fin-out' if t.kind == 'expense' else '') }}">{{ "+" if t.kind == "income" else ("−" if t.kind == "expense" else "⇄") }} {{ t.amount_cents | brl }}</td>
+      <td><form method="post" action="{{ url_for('finance.delete_transaction', tx_id=t.id) }}" class="inline-form" data-confirm="Apagar este lançamento?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="btn btn-ghost btn-sm" type="submit" aria-label="Apagar">✕</button></form></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}<p class="empty">Nenhum lançamento.</p>{% endif %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Lançamentos{% endblock %}
+{% block heading %}Lançamentos{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('finance.transactions', mes=prev_month) }}" aria-label="Mês anterior">‹</a>
+  <span class="mono">{{ month }}</span>
+  <a class="btn btn-ghost" href="{{ url_for('finance.transactions', mes=next_month) }}" aria-label="Próximo mês">›</a>
+  <a class="btn btn-ghost" href="{{ url_for('finance.index', mes=month) }}">Painel</a>
+{% endblock %}
+{% block content %}
+<section class="panel">
+  <form method="get" class="memory-filters">
+    <input type="hidden" name="mes" value="{{ month }}">
+    <input class="input" type="search" name="busca" value="{{ filters.search }}" placeholder="Buscar descrição" aria-label="Buscar">
+    <select class="input" name="tipo" aria-label="Tipo"><option value="">Todos os tipos</option>
+      {% for key, label in kinds.items() %}<option value="{{ key }}" {% if filters.kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select class="input" name="conta" aria-label="Conta"><option value="">Todas as contas</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if filters.account_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
+    <select class="input" name="categoria" aria-label="Categoria"><option value="">Todas as categorias</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if filters.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">Filtrar</button>
+  </form>
+  <p class="small">Entradas: <span class="fin-in mono">{{ total_in | brl }}</span> · Saídas: <span class="fin-out mono">{{ total_out | brl }}</span></p>
+  {% include "finance/_tx_table.html" %}
+</section>
+{% endblock %}

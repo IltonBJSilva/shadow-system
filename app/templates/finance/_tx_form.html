@@ -1,0 +1,23 @@
+{# Formulário rápido de lançamento. Espera accounts, categories, kinds e opcional next. #}
+<form method="post" action="{{ url_for('finance.add_transaction') }}" class="form-grid tx-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="next" value="{{ next or request.full_path }}">
+  <div class="field"><label class="label" for="tx-kind">Tipo</label>
+    <select class="input" id="tx-kind" name="kind">{% for key, label in kinds.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="label" for="tx-amount">Valor (R$)</label>
+    <input class="input" id="tx-amount" name="amount" inputmode="decimal" placeholder="0,00" required></div>
+  <div class="field full"><label class="label" for="tx-desc">Descrição</label>
+    <input class="input" id="tx-desc" name="description" maxlength="100" required placeholder="Ex.: Almoço, Uber, Salário"></div>
+  <div class="field"><label class="label" for="tx-day">Data</label>
+    <input class="input" id="tx-day" name="day" type="date" value="{{ (today or none) and today.isoformat() }}"></div>
+  <div class="field"><label class="label" for="tx-account">Conta / cartão</label>
+    <select class="input" id="tx-account" name="account_id">{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="label" for="tx-category">Categoria</label>
+    <select class="input" id="tx-category" name="category_id"><option value="">Sem categoria</option>
+      {% for c in categories %}<option value="{{ c.id }}">{{ "＋" if c.kind == "income" else "－" }} {{ c.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="label" for="tx-to">Destino (transferência)</label>
+    <select class="input" id="tx-to" name="to_account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label class="label" for="tx-inst">Parcelas</label>
+    <input class="input" id="tx-inst" name="installments" type="number" min="1" max="48" value="1" inputmode="numeric"></div>
+  <div class="form-actions full"><button class="btn btn-primary" type="submit">Lançar</button></div>
+</form>

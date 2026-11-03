@@ -730,3 +730,22 @@ body::after {
 .avatar-rank-mon { border-color: #c084fc; box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.45), 0 0 44px 8px rgba(76, 29, 149, 0.8); }
 @keyframes rank-aura { 50% { filter: brightness(1.15) saturate(1.2); } }
 @media (prefers-reduced-motion: reduce) { .avatar-rank-a, .avatar-rank-s, .avatar-rank-ss, .avatar-rank-nl, .avatar-rank-mon { animation: none; } }
+
+/* ---------- Finanças ---------- */
+.fin-in { color: var(--success); }
+.fin-out { color: var(--danger); }
+.fin-mission { display: flex; justify-content: space-between; gap: .6rem; align-items: center; padding: .5rem 0;
+  border-bottom: 1px solid rgba(56, 132, 255, 0.1); }
+.fin-mission.fin-done { opacity: .75; }
+.fin-bar { display: grid; grid-template-columns: 1fr auto; gap: .2rem .6rem; margin-bottom: .55rem; font-size: .9rem; }
+.fin-bar > .progress, .fin-bar > .fin-bar-track, .fin-bar > .row { grid-column: 1 / -1; }
+.fin-bar-track { height: 8px; border-radius: 99px; background: rgba(56, 132, 255, 0.1); overflow: hidden; }
+.fin-bar-fill { height: 100%; border-radius: 99px; }
+.fin-months { display: grid; grid-template-columns: repeat(6, 1fr); gap: .5rem; align-items: end; }
+.fin-month { display: grid; justify-items: center; gap: .2rem; }
+.fin-month-bars { display: flex; gap: 3px; align-items: flex-end; height: 120px; }
+.fin-col { width: 12px; min-height: 2px; border-radius: 4px 4px 1px 1px; }
+.fin-col-in { background: var(--success); }
+.fin-col-out { background: var(--danger); }
+.progress-danger .progress-fill { background: linear-gradient(90deg, #f87171, #ef4444); }
+.tx-form { margin-top: .4rem; }
