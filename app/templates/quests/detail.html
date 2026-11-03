@@ -44,6 +44,12 @@
     {% if quest.description %}<h3 style="margin-top: 1rem">Descrição</h3><p>{{ quest.description }}</p>{% endif %}
     {% if quest.completion_criteria %}<h3>Critérios de conclusão</h3><p>{{ quest.completion_criteria }}</p>{% endif %}
 
+    {% if quest.status == "completed" %}
+      <div class="form-actions" style="margin-top: 1rem">
+        <a class="btn" href="{{ url_for('memories.new', quest_id=quest.id) }}">📸 Registrar memória</a>
+        {% for m in memories %}<a href="{{ url_for('memories.view', memory_id=m.id) }}"><img class="quest-memory" src="{{ url_for('memories.thumb', memory_id=m.id) }}" alt="{{ m.title }}" loading="lazy"></a>{% endfor %}
+      </div>
+    {% endif %}
     <div class="form-actions" style="margin-top: 1rem">
       {% if quest.status == "pending" %}{{ ui.post_button(url_for('quests.start', quest_id=quest.id) ~ "?next=" ~ request.path, "Iniciar", "btn") }}{% endif %}
       {% if quest.status in ("pending", "in_progress") %}

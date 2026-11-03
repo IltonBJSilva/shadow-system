@@ -52,6 +52,7 @@ def detail(quest_id: int):
         constants=constants,
         quote=services.quote_quest(quest),
         award=hunter.event_for("quest", quest.id),
+        memories=_memories_for(quest.id),
     )
 
 
@@ -163,3 +164,10 @@ def _flash_errors(form) -> None:
     for field_name, errors in form.errors.items():
         label = getattr(form, field_name).label.text if hasattr(form, field_name) else field_name
         flash(f"{label}: {'; '.join(errors)}", "error")
+
+
+def _memories_for(quest_id: int) -> list:
+    """Memórias ligadas à missão (a tela de Quests mostra as miniaturas)."""
+    from app.modules.memories import services as memories
+
+    return memories.for_quest(quest_id)

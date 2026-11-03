@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Nova memória{% endblock %}
+{% block heading %}Nova memória{% endblock %}
+{% block content %}
+<section class="panel system-window narrow">
+  <p class="system-label">[SYSTEM] Registrar evolução{% if quest %} · {{ quest.title }}{% endif %}</p>
+  <form method="post" enctype="multipart/form-data" class="form" action="{{ url_for('memories.new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if quest %}<input type="hidden" name="quest_id" value="{{ quest.id }}">{% endif %}
+    <div class="field">
+      <label class="label" for="photo">Foto</label>
+      <input class="input" id="photo" name="photo" type="file" accept="image/*" required>
+      <small class="muted">JPG, PNG ou WebP até 10 MB. Ela é reduzida e gravada sem metadados.</small>
+    </div>
+    <div class="field">
+      <label class="label" for="title">Título</label>
+      <input class="input" id="title" name="title" maxlength="120" required value="{{ form.get('title') or (quest.title if quest else '') }}">
+    </div>
+    <div class="field">
+      <label class="label" for="kind">Tipo de atividade</label>
+      <select class="input" id="kind" name="kind">{% for key, label in kinds.items() %}<option value="{{ key }}" {% if form.get('kind') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="field">
+      <label class="label" for="description">Descrição</label>
+      <textarea class="input" id="description" name="description" rows="3">{{ form.get('description', '') }}</textarea>
+    </div>
+    <div class="field">
+      <label class="label" for="note">Observação pessoal (sempre privada)</label>
+      <textarea class="input" id="note" name="note" rows="2">{{ form.get('note', '') }}</textarea>
+    </div>
+    <div class="field">
+      <label class="label" for="achievement">Conquista ligada (opcional)</label>
+      <input class="input" id="achievement" name="achievement" maxlength="80" value="{{ form.get('achievement', '') }}" placeholder="Ex.: Primeiro 5 km">
+    </div>
+    <label class="check"><input type="checkbox" name="public" value="1" {% if form.get('public') %}checked{% endif %}> Memória pública (outros Hunters podem ver a foto e a descrição)</label>
+    <label class="check"><input type="checkbox" name="share" value="1" {% if form.get('share') %}checked{% endif %}> Publicar no feed dos Hunters (só se for pública)</label>
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{{ url_for('memories.index') }}">Cancelar</a>
+      <button class="btn btn-primary" type="submit" data-busy-label="Enviando...">Salvar memória</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

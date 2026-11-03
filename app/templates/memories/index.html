@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Memórias{% endblock %}
+{% block heading %}Memórias{% endblock %}
+{% block actions %}<a class="btn btn-primary" href="{{ url_for('memories.new') }}">+ Nova memória</a>{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] ÁLBUM DE EVOLUÇÃO</p>
+  <form method="get" class="memory-filters">
+    <input class="input" type="search" name="search" value="{{ filters.search }}" placeholder="Buscar por título, missão, conquista" aria-label="Buscar">
+    <select class="input" name="kind" aria-label="Tipo"><option value="">Todos os tipos</option>
+      {% for key, label in kinds.items() %}<option value="{{ key }}" {% if filters.kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select class="input" name="specialty" aria-label="Categoria"><option value="">Todas as categorias</option>
+      {% for key, label in specialties.items() %}<option value="{{ key }}" {% if filters.specialty == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select class="input" name="rank" aria-label="Rank"><option value="">Todos os ranks</option>
+      {% for code in ranks %}<option value="{{ code }}" {% if filters.rank == code %}selected{% endif %}>Rank {{ code }}</option>{% endfor %}</select>
+    <input class="input" type="month" name="month" value="{{ filters.month }}" aria-label="Mês">
+    <select class="input" name="visibility" aria-label="Privacidade"><option value="">Públicas e privadas</option>
+      <option value="private" {% if filters.visibility == 'private' %}selected{% endif %}>Só privadas</option>
+      <option value="public" {% if filters.visibility == 'public' %}selected{% endif %}>Só públicas</option></select>
+    <button class="btn" type="submit">Filtrar</button>
+  </form>
+  <p class="muted small">{{ used_mb }} MB de {{ max_mb }} MB usados. Fotos são reduzidas e gravadas sem metadados (sem localização).</p>
+</section>
+
+{% if memories %}
+<div class="memory-grid">
+  {% for m in memories %}
+    <a class="memory-card" href="{{ url_for('memories.view', memory_id=m.id) }}">
+      <img src="{{ url_for('memories.thumb', memory_id=m.id) }}" alt="{{ m.title }}" loading="lazy" width="{{ m.width }}" height="{{ m.height }}">
+      <span class="memory-caption">
+        <strong>{{ m.title }}</strong>
+        <span class="small muted">{{ m.day | date_br }} · {{ kinds[m.kind] }}{% if m.rank_code %} · Rank {{ m.rank_code }}{% endif %}</span>
+      </span>
+      {% if m.visibility == "public" %}<span class="memory-badge" title="Pública">◉</span>{% endif %}
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+  <section class="panel">{{ ui.empty("Nenhuma memória ainda. Depois de concluir uma missão, registre uma foto dela.") }}</section>
+{% endif %}
+{% endblock %}

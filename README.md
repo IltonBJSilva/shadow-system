@@ -51,6 +51,7 @@ testadas.
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
+- [x] **Memórias**: álbum de fotos das atividades, sem metadados, com filtros e privacidade
 - [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
@@ -252,6 +253,22 @@ com a especialização da sombra. Várias sombras na mesma especialização acum
 forte vale inteira e cada outra vale metade. Depois disso valem os tetos gerais (até 50% do XP base e 30 XP por
 missão, 150 XP por dia). O detalhamento da missão mostra XP base, cada bônus e os limites aplicados. Para criar
 uma sombra nova, inclua um `Shadow(...)` em `shadows/catalog.py`.
+
+## Memórias
+
+Diário visual da evolução, em **Memórias**. Depois de concluir uma missão, a página dela mostra
+**📸 Registrar memória**; também dá para criar uma memória solta. Cada memória tem foto, título, tipo de atividade
+(treino, projeto, faculdade, livro, meta, espiritual, conquista), descrição, observação pessoal (sempre privada),
+conquista ligada e, se veio de uma missão, a categoria e o título dela. O rank do dia fica registrado.
+
+- **Galeria** com busca (título, missão, conquista) e filtros por tipo, categoria, rank, mês e privacidade.
+- **Fotos otimizadas** (`core/images.py`): reduzidas para no máximo 1600 px, miniatura de 480 px, gravadas em WebP
+  **sem metadados** (EXIF, GPS, modelo do celular). Até 10 MB por envio, 20 memórias por dia e cerca de 60 MB por conta.
+- **Privacidade:** privadas por padrão. Uma memória pública pode ser vista pelos outros Hunters (foto e descrição,
+  nunca a observação pessoal) e, se você marcar, vira um post no feed. Dá para trocar a privacidade ou apagar a
+  memória (o post do feed vai junto) a qualquer momento. As fotos ficam no banco e só são servidas para o dono ou,
+  se públicas, para quem estiver logado.
+- O upload nunca é obrigatório.
 
 ## Arena dos Hunters
 
@@ -459,6 +476,7 @@ responsabilidades separadas.
 | google-auth-oauthlib, google-api-python-client | Google Calendar e Gmail |
 | anthropic (SDK oficial) | IA opcional do Arquiteto (Claude), só no servidor |
 | pypdf | Ler rotinas de treino enviadas em PDF |
+| Pillow | Fotos das Memórias e do avatar: reduzir, girar e gravar em WebP sem metadados |
 | HTML, CSS e JavaScript puros | Interface, sem framework de frontend nem CDN; sons sintetizados com Web Audio |
 | pytest | Testes |
 | waitress | Servidor WSGI (Windows e Render) |

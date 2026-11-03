@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ memory.title }}{% endblock %}
+{% block heading %}Memória{% endblock %}
+{% block actions %}{% if own %}<a class="btn btn-ghost" href="{{ url_for('memories.index') }}">Álbum</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <figure class="panel memory-figure">
+    <img src="{{ url_for('memories.photo', memory_id=memory.id) }}" alt="{{ memory.title }}" width="{{ memory.width }}" height="{{ memory.height }}">
+  </figure>
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] {{ kinds[memory.kind] | upper }}{% if memory.rank_code %} · RANK {{ memory.rank_code }}{% endif %}</p>
+    <h2 style="color: var(--text); text-transform: none">{{ memory.title }}</h2>
+    <p class="muted small">{{ memory.day | date_br }} · {{ specialties.get(memory.specialty, "") }}
+      {% if memory.quest_title %} · missão “{{ memory.quest_title }}”{% endif %}
+      {% if memory.achievement %} · 🏆 {{ memory.achievement }}{% endif %}</p>
+    {% if memory.description %}<p>{{ memory.description }}</p>{% endif %}
+    {% if own %}
+      {% if memory.note %}<p class="small"><strong>Observação pessoal:</strong> {{ memory.note }}</p>{% endif %}
+      <p><span class="tag {{ 'tag-blue' if memory.visibility == 'public' else 'tag-muted' }}">{{ "Pública" if memory.visibility == "public" else "Privada" }}</span></p>
+      <div class="row">
+        <form method="post" action="{{ url_for('memories.visibility', memory_id=memory.id) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="public" value="{{ '0' if memory.visibility == 'public' else '1' }}">
+          <button class="btn btn-sm" type="submit">{{ "Tornar privada" if memory.visibility == "public" else "Tornar pública" }}</button>
+        </form>
+        <form method="post" action="{{ url_for('memories.delete', memory_id=memory.id) }}" class="inline-form" data-confirm="Apagar esta memória e a foto?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger btn-sm" type="submit">Apagar</button>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
