@@ -712,3 +712,21 @@ body::after {
 .memory-figure { margin: 0; padding: .5rem; }
 .memory-figure img { width: 100%; height: auto; border-radius: 8px; display: block; }
 .quest-memory { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--panel-border); }
+
+/* ---------- Avatar: moldura e aura que evoluem com o rank ---------- */
+.avatar-manager { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--panel-border); display: grid; gap: .6rem; }
+.avatar-manager h3 { margin: 0; }
+.avatar-preview { width: 96px; height: 128px; }
+.avatar-rank-e { border-color: #9ca3af; }
+.avatar-rank-d { border-color: #34d399; box-shadow: 0 0 14px -4px #34d399; }
+.avatar-rank-c { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 18px -4px #38bdf8; }
+.avatar-rank-b { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3), 0 0 26px -2px #818cf8; }
+.avatar-rank-a { border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.35), 0 0 32px 0 #a855f7; animation: rank-aura 3s ease-in-out infinite; }
+.avatar-rank-s, .avatar-rank-ss, .avatar-rank-nl, .avatar-rank-mon {
+  border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4), 0 0 38px 4px rgba(245, 158, 11, 0.6);
+  animation: rank-aura 2.4s ease-in-out infinite;
+}
+.avatar-rank-ss { border-color: #ef4444; }
+.avatar-rank-mon { border-color: #c084fc; box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.45), 0 0 44px 8px rgba(76, 29, 149, 0.8); }
+@keyframes rank-aura { 50% { filter: brightness(1.15) saturate(1.2); } }
+@media (prefers-reduced-motion: reduce) { .avatar-rank-a, .avatar-rank-s, .avatar-rank-ss, .avatar-rank-nl, .avatar-rank-mon { animation: none; } }

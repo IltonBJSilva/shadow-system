@@ -1,8 +1,8 @@
 """Tabelas do módulo Hunter. Outros módulos não importam daqui: usam hunter.services."""
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
 from app.core import time
 from app.core.models import TimestampMixin, UserOwnedMixin
@@ -120,3 +120,22 @@ class Title(UserOwnedMixin, db.Model):
         UniqueConstraint("user_id", "key", name="uq_titles_user_key"),
         UniqueConstraint("user_id", "name", name="uq_titles_user_name"),
     )
+
+
+class HunterAvatar(UserOwnedMixin, db.Model):
+    """Avatar gerado da foto do jogador (ver hunter/avatar.py). Um por usuário.
+
+    `photo` é a foto original já sem metadados: só o dono vê, e pode ser apagada mantendo o avatar.
+    """
+
+    __tablename__ = "hunter_avatars"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    style: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider: Mapped[str] = mapped_column(String(20), default="local", nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    image: Mapped[bytes] = deferred(mapped_column(LargeBinary, nullable=False))
+    photo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary, nullable=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, onupdate=time.now, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", name="uq_hunter_avatars_user"),)

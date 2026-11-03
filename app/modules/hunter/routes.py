@@ -1,5 +1,9 @@
 """Telas do Hunter: status, edição do perfil, atributos e ranks."""
-from flask import flash, redirect, render_template, request, url_for
+import io
+
+from flask import abort, flash, redirect, render_template, request, send_file, url_for
+
+from app.core.errors import DomainError
 
 from app.core.http import redirect_back
 
@@ -24,6 +28,8 @@ def profile():
         unlocked_titles=[t for t in titles if t.unlocked],
         history=services.attribute_history(),
         titles_total=len(titles),
+        avatar=services.get_avatar(),
+        avatar_styles=services.avatar_styles(),
     )
 
 
@@ -113,3 +119,60 @@ def delete_title(title_id: int):
     services.delete_title(title_id)
     flash("Título removido.", "info")
     return redirect(url_for("hunter.titles"))
+
+
+@bp.post("/avatar")
+def upload_avatar():
+    photo = request.files.get("photo")
+    try:
+        if not photo or not photo.filename:
+            raise DomainError("Escolha uma foto.")
+        services.upload_avatar(photo.read(), request.form.get("style", "shadow"))
+        flash("Avatar gerado. Ele evolui com o seu rank.", "success")
+    except DomainError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("hunter.profile"))
+
+
+@bp.post("/avatar/estilo")
+def restyle_avatar():
+    services.restyle_avatar(request.form.get("style", ""))
+    flash("Estilo do avatar trocado.", "success")
+    return redirect(url_for("hunter.profile"))
+
+
+@bp.post("/avatar/apagar-foto")
+def delete_avatar_photo():
+    services.delete_avatar_photo()
+    flash("Foto original apagada. O avatar gerado continua.", "info")
+    return redirect(url_for("hunter.profile"))
+
+
+@bp.post("/avatar/remover")
+def remove_avatar():
+    services.remove_avatar()
+    flash("Avatar removido: voltou ao padrão.", "info")
+    return redirect(url_for("hunter.profile"))
+
+
+@bp.get("/avatar/<int:user_id>.webp")
+def avatar_image(user_id: int):
+    found = services.avatar_image_of(user_id)
+    if found is None:
+        abort(404)
+    data, version = found
+    response = send_file(io.BytesIO(data), mimetype="image/webp", max_age=7 * 24 * 3600, etag=f"a{user_id}-{version}")
+    response.cache_control.private = True
+    return response
+
+
+@bp.get("/avatar/foto-original")
+def avatar_photo():
+    """A foto original: só o próprio dono."""
+    row = services.get_avatar()
+    if row is None or not row.photo:
+        abort(404)
+    response = send_file(io.BytesIO(row.photo), mimetype="image/webp", max_age=0)
+    response.cache_control.private = True
+    response.cache_control.no_store = True
+    return response

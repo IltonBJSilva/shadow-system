@@ -51,6 +51,7 @@ testadas.
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
+- [x] **Avatar**: gerado da sua foto com estilos do System, moldura que evolui com o rank e foto original privada
 - [x] **Memórias**: álbum de fotos das atividades, sem metadados, com filtros e privacidade
 - [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
@@ -253,6 +254,20 @@ com a especialização da sombra. Várias sombras na mesma especialização acum
 forte vale inteira e cada outra vale metade. Depois disso valem os tetos gerais (até 50% do XP base e 30 XP por
 missão, 150 XP por dia). O detalhamento da missão mostra XP base, cada bônus e os limites aplicados. Para criar
 uma sombra nova, inclua um `Shadow(...)` em `shadows/catalog.py`.
+
+## Avatar do Hunter
+
+Em **Hunter > Editar perfil > Avatar a partir da sua foto**: envie uma foto e escolha um estilo (Sombra, Monarca,
+Holograma ou Clássico). O avatar é gerado **no próprio servidor** com processamento de imagem (Pillow), sem IA e
+sem enviar a foto para outro serviço (`hunter/avatar.py`). A arquitetura tem provedores (`AvatarProvider`): para
+usar um serviço externo de geração de imagens no futuro, basta criar outro provedor com a mesma interface.
+
+- **Evolução por rank:** a moldura e a aura do avatar mudam com o rank (E cinza, D verde, C azul com anel, B índigo
+  com brilho, A roxo pulsando, S dourado; SS, Nacional e Monarca com variações). No Personagem, os equipamentos
+  aparecem nos slots ao redor do avatar.
+- **Privacidade:** a foto original fica guardada sem metadados e só o dono vê. Dá para apagar a foto e manter o
+  avatar, trocar o estilo (enquanto a foto existir), enviar outra ou voltar ao avatar padrão (sigla do rank). Os
+  outros Hunters veem só o avatar estilizado.
 
 ## Memórias
 

@@ -16,7 +16,8 @@ from app.extensions import db
 from . import defaults, progression
 from app.core import events, time
 
-from .models import Attribute, AttributeGain, Hunter, Rank, Title, XpEvent
+from . import avatar as avatar_gen
+from .models import Attribute, AttributeGain, Hunter, HunterAvatar, Rank, Title, XpEvent
 
 
 # ---------- Tipos retornados para outros módulos ----------
@@ -112,7 +113,7 @@ def get_status() -> HunterStatus:
     return HunterStatus(
         name=hunter.name,
         title=hunter.title,
-        avatar_url=hunter.avatar_url,
+        avatar_url=avatar_url() or hunter.avatar_url,
         progress=progress,
         rank=_rank_view(current),
         next_rank=_rank_view(min(upcoming, key=lambda r: r.min_level)) if upcoming else None,
@@ -366,6 +367,81 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
             result.new_rank = _rank_view(after)
         events.publish("hunter.leveled_up", level=new_level, rank=result.new_rank)
     return result
+
+
+# ---------- Avatar gerado da foto ----------
+
+def avatar_url() -> str:
+    """URL do avatar gerado (vazia se o jogador usa o avatar padrão ou um link)."""
+    from app.core.tenancy import current_user_id
+
+    row = db.session.scalar(select(HunterAvatar.version))
+    return f"/hunter/avatar/{current_user_id()}.webp?v={row}" if row else ""
+
+
+def get_avatar() -> HunterAvatar | None:
+    return db.session.scalar(select(HunterAvatar))
+
+
+def avatar_styles() -> dict[str, str]:
+    return avatar_gen.provider().styles
+
+
+def upload_avatar(content: bytes, style: str) -> HunterAvatar:
+    gen = avatar_gen.provider()
+    if style not in gen.styles:
+        raise DomainError("Estilo de avatar inválido.")
+    image, stored = avatar_gen.prepare_photo(content)
+    row = get_avatar() or HunterAvatar(version=0)
+    row.style, row.provider, row.version = style, gen.key, (row.version or 0) + 1
+    row.image = gen.generate(image, style)
+    row.photo = stored
+    db.session.add(row)
+    db.session.commit()
+    return row
+
+
+def restyle_avatar(style: str) -> HunterAvatar:
+    """Gera o avatar de novo em outro estilo, a partir da foto guardada."""
+    row = get_avatar()
+    gen = avatar_gen.provider()
+    if row is None or not row.photo:
+        raise DomainError("Envie uma foto de novo para trocar o estilo (a original foi apagada).")
+    if style not in gen.styles:
+        raise DomainError("Estilo de avatar inválido.")
+    image = images_open(row.photo)
+    row.style, row.version, row.image = style, row.version + 1, gen.generate(image, style)
+    db.session.commit()
+    return row
+
+
+def delete_avatar_photo() -> None:
+    """Apaga a foto original e mantém o avatar gerado."""
+    row = get_avatar()
+    if row is not None:
+        row.photo = None
+        db.session.commit()
+
+
+def remove_avatar() -> None:
+    """Volta ao avatar padrão (sigla do rank): apaga avatar e foto."""
+    row = get_avatar()
+    if row is not None:
+        db.session.delete(row)
+        db.session.commit()
+
+
+def avatar_image_of(user_id: int) -> tuple[bytes, int] | None:
+    """Avatar estilizado de qualquer Hunter (é o que aparece no ranking). Nunca a foto original."""
+    row = db.session.scalar(select(HunterAvatar).where(HunterAvatar.user_id == user_id)
+                            .execution_options(all_users=True))
+    return (row.image, row.version) if row else None
+
+
+def images_open(content: bytes):
+    from app.core import images
+
+    return images.open_image(content)
 
 
 def update_profile(name: str, title: str | None = None, avatar_url: str = "") -> None:

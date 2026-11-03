@@ -14,9 +14,42 @@
       {{ profile_form.csrf_token }}
       {{ ui.field(profile_form.name) }}
       {{ ui.field(profile_form.avatar_url, placeholder="https://...") }}
-      <p class="muted small full">Use uma imagem sua ou com licença livre. Imagens do anime são protegidas por direitos autorais.</p>
+      <p class="muted small full">Use uma imagem sua ou com licença livre. Imagens do anime são protegidas por direitos autorais.
+        Se você gerar um avatar com sua foto (abaixo), ele substitui este link.</p>
       <div class="form-actions full"><button class="btn btn-primary" type="submit">Salvar</button></div>
     </form>
+    <div class="avatar-manager">
+      <h3>Avatar a partir da sua foto</h3>
+      <p class="muted small">A foto é tratada aqui no servidor (sem IA e sem enviar para outro serviço), sem metadados.
+        Os outros Hunters veem só o avatar estilizado; a moldura e a aura evoluem com o seu rank.</p>
+      {% if avatar %}
+        <div class="row">
+          <img class="avatar avatar-preview" src="{{ status.avatar_url }}" alt="Seu avatar">
+          {% if avatar.photo %}<img class="avatar avatar-preview" src="{{ url_for('hunter.avatar_photo') }}" alt="Foto original (só você vê)" title="Foto original (só você vê)">{% endif %}
+        </div>
+      {% endif %}
+      <form method="post" action="{{ url_for('hunter.upload_avatar') }}" enctype="multipart/form-data" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label class="label" for="avatar-photo">Foto</label>
+          <input class="input" id="avatar-photo" type="file" name="photo" accept="image/*" required></div>
+        <div class="field"><label class="label" for="avatar-style">Estilo</label>
+          <select class="input" id="avatar-style" name="style">{% for key, label in avatar_styles.items() %}<option value="{{ key }}" {% if avatar and avatar.style == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-actions full"><button class="btn btn-primary" type="submit" data-busy-label="Gerando...">{{ "Trocar foto" if avatar else "Gerar avatar" }}</button></div>
+      </form>
+      {% if avatar %}
+        <div class="row">
+          {% if avatar.photo %}
+            <form method="post" action="{{ url_for('hunter.restyle_avatar') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select class="input" name="style" aria-label="Novo estilo">{% for key, label in avatar_styles.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+              <button class="btn btn-sm" type="submit">Trocar estilo</button>
+            </form>
+            {{ ui.post_button(url_for('hunter.delete_avatar_photo'), "Apagar foto original", "btn btn-ghost btn-sm") }}
+          {% endif %}
+          {{ ui.post_button(url_for('hunter.remove_avatar'), "Usar avatar padrão", "btn btn-ghost btn-sm") }}
+        </div>
+      {% endif %}
+    </div>
     <form method="post" action="{{ url_for('hunter.choose_title') }}" class="form-grid title-picker">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="next" value="{{ url_for('hunter.profile') }}">

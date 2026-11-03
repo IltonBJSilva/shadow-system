@@ -15,7 +15,7 @@
     </div>
     <div class="char-figure">
       <div class="char-aura" aria-hidden="true"></div>
-      {% if avatar_url %}<img class="char-avatar" src="{{ avatar_url }}" alt="Avatar" referrerpolicy="no-referrer">
+      {% if avatar_url %}<img class="char-avatar avatar-rank-{{ sheet.rank_code | lower }}" src="{{ avatar_url }}" alt="Avatar" referrerpolicy="no-referrer">
       {% else %}<div class="char-avatar char-avatar-empty" aria-hidden="true">{{ sheet.rank_code }}</div>{% endif %}
       <p class="char-rank mono">RANK {{ sheet.rank_code }}</p>
     </div>
