@@ -74,13 +74,23 @@ class AwardResult:
 def seed_defaults() -> None:
     """Cria hunter, ranks e atributos padrão se ainda não existirem. Pode rodar várias vezes."""
     if db.session.scalar(select(func.count(Hunter.id))) == 0:
-        db.session.add(Hunter(name=defaults.DEFAULT_HUNTER_NAME, title=defaults.DEFAULT_HUNTER_TITLE))
+        db.session.add(Hunter(name=_account_name() or defaults.DEFAULT_HUNTER_NAME, title=defaults.DEFAULT_HUNTER_TITLE))
     if db.session.scalar(select(func.count(Rank.id))) == 0:
         for code, name, min_level, color in defaults.DEFAULT_RANKS:
             db.session.add(Rank(code=code, name=name, min_level=min_level, color=color))
     _seed_missing_attributes()
     _seed_titles()
     db.session.commit()
+
+
+def _account_name() -> str:
+    """Nome escolhido no convite (usuários de teste): vira o nome do Hunter novo."""
+    from app.core import accounts
+    from app.core.tenancy import OWNER_ID, current_user_id
+
+    uid = current_user_id()
+    user = accounts.get_user(uid) if uid != OWNER_ID else None
+    return (user.display_name or "")[:80] if user else ""
 
 
 def get_hunter() -> Hunter:
@@ -224,6 +234,15 @@ def attribute_history(weeks: int = 8, today: date | None = None) -> tuple[list[d
 def xp_between(start: date, end: date) -> int:
     """XP líquido (ganhos menos estornos e punições) entre start e end, inclusive."""
     total = db.session.scalar(select(func.sum(XpEvent.amount)).where(
+        XpEvent.created_at >= datetime.combine(start, datetime.min.time()),
+        XpEvent.created_at < datetime.combine(end + timedelta(days=1), datetime.min.time())))
+    return int(total or 0)
+
+
+def xp_from_source_between(source: str, start: date, end: date) -> int:
+    """XP ganho de uma origem (ex.: "quest") entre start e end, inclusive."""
+    total = db.session.scalar(select(func.sum(XpEvent.amount)).where(
+        XpEvent.source == source, XpEvent.amount > 0,
         XpEvent.created_at >= datetime.combine(start, datetime.min.time()),
         XpEvent.created_at < datetime.combine(end + timedelta(days=1), datetime.min.time())))
     return int(total or 0)

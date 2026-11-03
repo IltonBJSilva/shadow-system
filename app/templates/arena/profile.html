@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set card = profile.card %}
+{% block title %}{{ card.name }}{% endblock %}
+{% block heading %}Hunter · {{ card.name }}{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('arena.index') }}">Arena</a>{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window" style="--rank-color: {{ card.rank_color }}">
+    <p class="system-label">[SYSTEM] PERFIL PÚBLICO</p>
+    <div class="status-header">
+      {% if card.avatar_url %}<img class="avatar" src="{{ card.avatar_url }}" alt="Avatar de {{ card.name }}" referrerpolicy="no-referrer">{% endif %}
+      <div class="rank-badge">{{ card.rank_code }}</div>
+      <div>
+        <h2 style="color: var(--text); text-transform: none">{{ card.name }}</h2>
+        <p class="muted">Nível {{ card.level }} · {{ card.rank_name }} · {{ card.total_xp }} XP</p>
+      </div>
+    </div>
+    <dl class="arena-stats arena-stats-wide">
+      <div><dt>XP hoje</dt><dd>{{ card.xp_today }}</dd></div>
+      <div><dt>XP semana</dt><dd>{{ card.xp_week }}</dd></div>
+      <div><dt>Horas hoje</dt><dd>{{ card.hours_today }}</dd></div>
+      <div><dt>Horas semana</dt><dd>{{ card.hours_week }}</dd></div>
+      <div><dt>Missões</dt><dd>{{ card.missions_total }}</dd></div>
+      <div><dt>Média/missão</dt><dd>{{ card.avg_minutes | round | int }} min</dd></div>
+      <div><dt>Maior evolução</dt><dd>{{ card.top_specialty }}</dd></div>
+    </dl>
+    <div class="integrity-box integrity-{{ card.integrity.level }}">
+      <strong>Integridade: {{ card.integrity.label }} ({{ card.integrity.score }}/100)</strong>
+      {% if card.integrity.reasons %}
+        <ul class="small">{% for reason in card.integrity.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+        <p class="muted small">Sinais para análise, considerando contexto e erros de registro. Não é acusação.</p>
+      {% else %}<p class="muted small">Nenhum sinal fora do normal nos últimos 7 dias.</p>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Últimos 7 dias</h2></div>
+    <div class="bars">
+      {% set peak = (profile.week | map(attribute=1) | max) or 1 %}
+      {% for day, minutes, done in profile.week %}
+        <div class="bar" title="{{ day | date_br }}: {{ (minutes / 60) | round(1) }} h · {{ done }} missões">
+          <div class="bar-fill" style="height: {{ (100 * minutes / peak) | round }}%"></div>
+          <span class="small muted">{{ "%.1f" % (minutes / 60) }}h</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% if profile.attributes %}
+      <div class="panel-header section-gap"><h2>Atributos</h2></div>
+      <ul class="plain-list">{% for a in profile.attributes %}<li>{{ a.name }}: <strong>{{ a.points }}</strong></li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid grid-2">
+  {% if profile.shows.quests %}
+  <section class="panel">
+    <div class="panel-header"><h2>Missões diárias</h2></div>
+    {% for q in profile.daily %}<p class="small">⚔ {{ q.title }} <span class="xp-tag">+{{ q.xp_reward }} XP</span></p>{% else %}<p class="empty">Nenhuma ativa.</p>{% endfor %}
+    <div class="panel-header section-gap"><h2>Missões semanais</h2></div>
+    {% for q in profile.weekly %}<p class="small">⚔ {{ q.title }} <span class="xp-tag">+{{ q.xp_reward }} XP</span></p>{% else %}<p class="empty">Nenhuma ativa.</p>{% endfor %}
+  </section>
+  {% endif %}
+  {% if profile.shows.history %}
+  <section class="panel">
+    <div class="panel-header"><h2>Evolução recente</h2></div>
+    {% for at, amount, text in profile.history %}
+      <p class="small"><span class="xp-tag">{{ "%+d" % amount }} XP</span> {{ text }} <span class="muted">· {{ at | datetime_br }}</span></p>
+    {% else %}<p class="empty">Sem registros ainda.</p>{% endfor %}
+  </section>
+  {% endif %}
+</div>
+
+{% if profile.achievements %}
+<section class="panel">
+  <div class="panel-header"><h2>Conquistas</h2></div>
+  <div class="row">{% for t in profile.achievements %}<span class="tag" title="{{ t.description }}">{{ t.icon }} {{ t.name }}</span>{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

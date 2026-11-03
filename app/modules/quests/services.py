@@ -362,6 +362,85 @@ def activity_minutes(day: date) -> int:
     return timeline.minutes_on(day, activity_intervals(start, start + timedelta(days=1)))
 
 
+@dataclass(frozen=True)
+class ActivityReport:
+    """Atividade do usuário atual num período (ranking e indicador de integridade). Só números, sem títulos."""
+
+    days: list[date]
+    completions_by_day: dict[date, int]
+    minutes_by_day: dict[date, int]        # sem sobreposição, até 24 h
+    raw_minutes_by_day: dict[date, int]    # soma simples (com sobreposição)
+    short_by_day: dict[date, int]          # missões de até 10 min
+    max_repeat_by_day: dict[date, int]     # mesma missão concluída mais vezes num dia
+    bursts: int                            # conclusões a menos de 15 s uma da outra
+    edits_after_xp: int                    # edições em missões já concluídas
+    avg_minutes: float
+    top_specialty: str | None
+
+    @property
+    def completions(self) -> int:
+        return sum(self.completions_by_day.values())
+
+    @property
+    def minutes(self) -> int:
+        return sum(self.minutes_by_day.values())
+
+
+def activity_report(start: date, end: date) -> ActivityReport:
+    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    t0, t1 = datetime.combine(start, datetime.min.time()), datetime.combine(end + timedelta(days=1), datetime.min.time())
+    sessions = db.session.execute(select(ActivitySession.started_at, ActivitySession.ended_at, ActivitySession.minutes,
+                                         ActivitySession.credited_minutes, ActivitySession.specialty)
+                                  .where(ActivitySession.ended_at >= t0, ActivitySession.started_at < t1)).all()
+    intervals = [(s, e) for s, e, *_ in sessions]
+    done = db.session.execute(select(Quest.title, Quest.completed_at, Quest.estimated_minutes).where(
+        Quest.status == "completed", Quest.completed_at >= t0, Quest.completed_at < t1)
+        .order_by(Quest.completed_at)).all()
+    completions = {d: 0 for d in days}
+    short = {d: 0 for d in days}
+    repeats: dict[date, dict[str, int]] = {d: {} for d in days}
+    bursts, previous = 0, None
+    for title, at, minutes in done:
+        day = at.date()
+        if day not in completions:
+            continue
+        completions[day] += 1
+        if (minutes or progression.MINUTES_BY_DIFFICULTY[3]) <= 10:
+            short[day] += 1
+        key = title.strip().lower()
+        repeats[day][key] = repeats[day].get(key, 0) + 1
+        if previous is not None and (at - previous).total_seconds() < 15:
+            bursts += 1
+        previous = at
+    edits = db.session.scalar(select(func.count(QuestLog.id)).join(Quest, Quest.id == QuestLog.quest_id).where(
+        QuestLog.action == "edited", Quest.completed_at.is_not(None), QuestLog.created_at > Quest.completed_at,
+        QuestLog.created_at >= t0, QuestLog.created_at < t1)) or 0
+    by_specialty: dict[str, int] = {}
+    for *_, credited, specialty in sessions:
+        by_specialty[specialty] = by_specialty.get(specialty, 0) + credited
+    estimated = [m for *_, m in done if m]
+    return ActivityReport(
+        days=days,
+        completions_by_day=completions,
+        minutes_by_day={d: timeline.minutes_on(d, intervals) for d in days},
+        raw_minutes_by_day={d: timeline.raw_minutes_on(d, intervals) for d in days},
+        short_by_day=short,
+        max_repeat_by_day={d: max(repeats[d].values(), default=0) for d in days},
+        bursts=bursts,
+        edits_after_xp=edits,
+        avg_minutes=round(sum(estimated) / len(estimated), 1) if estimated else 0.0,
+        top_specialty=max(by_specialty, key=by_specialty.get) if any(by_specialty.values()) else None,
+    )
+
+
+def quests_for_period(kind: str) -> list[QuestView]:
+    """Missões diárias ("daily") ou semanais ("weekly") ativas, para o perfil público."""
+    rows = db.session.scalars(select(Quest).where(Quest.quest_type == kind, Quest.status.in_(constants.ACTIVE_STATUSES))
+                              .order_by(Quest.due_date, Quest.id).limit(15))
+    today = time.today()
+    return [_view(q, today) for q in rows]
+
+
 def _completions_today(quest: Quest, today: date) -> int:
     """Quantas vezes esta mesma missão (mesma série ou mesmo título) já foi concluída hoje."""
     start = datetime.combine(today, datetime.min.time())

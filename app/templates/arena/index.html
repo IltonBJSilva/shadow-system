@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Arena dos Hunters{% endblock %}
+{% block heading %}Arena dos Hunters{% endblock %}
+{% block actions %}
+  <form method="get" class="inline-form">
+    <label class="sr-only" for="sort">Ordenar por</label>
+    <select class="input" id="sort" name="sort" data-autosubmit>
+      {% for key, label in sorts.items() %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </form>
+{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] Ranking · apenas os que persistem alcançam o topo</p>
+  <p class="muted small">Horas de atividade vêm do tempo das missões concluídas (hora do servidor). Missões no mesmo
+    horário contam uma vez e nenhum dia passa de 24 h. O indicador de integridade aponta padrões fora do normal para
+    análise: não é uma acusação.</p>
+  {% if cards %}
+  <ol class="arena-list">
+    {% for card in cards %}
+      <li class="arena-row {% if card.is_me %}is-me{% endif %}" style="--rank-color: {{ card.rank_color }}">
+        <span class="arena-pos mono">#{{ loop.index }}</span>
+        <a class="arena-hunter" href="{{ url_for('arena.profile', user_id=card.user_id) }}">
+          {% if card.avatar_url %}<img class="arena-avatar" src="{{ card.avatar_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+          {% else %}<span class="arena-avatar arena-avatar-rank">{{ card.rank_code }}</span>{% endif %}
+          <span>
+            <strong>{{ card.name }}</strong>{% if card.is_me %} <span class="tag tag-blue">você</span>{% endif %}
+            <span class="muted small">Nv. {{ card.level }} · {{ card.rank_name or card.rank_code }} · {{ card.total_xp }} XP</span>
+          </span>
+        </a>
+        <dl class="arena-stats">
+          <div><dt>XP hoje</dt><dd>{{ card.xp_today }}</dd></div>
+          <div><dt>XP semana</dt><dd>{{ card.xp_week }}</dd></div>
+          <div><dt>Horas hoje</dt><dd>{{ card.hours_today }}</dd></div>
+          <div><dt>Horas semana</dt><dd>{{ card.hours_week }}</dd></div>
+          <div><dt>Missões</dt><dd>{{ card.missions_total }} <small class="muted">({{ card.missions_today }} hoje)</small></dd></div>
+          <div><dt>Média/missão</dt><dd>{{ card.avg_minutes | round | int }} min</dd></div>
+          <div><dt>Maior evolução</dt><dd>{{ card.top_specialty }}</dd></div>
+          {% if card.extra.shadows is defined %}<div><dt>Sombras</dt><dd>{{ card.extra.shadows }}</dd></div>{% endif %}
+        </dl>
+        <span class="integrity integrity-{{ card.integrity.level }}" title="{{ card.integrity.reasons | join(' · ') or 'Nenhum sinal fora do normal' }}">
+          {{ card.integrity.label }} · {{ card.integrity.score }}
+        </span>
+      </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+    <p class="empty">Ninguém na Arena ainda.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><h2>Minha privacidade na Arena</h2></div>
+  <form method="post" action="{{ url_for('arena.save_privacy') }}" class="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for key, label in privacy_options.items() %}
+      <label class="check"><input type="checkbox" name="{{ key }}" value="1" {% if privacy[key] %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+    <p class="muted small">Nunca aparecem para os outros: finanças, memórias privadas, e-mail, tokens e integrações.</p>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Salvar</button></div>
+  </form>
+</section>
+{% endblock %}

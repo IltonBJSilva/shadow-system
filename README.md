@@ -49,6 +49,7 @@ testadas.
 
 - [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
+- [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
 - [x] **Metas**: registre objetivos ("Passar em Cálculo II"); o Arquiteto sugere o próximo passo e uma sessão semanal
@@ -198,6 +199,28 @@ Com ela:
   treinos e metas. Tokens, senhas e e-mails nunca são enviados.
 
 Detalhes em [docs/modules/architect.md](docs/modules/architect.md).
+
+## Arena dos Hunters
+
+Ranking entre todas as contas (dono e usuários de teste), em **Arena** no menu. Cada Hunter mostra rank, nível,
+XP total, XP hoje e na semana, **horas de atividade** hoje e na semana, missões concluídas (total e hoje), tempo
+médio por missão e a especialização de maior evolução. Ordena por XP da semana, XP total, horas ou XP de hoje.
+Clique num Hunter para abrir o **perfil público** (atributos, missões diárias e semanais, conquistas, evolução
+recente e gráfico de horas dos últimos 7 dias).
+
+**Horas de atividade confiáveis.** Cada missão concluída grava um intervalo com a hora do servidor (não a do
+celular): termina na conclusão e dura o tempo gasto informado, ou o estimado. Intervalos que se sobrepõem contam
+uma vez só e nenhum dia passa de 24 h (`quests/timeline.py`).
+
+**Indicador de integridade** (`arena/integrity.py`), dos últimos 7 dias, de 0 a 100: *Íntegro* (80+), *Atenção*
+(50 a 79) ou *Em análise* (abaixo de 50). Considera vários sinais juntos: dias com 16 h ou 20 h+, muitas missões no
+mesmo horário, dezenas de missões de até 10 min num dia, a mesma missão repetida muitas vezes, conclusões com menos
+de 15 s de intervalo (automação), edições depois de receber XP e XP por hora acima do esperado. Um dia de 24 h
+sozinho não derruba ninguém: pode ser erro de registro. Os motivos ficam visíveis, com texto neutro.
+
+**Privacidade** (Arena > Minha privacidade): aparecer ou não no ranking, e mostrar ou não atributos, títulos das
+missões, conquistas, histórico, equipamentos/sombras e atividades no feed. Finanças, memórias privadas, e-mail,
+tokens e integrações nunca aparecem para outras pessoas.
 
 ## Áudio e visual do System
 

@@ -11,6 +11,7 @@ from .routes import bp as core_bp
 NAV_ITEMS: list[tuple[str, str, str]] = [
     ("Dashboard", "dashboard.index", "◈"),
     ("Hunter", "hunter.profile", "◆"),
+    ("Arena", "arena.index", "♛"),
     ("Arquiteto", "architect.index", "◬"),
     ("Quests", "quests.index", "⚔"),
     ("Hábitos", "habits.index", "✦"),
