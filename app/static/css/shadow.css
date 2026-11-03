@@ -751,3 +751,21 @@ body::after {
 .fin-col-out { background: var(--danger); }
 .progress-danger .progress-fill { background: linear-gradient(90deg, #f87171, #ef4444); }
 .tx-form { margin-top: .4rem; }
+
+/* ---------- Rodapé: ajuda, novidades e instalação ---------- */
+.footer-links { color: var(--muted); }
+.link-button { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; cursor: pointer; }
+.guide h2 { margin-top: 1.4rem; }
+.guide dl { display: grid; gap: .6rem; }
+.guide dt { font-weight: 600; color: var(--text); }
+.guide dd { margin: 0 0 .4rem; color: var(--muted); }
+.release { border-left: 2px solid var(--cyan); padding-left: .9rem; margin-bottom: 1.2rem; }
+
+/* ---------- Matriz de prioridades ---------- */
+.matrix { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.matrix-cell .panel-header { flex-wrap: wrap; }
+.matrix-do { border-color: rgba(248, 113, 113, 0.45); }
+.matrix-plan { border-color: rgba(56, 189, 248, 0.45); }
+.matrix-delegate { border-color: rgba(251, 191, 36, 0.45); }
+.matrix-drop { opacity: .85; }
+@media (max-width: 700px) { .matrix { grid-template-columns: 1fr; } }

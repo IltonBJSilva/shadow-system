@@ -42,6 +42,11 @@ def create():
     return redirect(url_for("quests.index"))
 
 
+@bp.get("/matriz")
+def matrix():
+    return render_template("quests/matrix.html", matrix=services.priority_matrix(), labels=services.MATRIX)
+
+
 @bp.get("/<int:quest_id>")
 def detail(quest_id: int):
     quest = services.get_quest(quest_id)

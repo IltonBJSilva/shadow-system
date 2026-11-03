@@ -73,6 +73,7 @@
         {{ plan_form.csrf_token }}
         {{ plan_form.focus(class="input", placeholder="Foco opcional: ex. provas da faculdade, voltar a treinar") }}
         <button class="btn btn-primary" type="submit" data-busy-label="Montando o plano...">Pedir plano ao Arquiteto (IA)</button>
+        <button class="btn" type="button" data-voice-for="focus" hidden aria-label="Falar o foco">🎙</button>
       </form>
     {% endif %}
     {% if suggestions %}
@@ -161,7 +162,11 @@
         <form method="post" action="{{ url_for('architect.ask') }}" class="stack section-gap" data-busy-form>
           {{ ask_form.csrf_token }}
           {{ ask_form.question(class="input", rows=3, placeholder="Ex.: O que eu deveria priorizar esta semana com as provas chegando?") }}
-          <button class="btn btn-primary" type="submit" data-busy-label="O Arquiteto está analisando...">Enviar</button>
+          <div class="row">
+            <button class="btn btn-primary" type="submit" data-busy-label="O Arquiteto está analisando...">Enviar</button>
+            <button class="btn" type="button" data-voice-for="question" hidden>🎙 Falar</button>
+          </div>
+          <p class="muted small" data-voice-note hidden>Comando de voz: o reconhecimento é feito pelo navegador (no Chrome, pelo serviço de voz do Google). O texto aparece aqui antes de enviar.</p>
         </form>
       {% else %}
         <p class="muted">A conversa usa o Claude (Anthropic) e precisa de uma chave de API, cobrada pelo uso

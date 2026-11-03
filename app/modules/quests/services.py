@@ -447,6 +447,30 @@ def recurring_completed_count() -> int:
         Quest.status == "completed", Quest.recurrence != "none")) or 0
 
 
+MATRIX = {
+    "do": ("Fazer agora", "Urgente e importante"),
+    "plan": ("Agendar", "Importante, sem pressa"),
+    "delegate": ("Resolver rápido", "Urgente, menos importante"),
+    "drop": ("Rever ou cortar", "Nem urgente nem importante"),
+}
+
+
+def priority_matrix(today: date | None = None) -> dict[str, list[QuestView]]:
+    """Matriz de prioridades (Eisenhower) das missões ativas.
+
+    Urgente: vencida ou vence em até 2 dias. Importante: prioridade alta/crítica ou Main/Emergency Quest.
+    """
+    today = today or time.today()
+    matrix: dict[str, list[QuestView]] = {key: [] for key in MATRIX}
+    rows = db.session.scalars(select(Quest).where(Quest.status.in_(constants.ACTIVE_STATUSES)))
+    for quest in sorted(rows, key=_urgency_key):
+        urgent = bool(quest.due_date and quest.due_date <= today + timedelta(days=2))
+        important = quest.priority in ("high", "critical") or quest.quest_type in ("main", "emergency")
+        key = "do" if urgent and important else "plan" if important else "delegate" if urgent else "drop"
+        matrix[key].append(_view(quest, today))
+    return matrix
+
+
 def quests_for_period(kind: str) -> list[QuestView]:
     """Missões diárias ("daily") ou semanais ("weekly") ativas, para o perfil público."""
     rows = db.session.scalars(select(Quest).where(Quest.quest_type == kind, Quest.status.in_(constants.ACTIVE_STATUSES))

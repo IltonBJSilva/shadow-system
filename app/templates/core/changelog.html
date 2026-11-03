@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Novidades{% endblock %}
+{% block heading %}Novidades{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] ATUALIZAÇÕES DO SISTEMA</p>
+  {% for day, name, items in releases %}
+    <article class="release">
+      <h2>{{ name }}</h2>
+      <p class="muted small">{{ day }}</p>
+      <ul>{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -190,3 +190,58 @@ function showLevelUp(flashes) {
 function escapeHtml(text) {
   return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+
+// ---------- App instalável (PWA) ----------
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); });
+}
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  document.querySelectorAll("[data-install]").forEach((button) => { button.hidden = false; });
+});
+document.addEventListener("turbo:load", () => {
+  if (installPrompt) document.querySelectorAll("[data-install]").forEach((button) => { button.hidden = false; });
+});
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-install]");
+  if (!button || !installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  document.querySelectorAll("[data-install]").forEach((b) => { b.hidden = true; });
+});
+
+
+// ---------- Comando de voz (Arquiteto): [data-voice-for="id-do-campo"] ----------
+// Usa o reconhecimento de fala do navegador (Web Speech API). Só aparece onde o navegador suporta.
+const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+document.addEventListener("turbo:load", () => {
+  if (!SpeechRecognitionApi) return;
+  document.querySelectorAll("[data-voice-for], [data-voice-note]").forEach((el) => { el.hidden = false; });
+});
+let listening = null;
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-voice-for]");
+  if (!button || !SpeechRecognitionApi) return;
+  const field = document.getElementById(button.dataset.voiceFor);
+  if (!field) return;
+  if (listening) { listening.stop(); return; }
+  const recognition = new SpeechRecognitionApi();
+  recognition.lang = "pt-BR";
+  recognition.interimResults = true;
+  const before = field.value ? field.value.trim() + " " : "";
+  const label = button.textContent;
+  recognition.onresult = (e) => {
+    field.value = before + Array.from(e.results).map((r) => r[0].transcript).join(" ");
+  };
+  recognition.onend = () => { listening = null; button.textContent = label; button.classList.remove("is-busy"); field.focus(); };
+  recognition.onerror = () => { recognition.stop(); };
+  listening = recognition;
+  button.textContent = "● Ouvindo... (toque para parar)";
+  button.classList.add("is-busy");
+  if (window.ShadowAudio) window.ShadowAudio.play("open");
+  recognition.start();
+});

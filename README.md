@@ -51,6 +51,7 @@ testadas.
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
+- [x] **App no celular (PWA)**, Como usar, Novidades, matriz de prioridades e comando de voz no Arquiteto
 - [x] **Finanças**: contas, cartões, lançamentos, parcelas, recorrentes, orçamentos, metas, relatórios e missões financeiras (privado)
 - [x] **Avatar**: gerado da sua foto com estilos do System, moldura que evolui com o rank e foto original privada
 - [x] **Memórias**: álbum de fotos das atividades, sem metadados, com filtros e privacidade
@@ -480,6 +481,14 @@ os dados de ninguém. Você pode bloquear, gerar link novo ou apagar a conta (co
 em **Integrações**, feita por cada pessoa com a própria conta Google. Enquanto o app do Google estiver em modo teste,
 o e-mail Google dela também precisa estar em *Google Cloud > Google Auth Platform > Público-alvo > Usuários de teste*.
 Detalhes de segurança em [docs/security.md](docs/security.md#contas-e-isolamento-dos-dados).
+
+### Instalar no celular (app)
+
+O System é um **PWA**: no Android (Chrome) use *Instalar app* no menu do navegador ou o link **Instalar app** no
+rodapé do menu; no iPhone (Safari) use Compartilhar > *Adicionar à Tela de Início*. Ele abre em tela cheia com ícone
+próprio. O service worker (`static/js/sw.js`) guarda só os arquivos estáticos; páginas e dados sempre vêm do
+servidor, e sem internet aparece uma tela de conexão perdida. Ajuda completa em **Como usar**, histórico de
+mudanças em **Novidades** (rodapé do menu).
 
 ### Online (sem o PC ligado)
 

@@ -2,8 +2,8 @@
 import io
 import logging
 
-from flask import (Blueprint, abort, current_app, flash, redirect, render_template, request, send_file,
-                   session, url_for)
+from flask import (Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request,
+                   send_file, send_from_directory, session, url_for)
 from sqlalchemy import text
 
 from app.extensions import db
@@ -86,3 +86,53 @@ def media_file(slot: str):
     response.cache_control.private = slot not in media.PUBLIC_SLOTS
     response.headers["Accept-Ranges"] = "bytes"
     return response
+
+
+# ---------- App instalável (PWA), ajuda e novidades ----------
+
+@bp.get("/manifest.webmanifest")
+def manifest():
+    response = jsonify({
+        "name": "Shadow System",
+        "short_name": "Shadow",
+        "description": "Sistema pessoal de evolução inspirado em Solo Leveling.",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#040714",
+        "theme_color": "#040714",
+        "lang": "pt-BR",
+        "icons": [
+            {"src": url_for("static", filename="img/icon-192.png"), "sizes": "192x192", "type": "image/png"},
+            {"src": url_for("static", filename="img/icon-512.png"), "sizes": "512x512", "type": "image/png"},
+            {"src": url_for("static", filename="img/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    })
+    response.mimetype = "application/manifest+json"
+    return response
+
+
+@bp.get("/sw.js")
+def service_worker():
+    """O service worker precisa ser servido da raiz para controlar o site inteiro."""
+    response = send_from_directory(current_app.static_folder, "js/sw.js", mimetype="text/javascript", max_age=0)
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@bp.get("/offline")
+def offline():
+    return render_template("core/offline.html")
+
+
+@bp.get("/como-usar")
+def guide():
+    return render_template("core/guide.html")
+
+
+@bp.get("/novidades")
+def changelog():
+    from .changelog import RELEASES
+
+    return render_template("core/changelog.html", releases=RELEASES)

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Matriz de prioridades{% endblock %}
+{% block heading %}Matriz de prioridades{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('quests.index') }}">Quests</a>{% endblock %}
+{% block content %}
+<p class="muted small">Urgente: vencida ou vence em até 2 dias. Importante: prioridade alta ou crítica, Main Quest ou Emergency Quest.
+  Comece pelo quadrante “Fazer agora”.</p>
+<div class="matrix">
+  {% for key, (title, hint) in labels.items() %}
+    <section class="panel matrix-cell matrix-{{ key }}">
+      <div class="panel-header"><h2>{{ title }}</h2><span class="small muted">{{ hint }}</span></div>
+      {% for q in matrix[key] %}
+        <p class="small"><a href="{{ url_for('quests.detail', quest_id=q.id) }}">⚔ {{ q.title }}</a>
+          <span class="xp-tag">+{{ q.xp_reward }} XP</span>
+          {% if q.due_date %}<span class="muted {{ 'xp-limit' if q.is_overdue else '' }}">· {{ q.due_date | date_br }}</span>{% endif %}</p>
+      {% else %}<p class="empty">Nada aqui.</p>{% endfor %}
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}

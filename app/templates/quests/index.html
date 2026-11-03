@@ -3,6 +3,7 @@
 {% block title %}Quests{% endblock %}
 {% block heading %}Quest System{% endblock %}
 {% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('quests.matrix') }}">Matriz</a>
   <a class="btn btn-ghost" href="{{ url_for('quests.categories') }}">Categorias</a>
   <button class="btn btn-primary" type="button" data-toggle="new-quest">+ Nova quest</button>
 {% endblock %}

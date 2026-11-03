@@ -6,6 +6,10 @@
   <title>{% block title %}Shadow System{% endblock %} · Shadow System</title>
   <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
   <meta name="theme-color" content="#040714">
+  <link rel="manifest" href="{{ url_for('core.manifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-180.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   {# Sem cache de páginas do Turbo: voltar no navegador busca a página de novo (dados sempre atuais). #}
   <meta name="turbo-cache-control" content="no-cache">
   <meta name="shadow-media" content="{{ media_versions | tojson | forceescape }}">
@@ -58,6 +62,10 @@
           <a class="nav-link nav-link-sm {% if request.endpoint == 'security.testers' %}is-active{% endif %}"
              href="{{ url_for('security.testers') }}"><span class="nav-icon">⚇</span>Usuários de teste</a>
         {% endif %}
+        <div class="footer-links small">
+          <a href="{{ url_for('core.guide') }}">Como usar</a> · <a href="{{ url_for('core.changelog') }}">Novidades</a>
+          <button class="link-button" type="button" data-install hidden>· Instalar app</button>
+        </div>
         {% if current_user %}<span class="muted small">Jogador: {{ current_user }}</span>{% endif %}
         {% if current_user %}
           <form method="post" action="{{ url_for('security.logout') }}">
