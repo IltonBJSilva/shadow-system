@@ -8,7 +8,12 @@ shadow-system/
 │   ├── extensions.py            db (SQLAlchemy com naming convention), migrate, csrf
 │   │
 │   ├── core/
-│   │   ├── models.py            TimestampMixin, AppSetting, StoredSecret
+│   │   ├── models.py            TimestampMixin, User, UserOwnedMixin, AppSetting, StoredSecret, MediaAsset
+│   │   ├── tenancy.py           filtro automático por usuário (multiusuário), as_user(), TenantSession
+│   │   ├── accounts.py          dono e usuários de teste: convites, login, bloqueio, exclusão
+│   │   ├── media.py             mídias do System (slots de áudio e imagem) e `flask media import|list`
+│   │   ├── images.py            fotos: valida, gira, reduz e grava WebP sem metadados
+│   │   ├── changelog.py         conteúdo da aba Novidades
 │   │   ├── secret_store.py      tokens das integrações no banco (importa arquivos antigos de instance/)
 │   │   ├── settings.py          get_setting / set_setting (JSON em app_settings)
 │   │   ├── time.py              now(), today(), conversões de fuso
@@ -16,21 +21,26 @@ shadow-system/
 │   │   ├── http.py              redirect_back(): volta para `next` interno
 │   │   ├── events.py            publish/subscribe entre módulos
 │   │   ├── security.py          login opcional, cabeçalhos HTTP, `flask security hash-password` e `lock-db`
-│   │   ├── routes.py            /health (público, faz SELECT 1; usado pelo keep-alive)
+│   │   ├── routes.py            /health, Configurações, /media/<slot>, PWA (manifest, sw.js, offline), Como usar, Novidades
 │   │   ├── template_helpers.py  filtros (date_br, datetime_br, hour), menu lateral e modo da inicialização
 │   │   ├── experience.py        modo da inicialização do System e o manifesto
 │   │   └── cli.py               `flask backup create|list`
 │   │
 │   ├── modules/
 │   │   ├── __init__.py          register_modules(): lista de blueprints
-│   │   ├── hunter/              progression.py, defaults.py, models, services, forms, routes, cli
-│   │   ├── quests/              constants.py, recurrence.py, models, services, forms, routes, cli
+│   │   ├── hunter/              progression.py (XP por tempo), avatar.py (provedores de avatar), defaults.py, models, services, forms, routes, cli
+│   │   ├── quests/              constants.py (especializações), recurrence.py, timeline.py (horas sem sobreposição), models, services, forms, routes, cli
+│   │   ├── character/           catalog.py (equipamentos), services (atributos de combate, inventário), handlers, routes
+│   │   ├── shadows/             catalog.py (Igris... Bellion), services (recrutamento, bônus), handlers, routes
+│   │   ├── arena/               services (ranking, perfis, privacidade), integrity.py, feed.py, routes
+│   │   ├── memories/            services (upload, filtros, privacidade), routes
+│   │   ├── finance/             money.py (centavos), services, missions.py (XP financeiro), routes
 │   │   ├── habits/              streaks.py (com dias de folga), models, services, forms, routes
 │   │   ├── architect/           context.py (retrato real), analysis.py (regras), ai.py (Claude), models,
 │   │   │                        services, forms, routes
 │   │   ├── training/            parser.py (texto → plano), library.py (rotinas prontas), documents.py
 │   │   │                        (txt/md/docx/pdf), progression.py, handlers.py, models, services, forms, routes
-│   │   ├── gamification/        rules.py, handlers.py (eventos), models (Zona de Falha), services, routes
+│   │   ├── gamification/        rules.py, handlers.py (eventos), time_shop.py (moedas), models (Zona de Falha), services, routes
 │   │   ├── calendar/            models, services, forms, routes
 │   │   └── dashboard/           services (widgets), routes
 │   │

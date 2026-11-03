@@ -404,6 +404,9 @@ acesso pode ser lida sem login.
 | `login` | Arte do login e do convite | `login.webp` (~74 KB) |
 
 Para importar uma pasta de uma vez (nomes iguais aos slots): `flask --app wsgi media import instance/media`.
+**Em produção (Render):** abra o site como dono, vá em Configurações > Mídias do System e envie cada arquivo
+(os extraídos ficam em `instance/media/` no PC, fora do git). Para trocar a música, envie outro arquivo no slot
+*Música de fundo*; para tirar, clique em *Remover*.
 `flask --app wsgi media list` mostra o que está cadastrado. Sem arquivo num slot, o System usa o som
 sintetizado e o visual em CSS (portal, névoa de sombras, cantos de HUD).
 

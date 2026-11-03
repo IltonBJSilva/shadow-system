@@ -3,21 +3,33 @@
 SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`); PostgreSQL quando
 `DATABASE_URL` aponta para ele.
 
+## Multiusuário
+
+Toda tabela de dados tem `user_id` (FK para `users`, `ON DELETE CASCADE`). O filtro por usuário é automático em
+toda consulta ORM e em `session.get` (`core/tenancy.py`); linhas novas nascem com o usuário logado. Constraints
+únicas que eram globais passaram a valer por usuário (ex.: `uq_ranks_user_code`). `app_settings` e
+`stored_secrets` têm chave primária `(user_id, key|name)`. Exceções sem `user_id`: `users`, `media_assets`
+(do sistema inteiro) e as tabelas de ligação (`quest_attributes`...), que seguem o dono das linhas ligadas.
+
 ## Tabelas
 
 | Tabela | Módulo | O que guarda |
 |---|---|---|
-| `app_settings` | core | Configurações do usuário em JSON (ex.: widgets do dashboard) |
+| `users` | core | Contas: dono (id 1) e usuários de teste (convite com hash sha256, senha, ativo) |
+| `media_assets` | core | Mídias do System enviadas pelo dono (música, vozes, artes), em bytes |
+| `app_settings` | core | Configurações do usuário em JSON (ex.: widgets do dashboard, privacidade da Arena) |
 | `stored_secrets` | core | Tokens das integrações cadastrados pela tela, em JSON (`google_token`, `buffer_token`, `credentials:<nome>`). Ver [security.md](security.md) |
 | `hunters` | hunter | O perfil (nome, título exibido, `total_xp`) |
 | `titles` | hunter | Conquistas e títulos: regra (`rule` + `threshold`), `unlocked_at`, `icon`, `reward_xp`; `rule="custom"` = criado por você |
 | `ranks` | hunter | Ranks configuráveis (`code`, `min_level` únicos) |
 | `attributes` | hunter | Atributos e seus pontos |
-| `xp_events` | hunter | Histórico de XP (origem, valor, data) |
+| `xp_events` | hunter | Histórico de XP imutável (origem, valor, data, `base_amount`, `bonus_amount`, `breakdown` JSON do "por quê") |
+| `hunter_avatars` | hunter | Avatar gerado da foto (estilo, versão, imagem) e a foto original sem metadados (opcional) |
 | `attribute_gains` | hunter | Pontos de atributo de cada `xp_event` |
-| `quest_categories` | quests | Categorias |
+| `quest_categories` | quests | Categorias (`specialty` para bônus de sombras/equipamentos, `xp_multiplier` 0,8 a 1,2) |
 | `quest_category_attributes` | quests | Atributos padrão de cada categoria |
-| `quests` | quests | Quests (tipo, prioridade, dificuldade, XP, prazo, status, recorrência, `series_id`) |
+| `quests` | quests | Quests (tipo, prioridade, dificuldade, XP, prazo, status, recorrência, `series_id`, `estimated_minutes`, `actual_minutes`, `started_at`, `xp_base`, `xp_bonus`) |
+| `activity_sessions` | quests | Intervalo de tempo de cada missão concluída (hora do servidor), minutos creditados e especialização |
 | `quest_attributes` | quests | Atributos de cada quest |
 | `quest_logs` | quests | Histórico de cada quest |
 | `habits` | habits | Hábitos (`weekdays`: dias esperados, vazio = todos) |
@@ -32,6 +44,17 @@ SQLAlchemy 2 + Flask-Migrate (Alembic). SQLite por padrão (`instance/shadow.db`
 | `architect_goals` | architect | Metas (título, área, por quê, prazo, situação) |
 | `architect_suggestions` | architect | Missões sugeridas (regra ou IA), com motivo, `rule_key` e situação (pendente/aceita/descartada) |
 | `architect_messages` | architect | Conversa com o Arquiteto (pergunta e resposta) |
+| `coin_transactions` | gamification | Extrato de moedas da Loja do Tempo (+ missões, - compras) |
+| `player_items` | character | Equipamentos conquistados (`item_key` do catálogo, equipado, origem), único por usuário+item |
+| `player_shadows` | shadows | Sombras recrutadas (chave, data, prova dos desafios), única por usuário+sombra |
+| `activity_posts` | arena | Feed dos Hunters (tipo, texto, XP, recompensa, memória pública ligada) |
+| `memories` | memories | Memórias: foto WebP + miniatura, título, tipo, observação privada, missão, rank, visibilidade |
+| `finance_accounts` | finance | Contas e cartões (saldo inicial, limite, fechamento e vencimento) em centavos |
+| `finance_categories` | finance | Categorias de receita/despesa (essencial ou não) |
+| `finance_transactions` | finance | Lançamentos (receita, despesa, transferência) em centavos |
+| `finance_recurring` | finance | Receitas e despesas mensais recorrentes (último mês gerado) |
+| `finance_budgets` | finance | Limite mensal por categoria de despesa |
+| `finance_goals` | finance | Metas financeiras (aportes ou saldo de uma conta) |
 
 ## Relações principais
 

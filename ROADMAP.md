@@ -1,6 +1,6 @@
 # Roadmap
 
-Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
+Estado em 03/11/2026. Marque aqui conforme as features forem concluídas.
 
 ## Fase 1: MVP ✅
 
@@ -37,6 +37,26 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 - [x] Conquistas com ícone, recompensa em XP e título (21 padrão)
 - [x] O Arquiteto: análise por regras com dados reais, prioridades, missões sugeridas, metas; IA opcional (Claude) para conversa e planos
 
+## Grande evolução (03/11/2026) ✅
+
+- [x] Multiusuário com usuários de teste por convite (sem Google) e dados isolados por conta
+- [x] Áudio do System: voz de entrada, música de fundo persistente entre páginas, vozes de eventos, configurações
+- [x] XP por tempo com detalhamento imutável, repetição decrescente, teto diário e limites de bônus
+- [x] Arena dos Hunters: horas de atividade sem sobreposição, indicador de integridade, perfis públicos, privacidade
+- [x] Personagem: atributos de combate com regra real e 14 equipamentos
+- [x] Loja das Sombras (Igris, Iron, Tank, Tusk, Beru, Bellion) com bônus de XP controlado
+- [x] Feed dos Hunters, Memórias (fotos sem metadados), avatar gerado da foto com evolução por rank
+- [x] Finanças privadas com missões financeiras
+- [x] Loja do Tempo (moedas, Escudo, Ampulheta), PWA, Como usar, Novidades, matriz de prioridades, voz no Arquiteto
+
+### Próximos passos desta linha
+
+- [ ] Virtudes desbloqueadas por nível ligadas ao atributo mais forte; fragmentos de lore do Arquiteto
+- [ ] Pausar e arquivar missões (hoje: cancelar ou apagar)
+- [ ] Concluir missões direto pelo calendário
+- [ ] Cliente OAuth do Google próprio de cada usuário (opcional)
+- [ ] Provedor de avatar com IA de imagem (a interface `AvatarProvider` já existe)
+
 ## Fase 2: Vida acadêmica
 
 - [ ] **Study**: cursos, conteúdos, sessões de estudo (horas), revisões, metas, anotações
@@ -52,7 +72,7 @@ Estado em 02/11/2026. Marque aqui conforme as features forem concluídas.
 
 - [ ] **Fitness** (continuação dos Treinos): carga por série registrada no treino, peso e medidas, cardio, gráficos de evolução
 - [ ] Converter texto livre em rotina com IA (opcional, por cima do parser atual)
-- [ ] **Finance**: contas, cartões, receitas/despesas, categorias, parcelamentos, recorrentes, orçamento, metas, reserva de emergência, fluxo de caixa (BRL)
+- [x] **Finance**: contas, cartões, receitas/despesas, categorias, parcelamentos, recorrentes, orçamento, metas (03/11/2026)
 - [ ] Importação de CSV (extratos)
 - [ ] Widgets de treino e resumo financeiro no dashboard
 
