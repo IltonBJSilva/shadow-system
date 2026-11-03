@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.core import time
 from app.core.errors import DomainError, NotFoundError
 from app.extensions import db
+from app.modules.hunter import progression
 from app.modules.quests import services as quests
 from app.modules.quests.services import QuestInput
 
@@ -52,6 +53,7 @@ def accept_suggestion(suggestion_id: int) -> int:
         difficulty=suggestion.difficulty,
         due_date=time.today() + timedelta(days=suggestion.due_in_days),
         recurrence=suggestion.recurrence,
+        estimated_minutes=progression.default_minutes(suggestion.difficulty),
     ), note="Quest sugerida pelo Arquiteto")
     suggestion.status, suggestion.quest_id = "accepted", quest.id
     db.session.commit()

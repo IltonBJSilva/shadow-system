@@ -19,12 +19,27 @@
     </div>
 
     <table class="table">
-      <tr><th>Recompensa</th><td><span class="xp-tag">+{{ quest.xp_reward }} XP</span>{% if quest.reward %} · {{ quest.reward }}{% endif %}</td></tr>
+      <tr><th>{{ "XP recebido" if award else "XP previsto" }}</th><td>
+        {% if award %}<span class="xp-tag">+{{ award[0].amount }} XP</span>
+          {% if award[0].base_amount is not none %}<span class="muted small">({{ award[0].base_amount }} base + {{ award[0].bonus_amount or 0 }} bônus)</span>{% endif %}
+        {% else %}<span class="xp-tag">+{{ quote.base }} XP base</span> <span class="muted small">+ bônus de sombras e equipamentos</span>{% endif %}
+        {% if quest.reward %} · {{ quest.reward }}{% endif %}</td></tr>
+      {% if quest.estimated_minutes %}<tr><th>Tempo estimado</th><td>{{ quest.estimated_minutes }} min{% if quest.actual_minutes %} · gasto: {{ quest.actual_minutes }} min{% endif %}</td></tr>{% endif %}
       <tr><th>Dificuldade</th><td>{{ quest.difficulty }} / 5</td></tr>
       <tr><th>Prazo</th><td>{{ quest.due_date | date_br or "Sem prazo" }}{% if quest.is_overdue %} <span class="tag tag-warning">Atrasada</span>{% endif %}</td></tr>
       <tr><th>Atributos</th><td>{{ attribute_names | join(", ") or "Nenhum" }}</td></tr>
       {% if quest.completed_at %}<tr><th>Concluída em</th><td>{{ quest.completed_at | datetime_br }}</td></tr>{% endif %}
     </table>
+
+    {% set lines = award[1] if award else quote.lines %}
+    {% if lines %}
+      <details class="xp-why" {% if award %}open{% endif %}>
+        <summary>Por que {{ "recebi" if award else "vou receber" }} esse XP?</summary>
+        <ul class="xp-lines">
+          {% for line in lines %}<li class="xp-line xp-{{ line.kind }}"><span>{{ line.label }}</span><span class="mono">{{ "%+d" % line.amount }}</span></li>{% endfor %}
+        </ul>
+      </details>
+    {% endif %}
 
     {% if quest.description %}<h3 style="margin-top: 1rem">Descrição</h3><p>{{ quest.description }}</p>{% endif %}
     {% if quest.completion_criteria %}<h3>Critérios de conclusão</h3><p>{{ quest.completion_criteria }}</p>{% endif %}
@@ -33,7 +48,12 @@
       {% if quest.status == "pending" %}{{ ui.post_button(url_for('quests.start', quest_id=quest.id) ~ "?next=" ~ request.path, "Iniciar", "btn") }}{% endif %}
       {% if quest.status in ("pending", "in_progress") %}
         {{ ui.post_button(url_for('quests.cancel', quest_id=quest.id) ~ "?next=" ~ request.path, "Cancelar", "btn btn-ghost") }}
-        {{ ui.post_button(url_for('quests.complete', quest_id=quest.id) ~ "?next=" ~ request.path, "Concluir quest", "btn btn-success") }}
+        <form method="post" action="{{ url_for('quests.complete', quest_id=quest.id) }}?next={{ request.path }}" class="inline-form complete-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="small muted" for="actual_minutes">Tempo gasto (min, opcional)</label>
+          <input class="input input-sm" id="actual_minutes" name="actual_minutes" type="number" min="1" max="1440" inputmode="numeric" placeholder="{{ quest.estimated_minutes or '' }}">
+          <button type="submit" class="btn btn-success">Concluir quest</button>
+        </form>
       {% endif %}
     </div>
   </section>

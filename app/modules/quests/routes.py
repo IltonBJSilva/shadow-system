@@ -50,6 +50,8 @@ def detail(quest_id: int):
         quest=quest,
         attribute_names=services.attribute_names_for(quest),
         constants=constants,
+        quote=services.quote_quest(quest),
+        award=hunter.event_for("quest", quest.id),
     )
 
 
@@ -75,7 +77,8 @@ def start(quest_id: int):
 
 @bp.post("/<int:quest_id>/complete")
 def complete(quest_id: int):
-    result = services.complete_quest(quest_id)
+    raw = (request.form.get("actual_minutes") or "").strip()
+    result = services.complete_quest(quest_id, int(raw) if raw.isdigit() else None)
     for message, category in hunter.award_messages(result):
         flash(message, category)
     return redirect_back(url_for("quests.index"))
@@ -115,7 +118,8 @@ def bulk():
 def categories():
     form = CategoryForm()
     if form.validate_on_submit():
-        services.save_category(form.name.data, form.color.data, list(form.attribute_ids.data or []))
+        services.save_category(form.name.data, form.color.data, list(form.attribute_ids.data or []),
+                               specialty=form.specialty.data, xp_multiplier=float(form.xp_multiplier.data or 1))
         flash("Categoria criada.", "success")
         return redirect(url_for("quests.categories"))
     attribute_names = {a.id: a.name for a in hunter.list_attributes()}
@@ -141,7 +145,8 @@ def edit_category(category_id: int):
     if request.method == "GET":
         form.attribute_ids.data = services.category_attribute_ids(category_id)
     if form.validate_on_submit():
-        services.save_category(form.name.data, form.color.data, list(form.attribute_ids.data or []), category_id)
+        services.save_category(form.name.data, form.color.data, list(form.attribute_ids.data or []), category_id,
+                               specialty=form.specialty.data, xp_multiplier=float(form.xp_multiplier.data or 1))
         flash("Categoria atualizada.", "success")
         return redirect(url_for("quests.categories"))
     return render_template("quests/category_form.html", form=form, category=category)

@@ -173,7 +173,7 @@ def activate_plan(plan_id: int) -> list[str]:
             quest = quests.create_quest(QuestInput(
                 title=f"Treino: {day.name}", description=_day_description(day), quest_type="daily",
                 priority="medium", difficulty=3, due_date=_next_weekday(start, day.weekday),
-                recurrence="weekly", attribute_ids=attribute_ids,
+                recurrence="weekly", attribute_ids=attribute_ids, estimated_minutes=plan.session_minutes,
             ), note=f"Quest criada pelo plano de treino \"{plan.name}\"")
             day.quest_series_id = quest.series_id or quest.id
         done.append(f"{len(plan.days)} quest(s) semanais")

@@ -92,22 +92,29 @@ Detalhes e ordem em [ROADMAP.md](ROADMAP.md).
 Todas as regras ficam em funções puras e testadas; os valores são editáveis pela tela (Gamificação,
 Hunter > Ranks) ou num arquivo só ([progression.py](app/modules/hunter/progression.py)).
 
-### XP de uma missão
+### XP de uma missão (por tempo)
 
-XP padrão = **dificuldade (esforço) × importância (prioridade)**, arredondado para múltiplo de 5. Você pode
-digitar outro valor na missão.
+> "O tempo é o que temos de mais valioso durante o dia." Quanto mais tempo uma missão exige, mais XP ela vale.
 
-| Dificuldade | XP base | × Baixa (0,8) | × Média (1,0) | × Alta (1,2) | × Crítica (1,4) |
-|---|---|---|---|---|---|
-| 1 Trivial | 10 | 10 | 10 | 10 | 15 |
-| 2 Fácil | 25 | 20 | 25 | 30 | 35 |
-| 3 Normal | 50 | 40 | 50 | 60 | 70 |
-| 4 Difícil | 100 | 80 | 100 | 120 | 140 |
-| 5 Extrema | 200 | 160 | 200 | 240 | 280 |
+Toda missão tem **tempo estimado** (5 min a 8 h), definido antes de concluir. O XP é calculado no servidor
+(`hunter/progression.py` + `quests.services.complete_quest`), nunca no navegador:
 
-A importância pesa no máximo ±40%: uma tarefa trivial marcada como "crítica" continua valendo pouco. Bônus
-(primeira missão do dia, combo das Daily Quests, adiantar prazo, sequência de hábitos) e recompensas de
-conquista somam por cima; os valores ficam em Gamificação.
+1. **Base:** 1 XP por minuto estimado (5 min = 5 XP, 30 min = 30 XP, 2 h = 120 XP).
+2. **Dificuldade** (ajuste moderado): Trivial ×0,8 · Fácil ×0,9 · Normal ×1,0 · Difícil ×1,15 · Extrema ×1,3.
+3. **Categoria:** ajuste configurável de ×0,8 a ×1,2 (Quests > Categorias).
+4. **Repetição:** a mesma missão concluída de novo no mesmo dia rende 100%, 100%, 50%, 25% e depois 0 (sem farm).
+5. **Teto diário:** no máximo 16 h de missões rendem XP base por dia (ninguém tem mais que 24 h).
+6. **Bônus** de sombras e equipamentos por especialização da categoria, com teto: até 50% do XP base e 30 XP por
+   missão, e 150 XP de bônus por dia.
+
+O resultado fica num **evento de XP imutável** com XP base, bônus, total e as linhas do "por quê", visíveis na
+página da missão. Mudar tempo, dificuldade ou categoria de uma missão já concluída é bloqueado (nada de XP
+retroativo), e cada edição fica no histórico da missão. Ao concluir, você pode informar o **tempo gasto**: ele vira
+um intervalo de atividade (hora do servidor), usado nas horas de atividade do ranking.
+
+Missões criadas antes desta regra continuam com o XP fixo que tinham. Bônus da Gamificação (primeira missão do
+dia, combo das Daily Quests, adiantar prazo, sequência de hábitos) e recompensas de conquista continuam somando
+à parte; os valores ficam em Gamificação.
 
 ### Níveis e ranks
 

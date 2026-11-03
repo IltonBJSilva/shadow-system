@@ -9,6 +9,8 @@
       {{ ui.field(form.name) }}
       {{ ui.field(form.color, type="color") }}
       {{ ui.field(form.attribute_ids) }}
+      {{ ui.field(form.specialty) }}
+      {{ ui.field(form.xp_multiplier, type="number", step="0.05", min="0.8", max="1.2") }}
       <div class="form-actions">
         <a class="btn btn-ghost" href="{{ url_for('quests.categories') }}">Cancelar</a>
         <button class="btn btn-primary" type="submit">Salvar</button>

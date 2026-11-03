@@ -69,6 +69,10 @@ class XpEvent(UserOwnedMixin, db.Model):
     source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str] = mapped_column(String(200), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False, index=True)
+    # Detalhamento (imutável): XP base, bônus e as linhas "por quê" em JSON. Vazio em eventos antigos.
+    base_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bonus_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    breakdown: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
 
     gains: Mapped[list["AttributeGain"]] = relationship(
         back_populates="event", cascade="all, delete-orphan"

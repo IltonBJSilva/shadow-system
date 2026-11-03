@@ -5,7 +5,7 @@ os modelos do Hunter: nomes de atributos vêm de hunter.services.
 """
 from datetime import date, datetime
 
-from sqlalchemy import (CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, String, Table,
+from sqlalchemy import (CheckConstraint, Column, Date, DateTime, Float, ForeignKey, Integer, String, Table,
                         Text, UniqueConstraint)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,6 +36,10 @@ class QuestCategory(UserOwnedMixin, db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     color: Mapped[str] = mapped_column(String(9), default="#8b5cf6", nullable=False)
+    # Especialização (corpo, estudos, disciplina...): é o que sombras e equipamentos usam para dar bônus.
+    specialty: Mapped[str] = mapped_column(String(20), default="other", server_default="other", nullable=False)
+    # Ajuste do XP das missões desta categoria (0,8 a 1,2). Ver hunter/progression.py.
+    xp_multiplier: Mapped[float] = mapped_column(Float, default=1.0, server_default="1", nullable=False)
 
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_quest_categories_user_name"),)
 
@@ -61,6 +65,13 @@ class Quest(UserOwnedMixin, TimestampMixin, db.Model):
     # Todas as ocorrências de uma quest recorrente compartilham o series_id (id da primeira).
     series_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # XP por tempo: minutos estimados (definidos antes de concluir). Vazio = missão antiga (XP fixo).
+    estimated_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    actual_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)  # informado ao concluir
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # hora do servidor
+    # O que foi dado na conclusão (cópia do XpEvent, imutável): base, bônus.
+    xp_base: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    xp_bonus: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     category: Mapped[QuestCategory | None] = relationship()
     logs: Mapped[list["QuestLog"]] = relationship(
@@ -106,3 +117,24 @@ class QuestLog(UserOwnedMixin, db.Model):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False)
 
     quest: Mapped[Quest] = relationship(back_populates="logs")
+
+
+class ActivitySession(UserOwnedMixin, db.Model):
+    """Intervalo de tempo dedicado a uma missão concluída (hora do servidor).
+
+    É a base das "horas de atividade" do ranking: intervalos que se sobrepõem contam uma vez só e um
+    dia nunca passa de 24 h (ver quests.timeline). Cada linha nasce na conclusão e não é editada.
+    """
+
+    __tablename__ = "activity_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    quest_id: Mapped[int | None] = mapped_column(ForeignKey("quests.id", ondelete="SET NULL"), nullable=True, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    ended_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    minutes: Mapped[int] = mapped_column(Integer, nullable=False)  # tempo dedicado (real ou estimado)
+    credited_minutes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # minutos que renderam XP base
+    specialty: Mapped[str] = mapped_column(String(20), default="other", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False)
+
+    __table_args__ = (CheckConstraint("ended_at >= started_at", name="session_end_after_start"),)

@@ -14,8 +14,8 @@ from app.extensions import db
 from app.modules.hunter import progression
 from app.modules.hunter import services as hunter
 
-from . import constants, recurrence
-from .models import Quest, QuestCategory, QuestLog, category_attributes, quest_attributes
+from . import constants, recurrence, timeline
+from .models import ActivitySession, Quest, QuestCategory, QuestLog, category_attributes, quest_attributes
 
 
 # ---------- Tipos ----------
@@ -36,6 +36,9 @@ class QuestInput:
     completion_criteria: str = ""
     reward: str = ""
     attribute_ids: list[int] = field(default_factory=list)  # vazio = atributos da categoria
+    # Tempo estimado em minutos: define o XP (1 XP/min, ajustado). None = XP fixo antigo (xp_reward ou
+    # dificuldade). Os formulários sempre mandam; outros módulos podem mandar ou não.
+    estimated_minutes: int | None = None
 
 
 @dataclass(frozen=True)
@@ -230,11 +233,17 @@ def create_quest(data: QuestInput, *, series_id: int | None = None, note: str = 
 def update_quest(quest_id: int, data: QuestInput) -> Quest:
     _validate(data)
     quest = get_quest(quest_id)
+    if quest.status == "completed" and quest.estimated_minutes is None:
+        data.estimated_minutes = None  # missão antiga já concluída: continua com o XP fixo que recebeu
+    changes = _reward_changes(quest, data)
+    if quest.status == "completed" and changes:
+        # O XP já foi dado e é imutável: mudar tempo, dificuldade ou categoria depois não gera XP.
+        raise DomainError("Missão já concluída: tempo, dificuldade e categoria não mudam mais (o XP já foi registrado).")
     _apply(quest, data)
     if quest.recurrence != "none" and quest.series_id is None:
         quest.series_id = quest.id
     _set_attributes(quest, data.attribute_ids or category_attribute_ids(data.category_id))
-    _log(quest, "edited", "Quest editada")
+    _log(quest, "edited", ("Quest editada: " + ", ".join(changes)) if changes else "Quest editada")
     db.session.commit()
     return quest
 
@@ -244,37 +253,134 @@ def start_quest(quest_id: int) -> Quest:
     if quest.status != "pending":
         raise DomainError("Só quests pendentes podem ser iniciadas.")
     quest.status = "in_progress"
+    quest.started_at = time.now()
     _log(quest, "started", "Quest iniciada")
     db.session.commit()
     return quest
 
 
-def complete_quest(quest_id: int) -> hunter.AwardResult:
-    """Conclui a quest, concede XP/atributos e cria a próxima ocorrência se for recorrente."""
+def complete_quest(quest_id: int, actual_minutes: int | None = None) -> hunter.AwardResult:
+    """Conclui a quest, concede XP/atributos e cria a próxima ocorrência se for recorrente.
+
+    XP (sempre calculado aqui, nunca vindo do navegador):
+    1. base = tempo estimado (ou o XP fixo das missões antigas), com dificuldade e categoria;
+    2. limite diário de minutos creditados (ninguém tem mais que 24 h; o teto é 16 h);
+    3. repetição: a mesma missão concluída de novo no mesmo dia rende cada vez menos;
+    4. bônus de sombras/equipamentos por especialização, com limite por missão e por dia.
+    O resultado vira um XpEvent com o detalhamento ("por quê") e uma ActivitySession com o tempo.
+    """
     quest = get_quest(quest_id)
     if quest.status not in constants.ACTIVE_STATUSES:
         raise DomainError("Esta quest não está ativa; não pode ser concluída de novo.")
+    if actual_minutes is not None and not 1 <= actual_minutes <= 24 * 60:
+        raise DomainError("Tempo gasto deve ficar entre 1 minuto e 24 horas.")
+    now = time.now()
+    today = now.date()
+    specialty = quest.category.specialty if quest.category else "other"
+
+    quote = quote_quest(quest)
+    lines = list(quote.lines)
+    base = quote.base
+    estimated = progression.clamp_minutes(quest.estimated_minutes or progression.default_minutes(quest.difficulty))
+
+    # Minutos creditados hoje: acima do teto diário a missão não rende XP base.
+    credited = max(0, min(estimated, progression.DAILY_MINUTES_CAP - credited_minutes_on(today)))
+    if credited < estimated:
+        cut = base - int(round(base * credited / estimated))
+        if cut:
+            lines.append(progression.XpLine(
+                f"Limite diário de {progression.DAILY_MINUTES_CAP // 60} h creditadas", -cut, "limit"))
+            base -= cut
+
+    previous = _completions_today(quest, today)
+    factor = progression.repeat_factor(previous)
+    if factor < 1 and base:
+        cut = base - int(round(base * factor))
+        lines.append(progression.XpLine(f"Repetição no dia ({previous + 1}ª vez) ×{factor:g}", -cut, "limit"))
+        base -= cut
+
+    bonus, bonus_lines = 0, []
+    if base > 0:
+        bonus, bonus_lines = hunter.quote_bonuses(hunter.BonusContext(
+            specialty=specialty, base_xp=base, quest_type=quest.quest_type, minutes=estimated))
+    lines.extend(bonus_lines)
+    total = base + bonus
+
     quest.status = "completed"
-    quest.completed_at = time.now()
-    _log(quest, "completed", f"Concluída: +{quest.xp_reward} XP")
+    quest.completed_at = now
+    quest.actual_minutes = actual_minutes
+    quest.xp_base, quest.xp_bonus = base, bonus
+    _log(quest, "completed", f"Concluída: +{total} XP ({base} base + {bonus} bônus)")
+    spent = actual_minutes or estimated
+    db.session.add(ActivitySession(quest_id=quest.id, started_at=now - timedelta(minutes=spent), ended_at=now,
+                                   minutes=spent, credited_minutes=credited, specialty=specialty))
     result = hunter.award_xp(
-        quest.xp_reward,
+        total,
         source="quest",
         source_id=quest.id,
         description=f"Quest concluída: {quest.title}",
         attribute_ids=attribute_ids_for(quest),
-        attribute_points=progression.attribute_points_for_difficulty(quest.difficulty),
+        attribute_points=progression.attribute_points_for_difficulty(quest.difficulty) if base else 0,
+        base=base, bonus=bonus, breakdown=lines,
     )
     if quest.recurrence != "none":
         # Concluir uma ocorrência atrasada hoje conta como a de hoje: a próxima vem depois de hoje.
-        base = max(quest.due_date or time.today(), time.today())
-        _spawn_next(quest, recurrence.next_due(base, quest.recurrence))
+        base_day = max(quest.due_date or time.today(), time.today())
+        _spawn_next(quest, recurrence.next_due(base_day, quest.recurrence))
     db.session.flush()
     # Outros módulos (ex.: gamificação) reagem aqui, na mesma transação.
     result.extra.extend(events.publish("quest.completed", quest=_view(quest, time.today()),
                                        completed_at=quest.completed_at))
     db.session.commit()
     return result
+
+
+def quote_quest(quest: Quest) -> progression.XpQuote:
+    """XP base previsto (antes de concluir, sem repetição nem bônus), para mostrar na tela."""
+    if quest.estimated_minutes:
+        return progression.time_xp(quest.estimated_minutes, quest.difficulty,
+                                   quest.category.xp_multiplier if quest.category else 1.0)
+    return progression.XpQuote(quest.xp_reward, 0, (progression.XpLine("XP fixo da missão", quest.xp_reward),))
+
+
+def credited_minutes_on(day: date) -> int:
+    """Minutos que já renderam XP base no dia (para o teto diário)."""
+    start = datetime.combine(day, datetime.min.time())
+    return int(db.session.scalar(select(func.coalesce(func.sum(ActivitySession.credited_minutes), 0)).where(
+        ActivitySession.ended_at >= start, ActivitySession.ended_at < start + timedelta(days=1))) or 0)
+
+
+def activity_intervals(start: datetime, end: datetime) -> list[timeline.Interval]:
+    rows = db.session.execute(select(ActivitySession.started_at, ActivitySession.ended_at).where(
+        ActivitySession.ended_at > start, ActivitySession.started_at < end)).all()
+    return [(s, e) for s, e in rows]
+
+
+def activity_minutes(day: date) -> int:
+    """Minutos de atividade no dia (sobreposições contam uma vez, máximo 24 h)."""
+    start = datetime.combine(day, datetime.min.time())
+    return timeline.minutes_on(day, activity_intervals(start, start + timedelta(days=1)))
+
+
+def _completions_today(quest: Quest, today: date) -> int:
+    """Quantas vezes esta mesma missão (mesma série ou mesmo título) já foi concluída hoje."""
+    start = datetime.combine(today, datetime.min.time())
+    same_title = func.lower(Quest.title) == quest.title.lower()
+    same = or_(Quest.series_id == quest.series_id, same_title) if quest.series_id else same_title
+    return db.session.scalar(select(func.count(Quest.id)).where(
+        Quest.status == "completed", Quest.completed_at >= start, Quest.id != quest.id, same)) or 0
+
+
+def _reward_changes(quest: Quest, data: QuestInput) -> list[str]:
+    """O que muda o XP de uma missão (registrado no histórico; bloqueado depois de concluída)."""
+    changes = []
+    if data.estimated_minutes is not None and progression.clamp_minutes(data.estimated_minutes) != quest.estimated_minutes:
+        changes.append(f"tempo {quest.estimated_minutes or '-'}→{data.estimated_minutes} min")
+    if data.difficulty != quest.difficulty:
+        changes.append(f"dificuldade {quest.difficulty}→{data.difficulty}")
+    if (data.category_id or None) != quest.category_id:
+        changes.append("categoria")
+    return changes
 
 
 def cancel_quest(quest_id: int) -> Quest:
@@ -367,10 +473,10 @@ def create_suggested_categories() -> list[str]:
     existing = {name.lower() for name in db.session.scalars(select(QuestCategory.name))}
     ids_by_key = {a.key: a.id for a in hunter.list_attributes()}
     created = []
-    for name, color, keys in constants.SUGGESTED_CATEGORIES:
+    for name, color, keys, specialty in constants.SUGGESTED_CATEGORIES:
         if name.lower() in existing:
             continue
-        save_category(name, color, [ids_by_key[k] for k in keys if k in ids_by_key])
+        save_category(name, color, [ids_by_key[k] for k in keys if k in ids_by_key], specialty=specialty)
         created.append(name)
     return created
 
@@ -387,8 +493,11 @@ def category_attribute_ids(category_id: int | None) -> list[int]:
     ))
 
 
-def save_category(name: str, color: str, attribute_ids: list[int], category_id: int | None = None) -> QuestCategory:
+def save_category(name: str, color: str, attribute_ids: list[int], category_id: int | None = None, *,
+                  specialty: str | None = None, xp_multiplier: float | None = None) -> QuestCategory:
     name = name.strip()
+    if specialty is not None and specialty not in constants.SPECIALTIES:
+        raise DomainError("Especialização inválida.")
     clash = db.session.scalar(
         select(QuestCategory).where(func.lower(QuestCategory.name) == name.lower(),
                                     QuestCategory.id != (category_id or 0))
@@ -399,6 +508,12 @@ def save_category(name: str, color: str, attribute_ids: list[int], category_id: 
     if category is None:
         raise NotFoundError("Categoria não encontrada.")
     category.name, category.color = name, color
+    if specialty is not None:
+        category.specialty = specialty
+    elif category.id is None:
+        category.specialty = constants.LEGACY_SPECIALTY_BY_NAME.get(name.lower(), "other")
+    if xp_multiplier is not None:
+        category.xp_multiplier = progression.clamp_category_multiplier(xp_multiplier)
     db.session.add(category)
     db.session.flush()
     db.session.execute(delete(category_attributes).where(category_attributes.c.category_id == category.id))
@@ -444,7 +559,14 @@ def _apply(quest: Quest, data: QuestInput) -> None:
     quest.category_id = data.category_id or None
     quest.priority = data.priority
     quest.difficulty = data.difficulty
-    quest.xp_reward = data.xp_reward if data.xp_reward is not None else progression.xp_for_difficulty(data.difficulty, data.priority)
+    quest.estimated_minutes = progression.clamp_minutes(data.estimated_minutes) if data.estimated_minutes else None
+    if quest.estimated_minutes:
+        category = db.session.get(QuestCategory, quest.category_id) if quest.category_id else None
+        quest.xp_reward = progression.time_xp(quest.estimated_minutes, data.difficulty,
+                                              category.xp_multiplier if category else 1.0).base
+    else:
+        quest.xp_reward = (data.xp_reward if data.xp_reward is not None
+                           else progression.xp_for_difficulty(data.difficulty, data.priority))
     quest.due_date = data.due_date
     quest.recurrence = data.recurrence
     quest.completion_criteria = data.completion_criteria.strip()
@@ -464,7 +586,7 @@ def _spawn_next(quest: Quest, due: date) -> Quest:
         category_id=quest.category_id, priority=quest.priority, difficulty=quest.difficulty,
         xp_reward=quest.xp_reward, due_date=due, recurrence=quest.recurrence,
         completion_criteria=quest.completion_criteria, reward=quest.reward,
-        attribute_ids=attribute_ids_for(quest),
+        attribute_ids=attribute_ids_for(quest), estimated_minutes=quest.estimated_minutes,
     )
     next_quest = Quest()
     _apply(next_quest, data)

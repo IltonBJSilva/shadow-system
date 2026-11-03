@@ -8,7 +8,7 @@
 {{ ui.field(form.difficulty) }}
 {{ ui.field(form.due_date, type="date") }}
 {{ ui.field(form.recurrence) }}
-{{ ui.field(form.xp_reward) }}
+{{ ui.field(form.estimated_minutes, type="number", min="5", max="480", step="5", inputmode="numeric") }}
 {{ ui.field(form.reward, placeholder="Ex.: Episódio novo do anime") }}
 {{ ui.field(form.description, class="full") }}
 {{ ui.field(form.completion_criteria, class="full", placeholder="Ex.: 4 séries de supino + 20 min de cardio") }}

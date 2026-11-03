@@ -67,6 +67,7 @@ def import_pages(pages: list[NotionPage]) -> int:
             title=page.title[:160],
             quest_type="side",
             due_date=page.due,
+            estimated_minutes=30,
             description=f"Importada do Notion: {page.url}",
         ), note="Quest importada do Notion")
         done.add(page.id)

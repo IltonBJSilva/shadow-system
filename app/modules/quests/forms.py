@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import DateField, IntegerField, SelectField, SelectMultipleField, StringField, TextAreaField
+from wtforms import DateField, DecimalField, IntegerField, SelectField, SelectMultipleField, StringField, TextAreaField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 
 from app.modules.hunter import progression
@@ -20,10 +20,13 @@ class QuestForm(FlaskForm):
     category_id = SelectField("Categoria", coerce=_int_or_none, validate_choice=False)
     priority = SelectField("Prioridade", choices=list(constants.PRIORITIES.items()), default="medium")
     difficulty = SelectField("Dificuldade", coerce=int, default=3,
-                             choices=[(k, f"{v} ({progression.DIFFICULTY_XP[k]} XP)")
+                             choices=[(k, f"{v} (×{progression.DIFFICULTY_TIME_MULTIPLIER[k]:g})")
                                       for k, v in progression.DIFFICULTY_LABELS.items()])
-    xp_reward = IntegerField("XP (vazio = padrão: dificuldade x prioridade)",
-                             validators=[Optional(), NumberRange(min=0, max=100000)])
+    estimated_minutes = IntegerField(
+        "Tempo estimado (min)", default=30,
+        validators=[DataRequired(message="Informe o tempo estimado."),
+                    NumberRange(min=progression.MIN_MINUTES, max=progression.MAX_MINUTES)],
+        description="1 XP por minuto, ajustado pela dificuldade e pela categoria. Calculado pelo System.")
     due_date = DateField("Prazo", validators=[Optional()])
     recurrence = SelectField("Repetição", choices=list(constants.RECURRENCES.items()), default="none")
     completion_criteria = TextAreaField("Critérios de conclusão", validators=[Optional(), Length(max=1000)])
@@ -43,7 +46,7 @@ class QuestForm(FlaskForm):
             category_id=self.category_id.data,
             priority=self.priority.data,
             difficulty=self.difficulty.data,
-            xp_reward=self.xp_reward.data,
+            estimated_minutes=self.estimated_minutes.data,
             due_date=self.due_date.data,
             recurrence=self.recurrence.data,
             completion_criteria=self.completion_criteria.data or "",
@@ -57,6 +60,10 @@ class CategoryForm(FlaskForm):
     color = StringField("Cor", default="#8b5cf6",
                         validators=[DataRequired(), Regexp(r"^#[0-9a-fA-F]{6}$", message="Use #RRGGBB.")])
     attribute_ids = SelectMultipleField("Atributos que esta categoria desenvolve", coerce=int)
+    specialty = SelectField("Especialização (sombras e equipamentos dão bônus por ela)",
+                            choices=list(constants.SPECIALTIES.items()), default="other")
+    xp_multiplier = DecimalField("Ajuste de XP da categoria (0,8 a 1,2)", default=1.0, places=2,
+                                 validators=[Optional(), NumberRange(min=0.8, max=1.2)])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

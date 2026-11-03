@@ -592,3 +592,13 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   body::after, .gate, .boot-art { animation: none; }
 }
+
+/* ---------- XP por tempo: "por que recebi esse XP?" ---------- */
+.xp-why { margin-top: 1rem; border: 1px solid var(--panel-border); border-radius: var(--radius); padding: .5rem .8rem; }
+.xp-why summary { cursor: pointer; color: var(--blue); font-size: .9rem; }
+.xp-lines { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .25rem; }
+.xp-line { display: flex; justify-content: space-between; gap: 1rem; font-size: .88rem; }
+.xp-bonus { color: var(--cyan); }
+.xp-limit { color: var(--warning); }
+.complete-form { display: inline-flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.input-sm { width: 7.5rem; padding: .35rem .5rem; }

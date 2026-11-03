@@ -146,11 +146,11 @@ def test_create_and_complete_through_routes(client):
     })
     assert response.status_code == 302
     quest = services.list_quests("active")[0]
-    assert quest.title == "Revisar cálculo" and quest.xp_reward == 30  # 25 (fácil) x 1,2 (alta)
+    assert quest.title == "Revisar cálculo" and quest.xp_reward == 27  # 30 min (padrão do formulário) x 0,9 (fácil)
 
     response = client.post(f"/quests/{quest.id}/complete", data={"next": "/hunter/"})
     assert response.headers["Location"] == "/hunter/"
-    assert hunter.get_hunter().total_xp == 30
+    assert hunter.get_hunter().total_xp == 27
 
 
 def test_redirect_back_ignores_external_next(client):

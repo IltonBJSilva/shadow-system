@@ -47,6 +47,7 @@ def to_quest():
         quest_type="side",
         priority="medium",
         difficulty=2,
+        estimated_minutes=15,
         due_date=time.today(),
         description=f"E-mail de {sender}.\n{link if link.startswith('https://mail.google.com/') else ''}".strip(),
     ), note="Quest criada a partir de um e-mail")

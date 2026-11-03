@@ -3,6 +3,7 @@
 Outros módulos concedem XP chamando `award_xp` e leem o status com `get_status`.
 Eles nunca alteram as tabelas do Hunter diretamente.
 """
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Callable
@@ -128,6 +129,21 @@ def list_ranks() -> list[Rank]:
     return _ranks()
 
 
+def event_breakdown(event: XpEvent) -> list[progression.XpLine]:
+    """Linhas do "por quê" de um evento de XP (vazio para eventos antigos)."""
+    try:
+        return [progression.XpLine(label, int(amount), kind) for label, amount, kind in json.loads(event.breakdown or "[]")]
+    except (ValueError, TypeError):
+        return []
+
+
+def event_for(source: str, source_id: int) -> tuple[XpEvent, list[progression.XpLine]] | None:
+    """O evento de XP de uma origem (ex.: a conclusão de uma quest) e o seu detalhamento."""
+    event = db.session.scalar(select(XpEvent).where(XpEvent.source == source, XpEvent.source_id == source_id,
+                                                    XpEvent.amount > 0).order_by(XpEvent.id))
+    return (event, event_breakdown(event)) if event else None
+
+
 def recent_events(limit: int = 10, sources: list[str] | None = None) -> list[XpEvent]:
     query = select(XpEvent)
     if sources:
@@ -249,10 +265,55 @@ def _xp_per_day_since(start: date | None) -> list[tuple[date, int]]:
 
 # ---------- Escrita ----------
 
+# ---------- Bônus de XP (sombras, equipamentos, eventos) ----------
+
+@dataclass(frozen=True)
+class BonusContext:
+    """O que um provedor de bônus sabe sobre a missão concluída."""
+
+    specialty: str      # especialização da categoria (quests.constants.SPECIALTIES)
+    base_xp: int
+    quest_type: str
+    minutes: int
+
+
+# Cada provedor devolve [(rótulo, XP)] para a missão. Registrados por outros módulos (ex.: shadows).
+_BONUS_PROVIDERS: list[Callable[[BonusContext], list[tuple[str, int]]]] = []
+
+
+def register_bonus_provider(provider: Callable[[BonusContext], list[tuple[str, int]]]) -> None:
+    if provider not in _BONUS_PROVIDERS:
+        _BONUS_PROVIDERS.append(provider)
+
+
+def bonus_xp_today(today: date | None = None) -> int:
+    start = datetime.combine(today or time.today(), datetime.min.time())
+    return int(db.session.scalar(select(func.coalesce(func.sum(XpEvent.bonus_amount), 0)).where(
+        XpEvent.created_at >= start, XpEvent.created_at < start + timedelta(days=1), XpEvent.bonus_amount > 0)) or 0)
+
+
+def quote_bonuses(context: BonusContext) -> tuple[int, list[progression.XpLine]]:
+    """Soma os bônus pedidos e aplica os limites (por missão e por dia). Sempre no servidor."""
+    lines: list[progression.XpLine] = []
+    requested = 0
+    for provider in _BONUS_PROVIDERS:
+        for label, amount in provider(context):
+            if amount > 0:
+                requested += amount
+                lines.append(progression.XpLine(label, int(amount), "bonus"))
+    granted = progression.cap_bonus(context.base_xp, requested, bonus_xp_today())
+    if granted < requested:
+        lines.append(progression.XpLine("Limite de bônus (por missão/dia)", granted - requested, "limit"))
+    return granted, lines
+
+
 def award_xp(amount: int, *, source: str, description: str, source_id: int | None = None,
-             attribute_ids: list[int] | None = None, attribute_points: int = 1) -> AwardResult:
+             attribute_ids: list[int] | None = None, attribute_points: int = 1,
+             base: int | None = None, bonus: int | None = None,
+             breakdown: list[progression.XpLine] | None = None) -> AwardResult:
     """Concede (ou estorna, se amount < 0) XP e pontos de atributo, registrando no histórico.
 
+    base/bonus/breakdown: detalhamento guardado no evento (imutável), mostrado como "por quê".
     Não faz commit: quem chama decide, para que a quest/hábito e o XP sejam salvos juntos.
     """
     hunter = get_hunter()
@@ -261,7 +322,10 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
     applied = max(amount, -hunter.total_xp)
     hunter.total_xp += applied
 
-    event = XpEvent(amount=applied, source=source, source_id=source_id, description=description[:200])
+    event = XpEvent(amount=applied, source=source, source_id=source_id, description=description[:200],
+                    base_amount=base, bonus_amount=bonus,
+                    breakdown=json.dumps([[l.label, l.amount, l.kind] for l in breakdown], ensure_ascii=False)
+                    if breakdown else "")
     db.session.add(event)
 
     names: list[str] = []
