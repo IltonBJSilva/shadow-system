@@ -1,0 +1,39 @@
+{# Ficha do personagem (estilo menu de RPG): avatar no centro, slots ao redor e atributos de combate.
+   Espera `sheet` (character.services.Sheet), `catalog` e opcionalmente `avatar_url` e `rank_color`. #}
+<section class="panel system-window char-sheet" style="--rank-color: {{ rank_color or '#8b5cf6' }}">
+  <p class="system-label">[SYSTEM] PERSONAGEM · RANK {{ sheet.rank_code }}</p>
+  <div class="char-grid">
+    {% set left = ["helmet", "armor", "gloves", "boots"] %}
+    {% set right = ["weapon", "accessory", "ring", "amulet"] %}
+    <div class="char-slots">
+      {% for slot in left %}{% set owned = sheet.equipped.get(slot) %}
+        <div class="char-slot {% if owned %}is-filled{% endif %}" {% if owned %}style="--rarity: {{ owned.item.rarity_color }}" title="{{ owned.item.name }} · {{ owned.item.rarity_label }}"{% endif %}>
+          <span class="char-slot-icon">{{ owned.item.icon if owned else "＋" }}</span>
+          <span class="char-slot-label">{{ catalog.SLOTS[slot] }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="char-figure">
+      <div class="char-aura" aria-hidden="true"></div>
+      {% if avatar_url %}<img class="char-avatar" src="{{ avatar_url }}" alt="Avatar" referrerpolicy="no-referrer">
+      {% else %}<div class="char-avatar char-avatar-empty" aria-hidden="true">{{ sheet.rank_code }}</div>{% endif %}
+      <p class="char-rank mono">RANK {{ sheet.rank_code }}</p>
+    </div>
+    <div class="char-slots">
+      {% for slot in right %}{% set owned = sheet.equipped.get(slot) %}
+        <div class="char-slot {% if owned %}is-filled{% endif %}" {% if owned %}style="--rarity: {{ owned.item.rarity_color }}" title="{{ owned.item.name }} · {{ owned.item.rarity_label }}"{% endif %}>
+          <span class="char-slot-icon">{{ owned.item.icon if owned else "＋" }}</span>
+          <span class="char-slot-label">{{ catalog.SLOTS[slot] }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="char-stats">
+    {% for stat in sheet.stats %}
+      <div class="char-stat" title="{{ stat.meaning }}">
+        <span class="char-stat-name">{{ stat.name }}</span>
+        <span class="char-stat-value mono">{{ stat.total }}{% if stat.bonus %} <small class="char-stat-bonus">(+{{ stat.bonus }})</small>{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>

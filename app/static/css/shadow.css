@@ -632,3 +632,38 @@ body::after {
   .arena-row { grid-template-columns: auto 1fr auto; }
   .arena-stats { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ---------- Personagem (menu de RPG) ---------- */
+.char-grid { display: grid; grid-template-columns: 1fr minmax(120px, 1.2fr) 1fr; gap: .8rem; align-items: center; margin: .6rem 0 1rem; }
+.char-slots { display: grid; gap: .5rem; }
+.char-slot {
+  display: flex; align-items: center; gap: .5rem; padding: .45rem .55rem; border-radius: 8px; min-height: 48px;
+  border: 1px dashed rgba(148, 163, 184, 0.3); background: rgba(4, 7, 20, 0.6);
+}
+.char-slot.is-filled { border: 1px solid var(--rarity); box-shadow: inset 0 0 14px -6px var(--rarity), 0 0 10px -6px var(--rarity); }
+.char-slot-icon { font-size: 1.3rem; width: 1.6rem; text-align: center; opacity: .9; }
+.char-slot-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.char-figure { position: relative; display: grid; justify-items: center; gap: .4rem; }
+.char-aura { position: absolute; inset: 5% 10%; border-radius: 50%; filter: blur(18px);
+  background: radial-gradient(circle, var(--rank-color), transparent 70%); opacity: .45; animation: boot-pulse 3s ease-in-out infinite; }
+.char-avatar { position: relative; width: min(150px, 100%); aspect-ratio: 3 / 4; object-fit: cover; border-radius: 14px;
+  border: 2px solid var(--rank-color); box-shadow: 0 0 26px -6px var(--rank-color); }
+.char-avatar-empty { display: grid; place-items: center; font: 800 2.4rem var(--mono); color: var(--rank-color); background: rgba(4, 7, 20, 0.8); }
+.char-rank { position: relative; margin: 0; color: var(--rank-color); letter-spacing: .2em; font-size: .8rem; }
+.char-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+.char-stat { display: flex; justify-content: space-between; padding: .4rem .6rem; border-radius: 6px; background: rgba(56, 132, 255, 0.07); border: 1px solid rgba(56, 132, 255, 0.15); }
+.char-stat-name { font-size: .8rem; color: var(--muted); }
+.char-stat-bonus { color: var(--cyan); }
+.item-grid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.item-card { display: grid; gap: .35rem; align-content: start; padding: .75rem; border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--rarity) 45%, transparent); background: rgba(4, 7, 20, 0.55); }
+.item-card header { display: flex; gap: .6rem; align-items: center; }
+.item-card p { margin: 0; }
+.item-icon { font-size: 1.6rem; }
+.item-card.is-equipped { box-shadow: 0 0 0 1px var(--rarity), 0 0 18px -8px var(--rarity); }
+.item-card.is-locked { opacity: .7; }
+@media (max-width: 560px) {
+  .char-grid { grid-template-columns: 1fr 1fr; }
+  .char-figure { grid-column: 1 / -1; grid-row: 1; }
+  .char-stats { grid-template-columns: repeat(2, 1fr); }
+}

@@ -433,6 +433,19 @@ def activity_report(start: date, end: date) -> ActivityReport:
     )
 
 
+def credited_minutes_by_specialty() -> dict[str, int]:
+    """Minutos que renderam XP, somados por especialização (desde sempre). Base dos atributos de combate."""
+    rows = db.session.execute(select(ActivitySession.specialty, func.sum(ActivitySession.credited_minutes))
+                              .group_by(ActivitySession.specialty)).all()
+    return {specialty: int(total or 0) for specialty, total in rows}
+
+
+def recurring_completed_count() -> int:
+    """Missões recorrentes (diárias, semanais, mensais) concluídas: medida de regularidade."""
+    return db.session.scalar(select(func.count(Quest.id)).where(
+        Quest.status == "completed", Quest.recurrence != "none")) or 0
+
+
 def quests_for_period(kind: str) -> list[QuestView]:
     """Missões diárias ("daily") ou semanais ("weekly") ativas, para o perfil público."""
     rows = db.session.scalars(select(Quest).where(Quest.quest_type == kind, Quest.status.in_(constants.ACTIVE_STATUSES))

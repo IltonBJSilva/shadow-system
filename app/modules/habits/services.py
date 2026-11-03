@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, func, insert, select
 
 from app.core import events, time
 from app.core.errors import DomainError, NotFoundError
@@ -52,6 +52,11 @@ def list_habits(active: bool = True, today: date | None = None) -> list[HabitVie
 def best_current_streak(today: date | None = None) -> int:
     """Maior sequência atual entre os hábitos ativos (mostrado no dashboard)."""
     return max((h.current_streak for h in list_habits(today=today)), default=0)
+
+
+def checkins_count() -> int:
+    """Quantos dias de hábito já foram marcados (todos os hábitos): medida de consistência."""
+    return db.session.scalar(select(func.count(HabitLog.id))) or 0
 
 
 def best_streak_ever() -> int:

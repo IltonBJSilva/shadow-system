@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Personagem{% endblock %}
+{% block heading %}Personagem{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('hunter.profile') }}">Hunter</a>{% endblock %}
+{% block content %}
+{% include "hunter/_status_window.html" %}
+<div class="grid grid-2">
+  {% include "character/_sheet.html" %}
+  <section class="panel">
+    <div class="panel-header"><h2>Como cada atributo evolui</h2></div>
+    <table class="table">
+      <thead><tr><th>Atributo</th><th>Base</th><th>Bônus</th><th>Regra</th></tr></thead>
+      <tbody>
+      {% for stat in sheet.stats %}
+        <tr><td><strong>{{ stat.name }}</strong></td><td class="mono">{{ stat.base }}</td><td class="mono">+{{ stat.bonus }}</td><td class="small muted">{{ stat.meaning }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if sheet.bonus_sources %}
+      <div class="panel-header section-gap"><h2>Bônus ativos</h2></div>
+      <ul class="plain-list">
+        {% for label, values in sheet.bonus_sources %}
+          <li>{{ label }}: {% for key, points in values.items() %}+{{ points }} {{ catalog.STATS[key][0] }}{% if not loop.last %}, {% endif %}{% endfor %}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Missões diárias</h2><a class="small" href="{{ url_for('quests.index') }}">todas →</a></div>
+    {% for q in daily %}<p class="small"><a href="{{ url_for('quests.detail', quest_id=q.id) }}">⚔ {{ q.title }}</a> <span class="xp-tag">+{{ q.xp_reward }} XP</span></p>{% else %}{{ ui.empty("Nenhuma Daily Quest ativa.") }}{% endfor %}
+    <div class="panel-header section-gap"><h2>Missões semanais</h2></div>
+    {% for q in weekly %}<p class="small"><a href="{{ url_for('quests.detail', quest_id=q.id) }}">⚔ {{ q.title }}</a> <span class="xp-tag">+{{ q.xp_reward }} XP</span></p>{% else %}{{ ui.empty("Nenhuma Weekly Quest ativa.") }}{% endfor %}
+  </section>
+  <section class="panel">
+    <div class="panel-header"><h2>Estatísticas</h2></div>
+    <dl class="arena-stats">
+      <div><dt>Missões concluídas</dt><dd>{{ quest_stats.completed }}</dd></div>
+      <div><dt>Ativas</dt><dd>{{ quest_stats.active }}</dd></div>
+      <div><dt>Horas dedicadas</dt><dd>{{ sheet.metrics.total_hours }}</dd></div>
+      <div><dt>Dias evoluindo</dt><dd>{{ streak }}</dd></div>
+      <div><dt>Treinos</dt><dd>{{ sheet.metrics.workouts }}</dd></div>
+      <div><dt>Hábitos marcados</dt><dd>{{ sheet.metrics.checkins }}</dd></div>
+    </dl>
+    <div class="panel-header section-gap"><h2>Conquistas recentes</h2><a class="small" href="{{ url_for('hunter.titles') }}">todas →</a></div>
+    <div class="row">{% for t in achievements %}<span class="tag" title="{{ t.description }}">{{ t.icon }} {{ t.name }}</span>{% else %}{{ ui.empty("Nenhuma ainda.") }}{% endfor %}</div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><h2>Inventário ({{ sheet.owned | length }}/{{ catalog.EQUIPMENT | length }})</h2></div>
+  {% if sheet.owned %}
+  <div class="item-grid">
+    {% for owned in sheet.owned %}{% set item = owned.item %}
+      <article class="item-card {% if owned.equipped %}is-equipped{% endif %}" style="--rarity: {{ item.rarity_color }}">
+        <header><span class="item-icon">{{ item.icon }}</span>
+          <div><strong>{{ item.name }}</strong><br><span class="small" style="color: var(--rarity)">{{ item.rarity_label }}</span> <span class="muted small">· {{ item.slot_label }} · Rank {{ item.min_rank }}</span></div>
+        </header>
+        <p class="small muted">{{ item.description }}</p>
+        <p class="small">{% for key, points in item.stats.items() %}<span class="tag">+{{ points }} {{ catalog.STATS[key][0] }}</span> {% endfor %}
+          {% if item.xp_bonus %}<span class="tag tag-blue">+{{ item.xp_bonus }} XP em {{ item.specialty }}</span>{% endif %}</p>
+        {% set current = sheet.equipped.get(item.slot) %}
+        {% if current and current.item.key != item.key %}
+          <p class="small muted">Comparado ao equipado ({{ current.item.name }}):
+            {% for key in catalog.STATS %}{% set diff = item.stats.get(key, 0) - current.item.stats.get(key, 0) %}{% if diff %}<span class="{{ 'xp-bonus' if diff > 0 else 'xp-limit' }}">{{ "%+d" % diff }} {{ catalog.STATS[key][0] }}</span> {% endif %}{% endfor %}</p>
+        {% endif %}
+        <p class="small muted">Conquistado: {{ owned.source }}</p>
+        {% if owned.equipped %}
+          {{ ui.post_button(url_for('character.unequip', item_key=item.key), "Desequipar", "btn btn-ghost btn-sm") }}
+        {% elif owned.can_equip %}
+          {{ ui.post_button(url_for('character.equip', item_key=item.key), "Equipar", "btn btn-primary btn-sm") }}
+        {% else %}
+          <span class="tag tag-warning">Exige Rank {{ item.min_rank }}</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+  {% else %}{{ ui.empty("Conclua sua primeira missão para ganhar o primeiro item.") }}{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><h2>Itens bloqueados</h2></div>
+  <div class="item-grid">
+    {% for item, reqs in sheet.locked %}
+      <article class="item-card is-locked" style="--rarity: {{ item.rarity_color }}">
+        <header><span class="item-icon">🔒</span>
+          <div><strong>{{ item.name }}</strong><br><span class="small" style="color: var(--rarity)">{{ item.rarity_label }}</span> <span class="muted small">· {{ item.slot_label }} · Rank {{ item.min_rank }}</span></div>
+        </header>
+        <p class="small">{% for key, points in item.stats.items() %}<span class="tag">+{{ points }} {{ catalog.STATS[key][0] }}</span> {% endfor %}</p>
+        {% for metric, current, goal in reqs %}
+          <p class="small muted">{{ current }}/{{ goal }} {{ catalog.METRIC_LABELS.get(metric, metric) }}</p>
+          {{ ui.progress(current, goal) }}
+        {% endfor %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

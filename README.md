@@ -49,6 +49,7 @@ testadas.
 
 - [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
+- [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
@@ -199,6 +200,35 @@ Com ela:
   treinos e metas. Tokens, senhas e e-mails nunca são enviados.
 
 Detalhes em [docs/modules/architect.md](docs/modules/architect.md).
+
+## Personagem: atributos de combate e equipamentos
+
+Em **Personagem** fica a ficha completa do Hunter, no estilo dos menus de RPG: avatar no centro, os 8 slots de
+equipamento em volta, a janela de status (nível, XP, rank), os atributos de combate, as missões diárias e
+semanais, estatísticas e conquistas recentes.
+
+**Atributos de combate** (`character/services.py`, função `base_stats`). Cada um tem regra clara e vem de dados
+reais; equipamentos e sombras somam bônus por cima:
+
+| Atributo | Representa | Base |
+|---|---|---|
+| Ataque | Produtividade e execução | 1 por hora dedicada em missões + 1 a cada 10 missões |
+| Defesa | Consistência | 1 a cada 5 dias de hábito marcados + 1 por semana de sequência no melhor hábito |
+| Inteligência | Aprendizado | 1 por hora em Estudos/Faculdade + 1 a cada 2 h em Projetos/Carreira |
+| Disciplina | Regularidade | 1 a cada 5 missões recorrentes cumpridas + 1 por semana seguida evoluindo |
+| Vitalidade | Corpo e saúde | 1 por hora em missões de Corpo + 1 a cada 3 treinos |
+| Sabedoria | Experiência acumulada | 1 por nível alcançado + 1 por conquista |
+
+Os 10 atributos antigos (Strength, Focus...) continuam valendo nas missões e categorias; os de combate são a
+ficha do personagem.
+
+**Equipamentos** (`character/catalog.py`): 14 itens originais em 8 tipos (arma, armadura, capacete, luvas, botas,
+acessório, anel, amuleto) e 6 raridades (Comum a Mítico). Cada item tem rank mínimo para equipar, bônus de
+atributos, às vezes um bônus de XP numa especialização (ex.: Grimório do Conhecimento, +3 XP em Estudos), e uma
+meta real que o desbloqueia (ex.: 25 missões, 30 h de estudo, nível 40). Os itens chegam sozinhos ao inventário
+quando a meta é atingida (sem duplicar). Um item por slot; o inventário mostra a comparação com o item equipado,
+os bônus ativos e o progresso dos itens bloqueados. Bônus de XP de equipamento seguem os limites gerais de bônus.
+Para criar um item novo, inclua um `Item(...)` em `EQUIPMENT`.
 
 ## Arena dos Hunters
 
