@@ -667,3 +667,22 @@ body::after {
   .char-figure { grid-column: 1 / -1; grid-row: 1; }
   .char-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- Loja das Sombras ---------- */
+.arise { letter-spacing: .3em; color: #c4b5fd; text-shadow: 0 0 12px rgba(139, 92, 246, 0.8); }
+.shadow-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-bottom: 1rem; }
+.shadow-card {
+  position: relative; display: grid; gap: .45rem; align-content: start; padding: 1rem; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--rarity) 40%, transparent);
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--rarity) 18%, transparent), transparent 60%), rgba(4, 4, 14, 0.85);
+}
+.shadow-card h2 { margin: 0; color: var(--text); text-transform: none; font-size: 1.2rem; letter-spacing: .08em; }
+.shadow-card p { margin: 0; }
+.shadow-silhouette { display: grid; place-items: center; height: 92px; }
+.shadow-silhouette span { font-size: 3rem; filter: grayscale(1) brightness(.35) drop-shadow(0 0 12px var(--rarity)); }
+.shadow-card.is-recruited .shadow-silhouette span { filter: drop-shadow(0 0 16px var(--rarity)) saturate(.6); }
+.shadow-card.is-ready { box-shadow: 0 0 0 1px var(--rarity), 0 0 28px -8px var(--rarity); }
+.shadow-card.is-ready .shadow-silhouette span { animation: boot-pulse 1.8s ease-in-out infinite; filter: brightness(.8) drop-shadow(0 0 14px var(--rarity)); }
+.shadow-card.is-locked { opacity: .78; }
+.shadow-reqs { display: grid; gap: .25rem; padding: .5rem 0; }
+.arise-btn { letter-spacing: .2em; background: linear-gradient(90deg, #4c1d95, #2563eb); }

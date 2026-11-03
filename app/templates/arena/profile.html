@@ -44,6 +44,11 @@
         </div>
       {% endfor %}
     </div>
+    {% if card.extra.shadow_names or card.extra.equipment %}
+      <div class="panel-header section-gap"><h2>Equipamentos e sombras</h2></div>
+      <div class="row">{% for name in card.extra.equipment or [] %}<span class="tag">{{ name }}</span>{% endfor %}
+        {% for name in card.extra.shadow_names or [] %}<span class="tag tag-blue">{{ name }}</span>{% endfor %}</div>
+    {% endif %}
     {% if profile.attributes %}
       <div class="panel-header section-gap"><h2>Atributos</h2></div>
       <ul class="plain-list">{% for a in profile.attributes %}<li>{{ a.name }}: <strong>{{ a.points }}</strong></li>{% endfor %}</ul>

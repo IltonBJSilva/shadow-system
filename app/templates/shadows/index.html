@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Loja das Sombras{% endblock %}
+{% block heading %}Loja das Sombras{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('character.index') }}">Personagem</a>{% endblock %}
+{% block content %}
+<section class="panel system-window shadow-intro">
+  <p class="system-label">[SYSTEM] EXÉRCITO DAS SOMBRAS</p>
+  <p>Cada sombra representa uma habilidade que você desenvolveu de verdade. Cumpra os desafios, alcance o rank
+    mínimo e dê a ordem: <strong class="arise">ARISE</strong>. Sombras recrutadas dão bônus de atributo e de XP nas
+    missões da especialidade delas.</p>
+  <p class="muted small">Várias sombras da mesma especialidade: a mais forte vale inteira, cada outra vale ×{{ stack | string | replace(".", ",") }}.
+    Os bônus também respeitam o teto geral (até 50% do XP base e 30 XP por missão, 150 XP por dia).</p>
+</section>
+
+<div class="shadow-grid">
+  {% for st in states %}{% set s = st.shadow %}
+    <article class="shadow-card {% if st.recruited %}is-recruited{% elif st.available %}is-ready{% else %}is-locked{% endif %}" style="--rarity: {{ st.rarity_color }}">
+      <div class="shadow-silhouette" aria-hidden="true"><span>{{ s.icon }}</span></div>
+      <header>
+        <h2>{{ s.name }}</h2>
+        <p class="small muted">{{ s.title }} · <span style="color: var(--rarity)">{{ st.rarity_label }}</span> · Rank {{ s.min_rank }}+</p>
+      </header>
+      <p class="small">{{ s.lore }}</p>
+      <p class="small">
+        <span class="tag tag-blue">+{{ s.xp_bonus }} XP em {{ s.specialty_label }}</span>
+        {% for key, points in s.stats.items() %}<span class="tag">+{{ points }} {{ stat_names[key] }}</span> {% endfor %}
+      </p>
+      <div class="shadow-reqs">
+        <p class="small {{ 'xp-bonus' if st.rank_ok else 'xp-limit' }}">{{ "✓" if st.rank_ok else "✗" }} Rank {{ s.min_rank }} ou acima</p>
+        {% for metric, current, goal in st.progress %}
+          <p class="small muted">{{ "✓" if current >= goal else "·" }} {{ [current, goal] | min }}/{{ goal }} {{ labels.get(metric, metric) }}</p>
+          {{ ui.progress(current, goal) }}
+        {% endfor %}
+      </div>
+      {% if st.recruited %}
+        <p class="tag tag-success">No seu exército desde {{ st.recruited_at | date_br }}</p>
+      {% elif st.available %}
+        <form method="post" action="{{ url_for('shadows.recruit', shadow_key=s.key) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary btn-block arise-btn" type="submit">ARISE · recrutar {{ s.name }}</button>
+        </form>
+      {% else %}
+        <p class="tag tag-muted">Bloqueada</p>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-header"><h2>Histórico de recrutamento</h2></div>
+  {% for shadow, at, proof in history %}
+    <p class="small">{{ shadow.icon }} <strong>{{ shadow.name }}</strong> · {{ at | datetime_br }} <span class="muted mono">({{ proof }})</span></p>
+  {% else %}{{ ui.empty("Nenhuma sombra recrutada ainda. A primeira costuma ser Igris ou Iron.") }}{% endfor %}
+</section>
+{% endblock %}

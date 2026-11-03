@@ -50,6 +50,7 @@ testadas.
 - [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
 - [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
+- [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
 - [x] **Arena dos Hunters**: ranking com horas de atividade sem sobreposição, indicador de integridade e perfis públicos com privacidade
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
@@ -229,6 +230,28 @@ meta real que o desbloqueia (ex.: 25 missões, 30 h de estudo, nível 40). Os it
 quando a meta é atingida (sem duplicar). Um item por slot; o inventário mostra a comparação com o item equipado,
 os bônus ativos e o progresso dos itens bloqueados. Bônus de XP de equipamento seguem os limites gerais de bônus.
 Para criar um item novo, inclua um `Item(...)` em `EQUIPMENT`.
+
+## Loja das Sombras
+
+Em **Sombras**, cada sombra representa uma habilidade desenvolvida de verdade. Ela exige um **rank mínimo** e
+**desafios medidos com dados reais**; com os dois cumpridos aparece o botão **ARISE** para recrutar (o servidor
+confere tudo de novo, e cada sombra só pode ser recrutada uma vez por jogador). O recrutamento fica no histórico
+com o retrato dos desafios no momento.
+
+| Sombra | Rank | Desafios | Bônus de XP | Atributos |
+|---|---|---|---|---|
+| Igris | D | 20 recorrentes cumpridas + 7 dias seguidos evoluindo | +3 em Disciplina/Organização | +3 Disciplina, +1 Defesa |
+| Iron | D | 10 h de Corpo + 8 treinos | +5 em Corpo | +3 Vitalidade, +1 Defesa |
+| Tank | C | 30 h de Corpo + 14 dias seguidos num hábito | +4 em Corpo | +4 Defesa, +2 Vitalidade |
+| Tusk | C | 25 h de Estudos/Faculdade + 60 missões | +5 em Estudos/Faculdade | +4 Inteligência, +1 Sabedoria |
+| Beru | B | 30 dias seguidos evoluindo + 100 recorrentes + 120 h no total | +6 em Disciplina/Projetos/Carreira | +3 Ataque, +3 Disciplina |
+| Bellion | S | nível 70 + 400 missões + 300 h no total | +10 em Maestria | +5 em todos |
+
+**Bônus de XP das sombras** (`shadows/services.py`): aplicados sozinhos, no servidor, só nas missões da categoria
+com a especialização da sombra. Várias sombras na mesma especialização acumulam de forma controlada: a mais
+forte vale inteira e cada outra vale metade. Depois disso valem os tetos gerais (até 50% do XP base e 30 XP por
+missão, 150 XP por dia). O detalhamento da missão mostra XP base, cada bônus e os limites aplicados. Para criar
+uma sombra nova, inclua um `Shadow(...)` em `shadows/catalog.py`.
 
 ## Arena dos Hunters
 
