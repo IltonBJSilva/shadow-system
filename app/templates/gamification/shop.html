@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Loja do Tempo{% endblock %}
+{% block heading %}Loja do Tempo{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('gamification.failures') }}">Zona de Falha</a>
+  <a class="btn btn-ghost" href="{{ url_for('gamification.index') }}">Gamificação</a>
+{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] Aqui, não agir tem consequências. O tempo bem usado compra proteção.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-value">🪙 {{ balance }}</div><div class="kpi-label">Moedas</div></div>
+    <div class="kpi"><div class="kpi-value">🛡️ {{ shields }}/{{ max_shields }}</div><div class="kpi-label">Escudos guardados</div></div>
+    <div class="kpi"><div class="kpi-value">{{ earned_today }}/{{ cap }}</div><div class="kpi-label">Moedas ganhas hoje</div></div>
+  </div>
+  <p class="muted small">Cada missão concluída rende 1 moeda a cada 10 XP base (mínimo 1), até {{ cap }} por dia. Penalty Quests não rendem.</p>
+</section>
+
+<div class="item-grid">
+  {% for item in items.values() %}
+    <article class="item-card" style="--rarity: #38bdf8">
+      <header><span class="item-icon">{{ item.icon }}</span><div><strong>{{ item.name }}</strong><br><span class="small">🪙 {{ item.price }}</span></div></header>
+      <p class="small muted">{{ item.description }}</p>
+      <form method="post" action="{{ url_for('gamification.buy', item_key=item.key) }}" class="form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if item.key == "hourglass" %}
+          {% if postponable %}
+            <select class="input" name="quest_id" aria-label="Missão para adiar">{% for q in postponable %}<option value="{{ q.id }}">{{ q.title }} ({{ q.due_date | date_br }})</option>{% endfor %}</select>
+          {% else %}<p class="small muted">Nenhuma missão vence hoje ou amanhã.</p>{% endif %}
+        {% endif %}
+        <button class="btn btn-primary btn-sm" type="submit" {% if balance < item.price or (item.key == 'hourglass' and not postponable) or (item.key == 'shield' and shields >= max_shields) %}disabled{% endif %}>Comprar</button>
+      </form>
+    </article>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-header"><h2>Extrato de moedas</h2></div>
+  {% for t in statement %}
+    <p class="small"><span class="mono {{ 'fin-in' if t.amount > 0 else 'fin-out' }}">{{ "%+d" % t.amount }}</span> {{ t.reason }} <span class="muted">· {{ t.created_at | datetime_br }}</span></p>
+  {% else %}{{ ui.empty("Conclua missões para ganhar as primeiras moedas.") }}{% endfor %}
+</section>
+{% endblock %}

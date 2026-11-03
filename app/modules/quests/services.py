@@ -500,6 +500,22 @@ def _reward_changes(quest: Quest, data: QuestInput) -> list[str]:
     return changes
 
 
+def postpone_quest(quest_id: int, days: int = 1, max_days_ahead: int | None = None) -> Quest:
+    """Adia o prazo de uma missão ativa (Ampulheta da Loja do Tempo). Sem commit: quem chama salva."""
+    quest = get_quest(quest_id)
+    today = time.today()
+    if quest.status not in constants.ACTIVE_STATUSES or quest.due_date is None:
+        raise DomainError("Só missões ativas com prazo podem ser adiadas.")
+    if quest.quest_type == "emergency":
+        raise DomainError("Penalty Quests não podem ser adiadas.")
+    if max_days_ahead is not None and quest.due_date > today + timedelta(days=max_days_ahead):
+        raise DomainError("A Ampulheta só adia missões que vencem hoje ou amanhã.")
+    quest.due_date = max(quest.due_date, today) + timedelta(days=days)
+    _log(quest, "edited", f"Prazo adiado para {quest.due_date:%d/%m} (Ampulheta)")
+    db.session.flush()
+    return quest
+
+
 def cancel_quest(quest_id: int) -> Quest:
     quest = get_quest(quest_id)
     if quest.status not in constants.ACTIVE_STATUSES:

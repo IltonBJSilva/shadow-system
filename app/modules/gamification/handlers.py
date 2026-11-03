@@ -12,6 +12,7 @@ from app.modules.quests import services as quests
 from app.modules.quests.services import QuestInput
 
 from . import rules as r
+from . import time_shop
 from .services import get_rules, record_failure
 
 
@@ -30,10 +31,15 @@ def _bonus(amount: int, source: str, description: str, source_id: int | None = N
 @subscribe("quest.completed")
 def on_quest_completed(quest: quests.QuestView, completed_at: datetime):
     rules = get_rules()
-    if not rules.bonuses_enabled:
-        return []
-    day = completed_at.date()
     messages: list[tuple[str, str]] = []
+    if quest.quest_type != "emergency":
+        event = hunter.event_for("quest", quest.id)
+        coins = time_shop.earn_for_quest(quest.id, (event[0].base_amount or event[0].amount) if event else 0)
+        if coins:
+            messages.append((f"+{coins} moeda(s) para a Loja do Tempo.", "info"))
+    if not rules.bonuses_enabled:
+        return messages
+    day = completed_at.date()
 
     # Primeira quest concluída no dia
     if hunter.count_events_on(day, "quest") == 1:
@@ -63,6 +69,9 @@ def on_quest_missed(quest: quests.QuestView, today: date):
     if not rules.penalties_enabled:
         record_failure(quest, penalty_xp=0, penalty_quest_id=None)
         return [(f"'{quest.title}' não foi realizada. Registre o motivo na Zona de Falha.", "info")]
+    if time_shop.use_shield():
+        record_failure(quest, penalty_xp=0, penalty_quest_id=None)
+        return [(f"🛡️ Escudo do Tempo absorveu a punição de '{quest.title}'. Registre o motivo na Zona de Falha.", "info")]
     status = hunter.get_status()
     loss = r.penalty_amount(quest.xp_reward, rules.penalty_xp_percent, status.progress.xp_into_level)
     messages: list[tuple[str, str]] = []

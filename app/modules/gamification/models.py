@@ -27,3 +27,16 @@ class QuestFailure(UserOwnedMixin, db.Model):
     refunded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False, index=True)
     classified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class CoinTransaction(UserOwnedMixin, db.Model):
+    """Extrato de moedas da Loja do Tempo: + ganhas em missões, - gastas na loja. Saldo = soma."""
+
+    __tablename__ = "coin_transactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(80), nullable=False)
+    source: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False, index=True)

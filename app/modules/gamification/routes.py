@@ -4,7 +4,7 @@ from app.core.errors import DomainError
 
 from app.modules.hunter import services as hunter
 
-from . import bp, services
+from . import bp, services, time_shop
 from .rules import FAILURE_REASONS, Rules
 
 
@@ -64,3 +64,21 @@ def _rules_from_form() -> Rules:
         penalty_quest_enabled=form.get("penalty_quest_enabled") == "on",
         refund_reasons=[key for key in FAILURE_REASONS if key in form.getlist("refund_reasons")],
     )
+
+
+@bp.get("/loja")
+def shop():
+    return render_template("gamification/shop.html", balance=time_shop.balance(), items=time_shop.ITEMS,
+                           shields=time_shop.shields(), max_shields=time_shop.MAX_SHIELDS,
+                           statement=time_shop.statement(), postponable=time_shop.postponable(),
+                           earned_today=time_shop.earned_today(), cap=time_shop.DAILY_COIN_CAP)
+
+
+@bp.post("/loja/<item_key>")
+def buy(item_key: str):
+    try:
+        quest_id = request.form.get("quest_id", type=int)
+        flash(time_shop.buy(item_key, quest_id), "success")
+    except DomainError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("gamification.shop"))

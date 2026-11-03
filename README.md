@@ -52,6 +52,7 @@ testadas.
 - [x] **Personagem**: 6 atributos de combate com regra real, inventário com 14 equipamentos, raridades e bônus
 - [x] **Loja das Sombras**: Igris, Iron, Tank, Tusk, Beru e Bellion, com desafios reais, rank mínimo e bônus de XP com acúmulo controlado
 - [x] **App no celular (PWA)**, Como usar, Novidades, matriz de prioridades e comando de voz no Arquiteto
+- [x] **Loja do Tempo**: moedas por missão, Escudo do Tempo contra punição e Ampulheta para adiar prazo
 - [x] **Finanças**: contas, cartões, lançamentos, parcelas, recorrentes, orçamentos, metas, relatórios e missões financeiras (privado)
 - [x] **Avatar**: gerado da sua foto com estilos do System, moldura que evolui com o rank e foto original privada
 - [x] **Memórias**: álbum de fotos das atividades, sem metadados, com filtros e privacidade
@@ -165,6 +166,17 @@ falha vai para a **Zona de Falha**, onde você escolhe o motivo:
 | Limitação real | XP devolvido e Penalty Quest cancelada |
 
 Missões sem repetição e Penalty Quests não geram punição. Tudo pode ser desligado em Gamificação.
+
+### Loja do Tempo (moedas e proteção)
+
+Cada missão concluída rende **moedas**: 1 a cada 10 XP base (mínimo 1), até 50 por dia; Penalty Quests não rendem.
+Em **Loja do Tempo** elas viram proteção contra a Zona de Falha:
+
+- **Escudo do Tempo** (50 moedas): absorve a próxima punição (sem perda de XP e sem Penalty Quest). Até 3 guardados.
+  A falha continua registrada para você dizer o motivo.
+- **Ampulheta** (30 moedas): adia em 1 dia o prazo de uma missão que vence hoje ou amanhã.
+
+Toda moeda ganha ou gasta fica no extrato (`coin_transactions`); o saldo é a soma dele.
 
 ### Conquistas
 

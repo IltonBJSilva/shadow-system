@@ -20,6 +20,7 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("Hábitos", "habits.index", "✦"),
     ("Treinos", "training.index", "⚒"),
     ("Gamificação", "gamification.index", "⚡"),
+    ("Loja do Tempo", "gamification.shop", "⏳"),
     ("Finanças", "finance.index", "＄"),
     ("Calendário", "calendar.index", "▦"),
     ("Postagens", "buffer.index", "✎"),
@@ -45,9 +46,12 @@ def register(app: Flask) -> None:
 
     @app.context_processor
     def inject_globals():
+        current = request.endpoint or ""
+        exact = any(endpoint == current for _, endpoint, _ in NAV_ITEMS)
         nav = [
+            # Item ativo: a própria página, ou o módulo dela quando a página não tem item próprio no menu.
             {"label": label, "url": url_for(endpoint), "icon": icon,
-             "active": (request.endpoint or "").split(".")[0] == endpoint.split(".")[0]}
+             "active": endpoint == current if exact else current.split(".")[0] == endpoint.split(".")[0]}
             for label, endpoint, icon in NAV_ITEMS
             if endpoint in app.view_functions
         ]
