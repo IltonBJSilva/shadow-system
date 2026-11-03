@@ -56,6 +56,7 @@ class QuestView:
     category_color: str | None
     is_overdue: bool
     series_id: int | None = None  # ocorrências de uma recorrente compartilham o id da primeira
+    specialty: str = "other"      # especialização da categoria (bônus, feed)
 
 
 # ---------- Leitura ----------
@@ -714,4 +715,5 @@ def _view(quest: Quest, today: date) -> QuestView:
         category_color=quest.category.color if quest.category else None,
         is_overdue=bool(quest.due_date and quest.due_date < today and quest.status in constants.ACTIVE_STATUSES),
         series_id=quest.series_id,
+        specialty=quest.category.specialty if quest.category else "other",
     )

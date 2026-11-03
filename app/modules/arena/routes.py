@@ -1,7 +1,7 @@
 """Telas da Arena: ranking, perfil público e privacidade."""
 from flask import flash, redirect, render_template, request, url_for
 
-from . import bp, services
+from . import bp, feed, services
 
 
 @bp.get("/")
@@ -15,6 +15,16 @@ def index():
 @bp.get("/<int:user_id>")
 def profile(user_id: int):
     return render_template("arena/profile.html", profile=services.public_profile(user_id))
+
+
+@bp.get("/feed")
+def feed_page():
+    kind = request.args.get("tipo") or None
+    return render_template("arena/feed.html", items=feed.recent(kind=kind), kind=kind, kinds=FEED_KINDS)
+
+
+FEED_KINDS = {"quest": "Missões", "level": "Níveis", "rank": "Ranks", "title": "Conquistas", "shadow": "Sombras",
+              "item": "Equipamentos", "memory": "Memórias"}
 
 
 @bp.post("/privacidade")

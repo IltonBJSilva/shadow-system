@@ -271,6 +271,11 @@ mesmo horário, dezenas de missões de até 10 min num dia, a mesma missão repe
 de 15 s de intervalo (automação), edições depois de receber XP e XP por hora acima do esperado. Um dia de 24 h
 sozinho não derruba ninguém: pode ser erro de registro. Os motivos ficam visíveis, com texto neutro.
 
+**Feed dos Hunters** (Arena > Feed): missões concluídas (com XP e especialização), níveis, ranks,
+conquistas, sombras recrutadas e equipamentos conquistados de todos os Hunters, com filtro por tipo. Cada post só
+é gravado se o jogador permitir, e a permissão é conferida de novo na leitura: desligar esconde também os
+posts antigos. Penalty Quests não aparecem e fotos nunca são publicadas sozinhas.
+
 **Privacidade** (Arena > Minha privacidade): aparecer ou não no ranking, e mostrar ou não atributos, títulos das
 missões, conquistas, histórico, equipamentos/sombras e atividades no feed. Finanças, memórias privadas, e-mail,
 tokens e integrações nunca aparecem para outras pessoas.

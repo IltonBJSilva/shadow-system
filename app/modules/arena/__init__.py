@@ -7,4 +7,4 @@ from flask import Blueprint
 
 bp = Blueprint("arena", __name__, url_prefix="/arena")
 
-from . import routes  # noqa: E402,F401
+from . import feed, models, routes  # noqa: E402,F401

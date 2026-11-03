@@ -14,7 +14,7 @@ from app.core.errors import DomainError, NotFoundError
 from app.extensions import db
 
 from . import defaults, progression
-from app.core import time
+from app.core import events, time
 
 from .models import Attribute, AttributeGain, Hunter, Rank, Title, XpEvent
 
@@ -364,6 +364,7 @@ def award_xp(amount: int, *, source: str, description: str, source_id: int | Non
         after = progression.rank_for_level(new_level, ranks)
         if after is not None and after is not before:
             result.new_rank = _rank_view(after)
+        events.publish("hunter.leveled_up", level=new_level, rank=result.new_rank)
     return result
 
 
@@ -507,6 +508,8 @@ def check_titles() -> list[str]:
     for title in db.session.scalars(select(Title).where(Title.unlocked_at.is_(None))).all():
         if title.rule == "custom" or values.get(title.rule, -1) >= title.threshold:
             title.unlocked_at = time.now()
+            if title.rule != "custom":
+                events.publish("hunter.title_unlocked", name=title.name, icon=title.icon, reward_xp=title.reward_xp)
             label = title.name
             if title.reward_xp and achievement_rewards_enabled():
                 _grant_reward(title)

@@ -2,6 +2,7 @@
 {% block title %}Arena dos Hunters{% endblock %}
 {% block heading %}Arena dos Hunters{% endblock %}
 {% block actions %}
+  <a class="btn" href="{{ url_for('arena.feed_page') }}">Feed dos Hunters</a>
   <form method="get" class="inline-form">
     <label class="sr-only" for="sort">Ordenar por</label>
     <select class="input" id="sort" name="sort" data-autosubmit>

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Feed dos Hunters{% endblock %}
+{% block heading %}Feed dos Hunters{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('arena.index') }}">Arena</a>{% endblock %}
+{% block content %}
+<section class="panel system-window">
+  <p class="system-label">[SYSTEM] Atividades recentes · inspire-se na evolução dos outros</p>
+  <nav class="row feed-filters" aria-label="Filtrar">
+    <a class="tag {% if not kind %}tag-blue{% endif %}" href="{{ url_for('arena.feed_page') }}">Tudo</a>
+    {% for key, label in kinds.items() %}<a class="tag {% if kind == key %}tag-blue{% endif %}" href="{{ url_for('arena.feed_page', tipo=key) }}">{{ label }}</a>{% endfor %}
+  </nav>
+  <ol class="feed">
+    {% for item in items %}
+      <li class="feed-item feed-{{ item.kind }}" style="--rank-color: {{ item.rank_color }}">
+        <a href="{{ url_for('arena.profile', user_id=item.user_id) }}" class="feed-avatar" aria-label="Perfil de {{ item.name }}">
+          {% if item.avatar_url %}<img src="{{ item.avatar_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}{{ item.rank_code }}{% endif %}
+        </a>
+        <div class="feed-body">
+          <p><span class="feed-icon">{{ item.icon }}</span> <strong>{{ item.name }}</strong> {{ item.text }}
+            {% if item.memory_id %}<a class="small" href="{{ url_for('memories.public_view', memory_id=item.memory_id) }}">ver memória</a>{% endif %}</p>
+          <p class="small muted">
+            {{ item.created_at | datetime_br }}
+            {% if item.specialty %} · {{ item.specialty }}{% endif %}
+            {% if item.xp %} · <span class="xp-tag">+{{ item.xp }} XP</span>{% endif %}
+            {% if item.reward %} · 🎁 {{ item.reward }}{% endif %}
+          </p>
+        </div>
+      </li>
+    {% else %}
+      <li class="empty">Nenhuma atividade compartilhada ainda.</li>
+    {% endfor %}
+  </ol>
+  <p class="muted small">Você controla o que aparece aqui em Arena &gt; Minha privacidade. Fotos só entram quando você publica uma memória.</p>
+</section>
+{% endblock %}
