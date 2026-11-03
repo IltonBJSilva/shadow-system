@@ -1,7 +1,7 @@
 """Modelos e mixins compartilhados por todos os módulos."""
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.extensions import db
@@ -92,4 +92,22 @@ class StoredSecret(UserOwnedMixin, db.Model):
     user_id: Mapped[int] = _owner_pk_column()
     name: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, onupdate=time.now, nullable=False)
+
+
+class MediaAsset(db.Model):
+    """Áudios e imagens do System (música, voz de entrada, fundos), enviados pelo dono pela tela.
+
+    Ficam no banco e não no repositório: o repositório é público e esses arquivos podem ter direitos
+    autorais (trilha e cenas do anime). São do sistema inteiro, não de um usuário (sem user_id).
+    """
+
+    __tablename__ = "media_assets"
+
+    slot: Mapped[str] = mapped_column(String(30), primary_key=True)
+    filename: Mapped[str] = mapped_column(String(200), nullable=False)
+    mimetype: Mapped[str] = mapped_column(String(60), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    etag: Mapped[str] = mapped_column(String(40), nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, onupdate=time.now, nullable=False)

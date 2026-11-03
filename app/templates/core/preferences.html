@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Configurações{% endblock %}
+{% block heading %}Configurações{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <section class="panel system-window" aria-labelledby="audio-title">
+    <p class="system-label">[SYSTEM] Áudio</p>
+    <h2 id="audio-title" class="sr-only">Áudio</h2>
+    <p class="muted small">Vale para este aparelho e fica salvo no navegador. Tudo funciona normalmente com o som desligado.</p>
+    <div class="form audio-settings">
+      <div class="field">
+        <label class="check"><input type="checkbox" data-audio-pref="music"> Música de fundo</label>
+        {% if not media_versions.music %}<small class="muted">Nenhuma música cadastrada ainda{% if is_owner %} (envie em Mídias do System){% endif %}.</small>{% endif %}
+      </div>
+      <div class="field">
+        <label class="label" for="music-volume">Volume da música <span class="mono" data-audio-value></span></label>
+        <input class="range" id="music-volume" type="range" min="0" max="100" step="5" data-audio-pref="musicVolume">
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" data-audio-pref="sfx"> Efeitos sonoros (missões, level up, conquistas, alertas)</label>
+      </div>
+      <div class="field">
+        <label class="label" for="sfx-volume">Volume dos efeitos <span class="mono" data-audio-value></span></label>
+        <input class="range" id="sfx-volume" type="range" min="0" max="100" step="5" data-audio-pref="sfxVolume">
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" data-audio-pref="entrance"> Áudio de entrada (“Se esse sistema tá querendo me usar…”)</label>
+        <small class="muted">Toca uma vez por sessão do navegador, ao entrar no System. Se o navegador bloquear, toca no primeiro toque na tela.</small>
+      </div>
+      <div class="row">
+        <button class="btn btn-sm" type="button" data-audio-test="achievement">Testar efeito</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Inicialização do System</h2></div>
+    <form method="post" class="form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="muted small">A animação de abertura com o manifesto. Pula com um clique ou Esc.</p>
+      {% for key, label in boot_modes.items() %}
+        <label class="check"><input type="radio" name="boot_mode" value="{{ key }}" {% if key == current_boot %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Salvar</button></div>
+    </form>
+    <div class="panel-header section-gap"><h2>Atalhos</h2></div>
+    <ul class="link-list">
+      <li><a href="{{ url_for('integrations.index') }}">Integrações</a> (Google, Gmail, Notion, Buffer)</li>
+      <li><a href="{{ url_for('whatsapp.index') }}">WhatsApp</a> (resumo do dia no seu número)</li>
+      <li><a href="{{ url_for('dashboard.settings') }}">Widgets do Dashboard</a></li>
+      {% if is_owner %}<li><a href="{{ url_for('security.testers') }}">Usuários de teste</a></li>{% endif %}
+    </ul>
+  </section>
+</div>
+
+{% if media_slots %}
+<section class="panel" id="midias">
+  <div class="panel-header"><h2>Mídias do System</h2></div>
+  <p class="muted small">Só você (dono) vê esta parte. Os arquivos ficam no banco, fora do repositório (que é público),
+    e valem para todos os usuários. Áudio até {{ max_mb.audio }} MB (mp3 recomendado), imagem até {{ max_mb.image }} MB (webp recomendado).
+    Sem arquivo, o System usa o som sintetizado e o visual padrão.</p>
+  <div class="media-grid">
+    {% for slot, asset in media_slots %}
+      <article class="media-card">
+        <header>
+          <strong>{{ slot.label }}</strong>
+          {% if asset %}<span class="tag tag-success">{{ (asset.size / 1024) | round | int }} KB</span>{% else %}<span class="tag tag-muted">vazio</span>{% endif %}
+        </header>
+        <p class="muted small">{{ slot.hint }}</p>
+        {% if asset %}
+          <p class="small mono media-name">{{ asset.filename }}</p>
+          {% if slot.kind == "audio" %}
+            <audio controls preload="none" src="{{ url_for('core.media_file', slot=slot.key, v=asset.etag[:10]) }}"></audio>
+          {% else %}
+            <img class="media-thumb" loading="lazy" alt="" src="{{ url_for('core.media_file', slot=slot.key, v=asset.etag[:10]) }}">
+          {% endif %}
+        {% endif %}
+        <form method="post" action="{{ url_for('core.upload_media', slot=slot.key) }}" enctype="multipart/form-data" class="form media-upload">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="input" type="file" name="file" required accept="{{ 'audio/*' if slot.kind == 'audio' else 'image/*' }}" aria-label="Arquivo para {{ slot.label }}">
+          <button class="btn btn-sm btn-primary" type="submit">{{ "Trocar" if asset else "Enviar" }}</button>
+        </form>
+        {% if asset %}{{ ui.post_button(url_for('core.delete_media', slot=slot.key), "Remover", "btn btn-ghost btn-sm") }}{% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

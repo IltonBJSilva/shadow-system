@@ -31,7 +31,7 @@
       <p class="system-label">[SYSTEM] Pronto para conectar</p>
       <p>O Shadow System vai pedir permissão para ler e editar eventos do seu Google Calendar.
         O token fica só neste computador, em <span class="mono">instance/google_token.json</span>.</p>
-      <a class="btn btn-primary" href="{{ url_for('google_calendar.connect') }}">Conectar conta Google</a>
+      <a class="btn btn-primary" data-turbo="false" href="{{ url_for('google_calendar.connect') }}">Conectar conta Google</a>
     </section>
   {% else %}
     <section class="panel system-window">

@@ -48,6 +48,7 @@ testadas.
 ### Implementado
 
 - [x] **Inicialização do System**: sequência de abertura com o manifesto, sons sintetizados, pula com clique ou Esc; uma vez por sessão, sempre no Dashboard ou desligada
+- [x] **Áudio do System**: voz de entrada, música de fundo que não reinicia entre páginas, vozes de level up/conquista/falha e controles de volume
 - [x] **Usuários de teste**: convite por link (sem Google), cada conta com os próprios dados isolados
 - [x] **O Arquiteto**: mentor que analisa os dados reais (desempenho por área, falhas, sequências, atributos parados, metas), indica o que fazer primeiro e sugere missões para você aceitar; com uma chave da Anthropic, conversa e monta planos com o Claude
 - [x] **Metas**: registre objetivos ("Passar em Cálculo II"); o Arquiteto sugere o próximo passo e uma sessão semanal
@@ -191,6 +192,63 @@ Com ela:
 
 Detalhes em [docs/modules/architect.md](docs/modules/architect.md).
 
+## Áudio e visual do System
+
+### Como funciona o áudio
+
+Tudo passa por um só lugar, `app/static/js/sounds.js` (`window.ShadowAudio`):
+
+| Camada | O que é | Quando toca |
+|---|---|---|
+| **Áudio de entrada** | Voz "Se esse sistema tá querendo me usar, então eu vou usar o sistema." | Uma vez por sessão do navegador, ao entrar no System (junto da animação de inicialização). Navegar entre páginas não repete. |
+| **Música de fundo** | DARK ARIA (SawanoHiroyuki[nZk]:XAI) em loop | Depois da voz de entrada. Continua tocando entre as páginas sem reiniciar. |
+| **Vozes de eventos** | "Eu me esforcei tanto pra chegar até aqui!" (LEVEL UP), "Não é coincidência, nem boa vontade." (conquista), "Se eu tivesse mais uma chance..." (Zona de Falha) | Junto da janela do evento. A música abaixa enquanto a voz toca. |
+| **Efeitos sintetizados** | Tons curtos gerados na hora (sem arquivo) | Missão concluída, bônus, notificação, abertura de painel, erro. Também substituem as vozes quando não há arquivo. |
+
+- **Autoplay:** os navegadores bloqueiam som antes de uma interação. O que for bloqueado toca no primeiro toque
+  ou tecla. Depois do login, como você clicou em *Entrar*, a entrada normalmente toca na hora.
+- **A música não reinicia:** a navegação usa o [Turbo](https://turbo.hotwired.dev/) (`static/js/vendor/`), que troca
+  só o conteúdo da página sem recarregar a janela. Num recarregamento completo (F5), a música continua do ponto
+  em que parou.
+- **Sem sobreposição:** uma voz nova interrompe a anterior, e o mesmo efeito não toca duas vezes seguidas.
+- **iPhone/iPad:** o volume passa por um GainNode da Web Audio API, porque lá o volume do `<audio>` é só leitura.
+
+### Configurações de áudio
+
+Em **Configurações** (menu lateral) cada pessoa controla, neste aparelho: música de fundo (liga/desliga), volume
+da música, efeitos sonoros (liga/desliga), volume dos efeitos e áudio de entrada (liga/desliga). Fica salvo no
+navegador (`localStorage`). Atalhos no menu lateral: **♫ Música** e **🔊 Efeitos**. Com tudo desligado, o sistema
+funciona igual, em silêncio.
+
+### Mídias do System (onde ficam os arquivos)
+
+Os áudios e as imagens **não estão no repositório**: ele é público e a trilha e as cenas do anime têm direitos
+autorais. Eles ficam no banco (tabela `media_assets`) e são enviados pelo dono em
+**Configurações > Mídias do System**. Todos os usuários ouvem e veem os mesmos arquivos; só a imagem da tela de
+acesso pode ser lida sem login.
+
+| Slot | Uso | Arquivo usado (extraído dos vídeos/imagens locais) |
+|---|---|---|
+| `entrance` | Voz de entrada | `entrance.mp3` (80 kbps mono, ~47 KB) |
+| `music` | Música de fundo | `music.mp3` (DARK ARIA, 128 kbps, ~2,1 MB) |
+| `levelup` | LEVEL UP | `levelup.mp3` (~33 KB) |
+| `achievement` | Conquista / recompensa | `achievement.mp3` (~32 KB) |
+| `penalty` | Zona de Falha | `penalty.mp3` (~44 KB) |
+| `boot` | Arte da inicialização | `boot.webp` (~35 KB) |
+| `background` | Arte discreta atrás da janela de status | `background.webp` (~50 KB) |
+| `login` | Arte do login e do convite | `login.webp` (~74 KB) |
+
+Para importar uma pasta de uma vez (nomes iguais aos slots): `flask --app wsgi media import instance/media`.
+`flask --app wsgi media list` mostra o que está cadastrado. Sem arquivo num slot, o System usa o som
+sintetizado e o visual em CSS (portal, névoa de sombras, cantos de HUD).
+
+### Adicionar um efeito sonoro novo
+
+1. Inclua o slot em `SLOTS` (`app/core/media.py`), com rótulo, tipo `audio` e descrição.
+2. Se for uma voz de evento, inclua o nome em `VOICE_SLOTS` (`sounds.js`); se for um tom curto, crie a função em `SYNTH`.
+3. Toque com `ShadowAudio.play("<slot>")` (ou mande uma mensagem flash da categoria correspondente).
+4. Envie o arquivo em Configurações > Mídias do System.
+
 ## Screenshots
 
 > Ainda sem capturas. Quando houver, ficarão em `docs/images/` e serão referenciadas aqui com caminhos
@@ -316,6 +374,7 @@ responsabilidades separadas.
 | HTML, CSS e JavaScript puros | Interface, sem framework de frontend nem CDN; sons sintetizados com Web Audio |
 | pytest | Testes |
 | waitress | Servidor WSGI (Windows e Render) |
+| Turbo 8.0.12 (JS, MIT, em `app/static/js/vendor/`) | Navegação sem recarregar a página, para a música de fundo não reiniciar |
 
 ```
                  ┌──────────────── app (Flask) ─────────────────┐

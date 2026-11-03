@@ -19,6 +19,7 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("Calendário", "calendar.index", "▦"),
     ("Postagens", "buffer.index", "✎"),
     ("Integrações", "integrations.index", "⇄"),
+    ("Configurações", "core.preferences", "⚙"),
 ]
 
 
@@ -45,13 +46,15 @@ def register(app: Flask) -> None:
             for label, endpoint, icon in NAV_ITEMS
             if endpoint in app.view_functions
         ]
-        from . import experience
+        from . import experience, media
 
         try:
             boot = experience.boot_mode()
+            versions = media.versions()
         except Exception:  # noqa: BLE001 (banco ainda sem tabelas: a página abre sem a animação)
             from app.extensions import db
 
             db.session.rollback()
-            boot = "off"
-        return {"nav_items": nav, "today": time.today(), "boot_mode": boot, "manifesto": experience.MANIFESTO}
+            boot, versions = "off", {}
+        return {"nav_items": nav, "today": time.today(), "boot_mode": boot, "manifesto": experience.MANIFESTO,
+                "media_versions": versions}

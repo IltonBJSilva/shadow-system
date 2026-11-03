@@ -18,8 +18,9 @@ from .tenancy import OWNER_ID
 
 bp = Blueprint("security", __name__)
 
-PUBLIC_ENDPOINTS = {"security.login", "security.invite", "static", "core.health", "core.manifest",
-                    "core.service_worker"}
+# core.media confere o login por dentro: só a imagem da tela de acesso é pública.
+PUBLIC_ENDPOINTS = {"security.login", "security.invite", "static", "core.health", "core.media_file",
+                    "core.manifest", "core.service_worker"}
 
 # Política de conteúdo: scripts e estilos só do próprio app. 'unsafe-inline' em estilos é necessário
 # para larguras de barras de progresso definidas no template (style="width: 40%").
@@ -163,7 +164,7 @@ def invite(code: str):
             flash(str(exc), "error")
             return render_template("security/invite.html", invited=invited)
         _start_session(user)
-        flash("Acesso liberado. Bem-vindo ao System, Hunter.", "levelup")
+        flash("Acesso liberado. Bem-vindo ao System, Hunter.", "info")
         return redirect("/")
     return render_template("security/invite.html", invited=invited)
 

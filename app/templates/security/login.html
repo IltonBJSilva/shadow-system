@@ -2,7 +2,12 @@
 {% block title %}Entrar{% endblock %}
 {% block heading %}Acesso{% endblock %}
 {% block content %}
-  <section class="panel system-window narrow">
+<div class="access-page {% if media_versions.login %}with-art{% endif %}">
+  {% if media_versions.login %}
+    <div class="access-art" role="img" aria-label="Arte do System" style="background-image: url('{{ url_for('core.media_file', slot='login', v=media_versions.login) }}')"></div>
+  {% endif %}
+  <section class="panel system-window">
+    <div class="gate" aria-hidden="true"></div>
     <p class="system-label">[SYSTEM] Identifique-se, Hunter.</p>
     <form method="post" class="form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -17,4 +22,5 @@
       <button class="btn btn-primary btn-block" type="submit">Entrar</button>
     </form>
   </section>
+</div>
 {% endblock %}

@@ -1,6 +1,9 @@
 {# Janela de status do Hunter. Espera `status` (hunter.services.HunterStatus). Usada no perfil e no dashboard. #}
 {% import "partials/_macros.html" as ui %}
 <section class="panel system-window status-window">
+  {% if media_versions.background %}
+    <div class="status-art" aria-hidden="true" style="background-image: url('{{ url_for('core.media_file', slot='background', v=media_versions.background) }}')"></div>
+  {% endif %}
   <p class="system-label">[SYSTEM] STATUS</p>
   <div class="status-header">
     {% if status.avatar_url %}

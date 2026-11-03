@@ -1,4 +1,4 @@
-"""Comandos de manutenção: `flask backup create` e `flask backup list`."""
+"""Comandos de manutenção: `flask backup create|list` e `flask media import|list`."""
 import shutil
 from pathlib import Path
 
@@ -9,6 +9,8 @@ from . import time
 
 
 def register(app: Flask) -> None:
+    register_media(app)
+
     @app.cli.group("backup")
     def backup_cli():
         """Backup do banco de dados."""
@@ -28,6 +30,29 @@ def register(app: Flask) -> None:
             click.echo(file.name)
         if not files:
             click.echo("Nenhum backup ainda.")
+
+
+def register_media(app: Flask) -> None:
+    @app.cli.group("media")
+    def media_cli():
+        """Mídias do System (áudios e imagens guardados no banco)."""
+
+    @media_cli.command("import")
+    @click.argument("folder", type=click.Path(exists=True, file_okay=False, path_type=Path))
+    def import_media(folder: Path):
+        """Importa <slot>.<ext> da pasta (entrance.mp3, music.mp3, boot.webp...)."""
+        from . import media
+
+        saved = media.import_folder(folder)
+        click.echo(f"Importados: {', '.join(saved) if saved else 'nenhum (nomes devem ser ' + ', '.join(media.SLOTS) + ')'}")
+
+    @media_cli.command("list")
+    def list_media():
+        """Mostra o que está cadastrado em cada slot."""
+        from . import media
+
+        for slot, asset in media.listing():
+            click.echo(f"{slot.key:12} {asset.filename + f' ({asset.size // 1024} KB)' if asset else '-'}")
 
 
 def create_sqlite_backup() -> Path:

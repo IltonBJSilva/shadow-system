@@ -1,5 +1,6 @@
-// Comportamentos pequenos da interface. Sem dependências externas.
-document.addEventListener("DOMContentLoaded", () => {
+// Comportamentos pequenos da interface. Sem dependências externas além do Turbo (navegação sem recarregar).
+// initPage roda a cada página: na primeira carga e em cada navegação do Turbo (turbo:load).
+function initPage() {
   // Menu lateral no celular
   const sidebar = document.getElementById("sidebar");
   document.querySelectorAll("[data-toggle-sidebar]").forEach((button) => {
@@ -30,21 +31,12 @@ document.addEventListener("DOMContentLoaded", () => {
     flash.addEventListener("click", () => flash.classList.add("is-hidden"));
   });
 
-  // Botão de som liga/desliga
-  const soundToggle = document.querySelector("[data-sound-toggle]");
-  if (soundToggle && window.ShadowSound) {
-    const render = () => { soundToggle.textContent = window.ShadowSound.enabled() ? "🔊 Som ligado" : "🔇 Som desligado"; };
-    render();
-    soundToggle.addEventListener("click", () => {
-      window.ShadowSound.setEnabled(!window.ShadowSound.enabled());
-      render();
-      window.ShadowSound.play("notify");
-    });
-  }
+  // Controles de áudio (menu lateral e Configurações) mostram o estado atual.
+  renderAudioControls();
 
   // Filtros que enviam o formulário ao mudar (evita JS inline, bloqueado pela CSP)
   document.querySelectorAll("[data-autosubmit]").forEach((input) => {
-    input.addEventListener("change", () => input.form.submit());
+    input.addEventListener("change", () => (input.form.requestSubmit ? input.form.requestSubmit() : input.form.submit()));
   });
 
   // Abre/fecha painéis com data-toggle="id-do-alvo" (formulários recolhíveis)
@@ -75,6 +67,60 @@ document.addEventListener("DOMContentLoaded", () => {
     items().forEach((item) => item.addEventListener("change", refresh));
     refresh();
   });
+}
+
+document.addEventListener("turbo:load", initPage);
+document.addEventListener("DOMContentLoaded", () => { if (!window.Turbo) initPage(); });
+
+// ---------- Áudio: botões [data-audio-toggle="music|sfx|entrance"] e controles [data-audio-pref] ----------
+const AUDIO_LABELS = {
+  music: ["♫ Música ligada", "♫ Música desligada"],
+  sfx: ["🔊 Efeitos ligados", "🔇 Efeitos desligados"],
+  entrance: ["Voz de entrada ligada", "Voz de entrada desligada"],
+};
+
+function renderAudioControls() {
+  if (!window.ShadowAudio) return;
+  const prefs = window.ShadowAudio.prefs();
+  document.querySelectorAll("[data-audio-toggle]").forEach((button) => {
+    const name = button.dataset.audioToggle;
+    const labels = AUDIO_LABELS[name];
+    button.setAttribute("aria-pressed", prefs[name] ? "true" : "false");
+    if (labels && !button.dataset.keepLabel) button.textContent = prefs[name] ? labels[0] : labels[1];
+  });
+  document.querySelectorAll("[data-audio-pref]").forEach((input) => {
+    const value = prefs[input.dataset.audioPref];
+    if (input.type === "checkbox") input.checked = Boolean(value);
+    else input.value = Math.round(value * 100);
+    const output = input.closest(".field") && input.closest(".field").querySelector("[data-audio-value]");
+    if (output) output.textContent = `${Math.round(value * 100)}%`;
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-audio-toggle]");
+  if (!button || !window.ShadowAudio) return;
+  const name = button.dataset.audioToggle;
+  window.ShadowAudio.setPref(name, !window.ShadowAudio.prefs()[name]);
+  if (name === "sfx" && window.ShadowAudio.prefs().sfx) window.ShadowAudio.play("notify");
+});
+
+document.addEventListener("input", (event) => {
+  const input = event.target.closest("[data-audio-pref]");
+  if (!input || !window.ShadowAudio) return;
+  window.ShadowAudio.setPref(input.dataset.audioPref, input.type === "checkbox" ? input.checked : Number(input.value) / 100);
+});
+
+document.addEventListener("change", (event) => {
+  const input = event.target.closest('[data-audio-pref="sfxVolume"]');
+  if (input && window.ShadowAudio) window.ShadowAudio.play("notify"); // amostra do novo volume
+});
+
+document.addEventListener("shadow:audio-prefs", renderAudioControls);
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-audio-test]");
+  if (button && window.ShadowAudio) window.ShadowAudio.play(button.dataset.audioTest);
 });
 
 // Copiar link (convites): botão [data-copy] copia o campo [data-copy-source] do mesmo bloco.
