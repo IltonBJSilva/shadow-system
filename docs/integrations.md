@@ -138,8 +138,7 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
 
 - Escolha os canais, um **texto padrão** e, se quiser, um **texto por rede** (ex.: LinkedIn mais longo,
   Instagram com emojis e hashtags), como nos posts de `E:\Repositorio\postagens`.
-- **Imagens**: links públicos (um por linha, na ordem do carrossel) ou, com hospedagem configurada,
-  arquivos do computador. O Buffer não recebe arquivo: ele baixa a imagem por um link público.
+- **Imagens**: escolha arquivos do computador diretamente pela tela (com pré-visualização em tempo real das fotos e da ordem do carrossel) ou informe links públicos. O Buffer baixa as imagens por um link público direto gerado pelo Shadow System (ou pelo Supabase Storage, se configurado).
 - **Modo**: data e hora definidas (horário de Brasília), próximo horário da fila ou publicar agora.
 - É preciso marcar a **confirmação** antes de enviar (publicar é uma ação pública).
 - Tudo é validado **antes** de enviar qualquer coisa. Se um canal falhar (ex.: fila cheia do plano
@@ -154,9 +153,11 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
 - **LinkedIn**: até 3.000 caracteres.
 - **YouTube** não aparece para posts de imagem (pede vídeo).
 
-### Hospedagem das imagens (opcional)
+### Hospedagem das imagens
 
-Para enviar imagens do computador, configure um bucket **público** no Supabase Storage:
+O envio de imagens do computador está **sempre ativo** no Shadow System:
+- **Armazenamento nativo (padrão)**: as imagens enviadas são salvas no banco de dados (`buffer_uploads`) com token seguro e servidas publicamente em `/integrations/buffer/uploads/<token>/<nome>` para o Buffer baixar automaticamente no agendamento. Em produção (Render), funciona sem precisar configurar nenhum serviço externo.
+- **Supabase Storage (opcional)**: se preferir hospedar as imagens em um bucket público do Supabase Storage, defina no `.env`:
 
 ```
 SUPABASE_URL=https://<projeto>.supabase.co
@@ -164,7 +165,7 @@ SUPABASE_SECRET_KEY=<service role / secret key>
 SUPABASE_BUCKET=<nome do bucket>
 ```
 
-Tudo que vai para um bucket público fica acessível por link: não envie nada privado.
+Tudo que vai para um link público fica acessível: não envie nada confidencial.
 
 ### Limitações
 

@@ -41,24 +41,46 @@
     </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-header"><h2>Imagens</h2><span class="muted small">até 10 · várias imagens viram carrossel no Instagram</span></div>
+  <section class="panel system-window">
+    <div class="panel-header"><h2>Imagens</h2><span class="muted small">até 10 imagens · carrossel no Instagram</span></div>
     <div class="form">
       <div class="field">
-        <label class="label" for="image_urls">Links públicos das imagens (um por linha, na ordem do carrossel)</label>
-        <textarea class="input mono" id="image_urls" name="image_urls" rows="3" placeholder="https://..."></textarea>
-        <small class="muted">O Buffer baixa a imagem pelo link; ele precisa ser público e não expirar.</small>
-      </div>
-      {% if storage_enabled %}
-        <div class="field">
-          <label class="label" for="images">Ou envie do computador (JPG, PNG, WEBP, GIF)</label>
-          <input class="input" id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
-          <small class="muted">As imagens enviadas ficam com link público na hospedagem configurada.</small>
+        <label class="label" for="buffer-images-input">📁 Selecionar imagens do computador (JPG, PNG, WEBP, GIF)</label>
+        <div class="buffer-upload-dropzone">
+          <input class="input" id="buffer-images-input" name="images" type="file"
+                 accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+          <p class="small muted" style="margin: .5rem 0 0 0">
+            Clique acima para escolher fotos do computador. A ordem selecionada define o carrossel.
+          </p>
         </div>
-      {% else %}
-        <p class="muted small">Envio de imagens do computador desligado: configure SUPABASE_URL, SUPABASE_SECRET_KEY e
-          SUPABASE_BUCKET no .env (ver docs/integrations.md).</p>
-      {% endif %}
+
+        <div id="buffer-preview-container" class="buffer-preview-container" style="display: none;">
+          <div class="buffer-preview-header">
+            <span class="small font-bold" id="buffer-preview-count">0 imagens selecionadas</span>
+            <button type="button" class="btn btn-ghost btn-sm" id="buffer-preview-clear">Limpar seleção</button>
+          </div>
+          <div id="buffer-preview-grid" class="buffer-preview-grid"></div>
+        </div>
+
+        {% if is_local and not supabase_enabled %}
+          <small class="muted" style="color: #38bdf8;">
+            💡 Modo local: o app armazena as imagens para o post. Em produção (Render), o Buffer busca as imagens diretamente do Shadow System.
+          </small>
+        {% else %}
+          <small class="muted">
+            As imagens enviadas do computador recebem link direto persistente que o Buffer utiliza no agendamento.
+          </small>
+        {% endif %}
+      </div>
+
+      <details style="margin-top: .6rem;">
+        <summary class="muted small pointer" style="cursor: pointer;">🔗 Ou prefere usar links públicos de imagens? (clique para abrir)</summary>
+        <div class="field" style="margin-top: .6rem;">
+          <label class="label" for="image_urls">Links públicos das imagens (um por linha, na ordem do carrossel)</label>
+          <textarea class="input mono" id="image_urls" name="image_urls" rows="2" placeholder="https://..."></textarea>
+          <small class="muted">Opcional. Se enviar arquivos do computador acima, não é necessário preencher links.</small>
+        </div>
+      </details>
     </div>
   </section>
 

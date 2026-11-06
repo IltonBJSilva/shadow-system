@@ -67,6 +67,62 @@ function initPage() {
     items().forEach((item) => item.addEventListener("change", refresh));
     refresh();
   });
+
+  // Pré-visualização de imagens selecionadas no Buffer (postagens)
+  initBufferImagePreviews();
+}
+
+function initBufferImagePreviews() {
+  const input = document.getElementById("buffer-images-input");
+  const container = document.getElementById("buffer-preview-container");
+  const grid = document.getElementById("buffer-preview-grid");
+  const countLabel = document.getElementById("buffer-preview-count");
+  const clearBtn = document.getElementById("buffer-preview-clear");
+  if (!input || !container || !grid) return;
+
+  const renderPreviews = () => {
+    grid.innerHTML = "";
+    const files = Array.from(input.files || []).slice(0, 10);
+    if (!files.length) {
+      container.style.display = "none";
+      return;
+    }
+    container.style.display = "block";
+    if (countLabel) {
+      countLabel.textContent = `${files.length} imagem(ns) selecionada(s) · carrossel`;
+    }
+    files.forEach((file, index) => {
+      const card = document.createElement("div");
+      card.className = "buffer-preview-card";
+
+      const badge = document.createElement("span");
+      badge.className = "buffer-preview-badge";
+      badge.textContent = index === 0 ? "1ª (Capa)" : `${index + 1}ª`;
+
+      const img = document.createElement("img");
+      img.className = "buffer-preview-img";
+      img.src = URL.createObjectURL(file);
+      img.alt = file.name;
+
+      const name = document.createElement("span");
+      name.className = "buffer-preview-name";
+      name.textContent = file.name;
+      name.title = file.name;
+
+      card.appendChild(badge);
+      card.appendChild(img);
+      card.appendChild(name);
+      grid.appendChild(card);
+    });
+  };
+
+  input.addEventListener("change", renderPreviews);
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      renderPreviews();
+    });
+  }
 }
 
 document.addEventListener("turbo:load", initPage);
