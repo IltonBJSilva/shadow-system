@@ -111,3 +111,21 @@ class MediaAsset(db.Model):
     etag: Mapped[str] = mapped_column(String(40), nullable=False)
     data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, onupdate=time.now, nullable=False)
+
+
+class BufferUpload(db.Model):
+    """Imagens enviadas do computador para posts no Buffer.
+
+    Ficam no banco para que o Buffer possa baixá-las por um link público direto que não expira,
+    mesmo quando a hospedagem externa (Supabase Storage) não estiver configurada.
+    """
+
+    __tablename__ = "buffer_uploads"
+
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    filename: Mapped[str] = mapped_column(String(200), nullable=False)
+    mimetype: Mapped[str] = mapped_column(String(60), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False)
+

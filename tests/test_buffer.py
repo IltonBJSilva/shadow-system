@@ -215,11 +215,36 @@ def test_unusable_channel_is_rejected(app, connected):
                         image_urls=["https://a/1.png"], uploads=[])
 
 
-def test_uploads_without_storage_are_rejected(app, connected):
-    with pytest.raises(buffer.StorageError):
+def test_uploads_with_builtin_storage_succeed(app, connected):
+    results = buffer.schedule(
+        text="x", overrides={}, channel_ids=["li1"], mode="addToQueue", due_local=None,
+        image_urls=[], uploads=[buffer.Upload("a.png", b"123", "image/png")]
+    )
+    assert len(connected.created) == 1
+    post = connected.created[0]
+    assert len(post["assets"]) == 1
+    img_url = post["assets"][0]["image"]["url"]
+    assert "/integrations/buffer/uploads/" in img_url
+    assert img_url.endswith("/a.png")
+
+
+def test_serve_upload_publicly(client):
+    from app.integrations.buffer import storage
+    url = storage.upload("foto.png", b"testbytes", "image/png")
+    path = url if url.startswith("/") else "/" + url.split("/", 3)[-1]
+    res = client.get(path)
+    assert res.status_code == 200
+    assert res.data == b"testbytes"
+    assert "image/png" in res.content_type
+
+
+def test_uploads_invalid_format_or_size(app, connected):
+    with pytest.raises(buffer.StorageError, match="formato não aceito"):
         buffer.schedule(text="x", overrides={}, channel_ids=["li1"], mode="addToQueue", due_local=None,
-                        image_urls=[], uploads=[buffer.Upload("a.png", b"123", "image/png")])
-    assert connected.created == []
+                        image_urls=[], uploads=[buffer.Upload("a.exe", b"123", "application/x-msdownload")])
+    with pytest.raises(buffer.StorageError, match="maior que 20 MB"):
+        buffer.schedule(text="x", overrides={}, channel_ids=["li1"], mode="addToQueue", due_local=None,
+                        image_urls=[], uploads=[buffer.Upload("a.png", b"1" * (21 * 1024 * 1024), "image/png")])
 
 
 def test_new_post_form_requires_confirmation(client, connected):

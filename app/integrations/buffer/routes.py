@@ -1,12 +1,13 @@
 """Telas do Buffer: visão geral, cadastro do token e novo post."""
+import io
 from datetime import date, datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.core import time
 
 from . import (BufferError, PostValidationError, StorageError, Upload, channels, is_configured, posts,
-               save_token, schedule, storage_enabled, token_store)
+               save_token, schedule, storage, storage_enabled, token_store)
 from .posting import MODES, parse_image_urls
 
 bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
@@ -85,8 +86,28 @@ def new_post():
         for result in results:
             flash(f"{result.channel} ({result.service}): {result.message}", "success" if result.ok else "error")
         return redirect(url_for("buffer.index"))
+    host = request.host.lower()
+    is_local = host.startswith(("localhost", "127.0.0.1"))
     return render_template("integrations/buffer/new.html", channels=chans, services=services, modes=MODES,
-                           storage_enabled=storage_enabled(), today=time.today())
+                           storage_enabled=True, supabase_enabled=storage.is_supabase_configured(),
+                           is_local=is_local, today=time.today())
+
+
+@bp.get("/uploads/<token>/<filename>")
+def serve_upload(token: str, filename: str):
+    """Serve uma imagem enviada do computador para post no Buffer."""
+    asset = storage.get_upload(token)
+    if asset is None:
+        abort(404)
+    response = send_file(
+        io.BytesIO(asset.data),
+        mimetype=asset.mimetype,
+        conditional=True,
+        max_age=30 * 24 * 3600,
+    )
+    response.cache_control.public = True
+    response.headers["Accept-Ranges"] = "bytes"
+    return response
 
 
 def _due_from_form() -> datetime:
