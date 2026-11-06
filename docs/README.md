@@ -12,6 +12,7 @@ Comece por aqui se for mexer no código.
 8. [deployment.md](deployment.md): colocar online (Render + Supabase, keep-alive) ou no PythonAnywhere
 9. [troubleshooting.md](troubleshooting.md): erros conhecidos e como resolver
 10. [decisions/architecture-decisions.md](decisions/architecture-decisions.md): por que as coisas são como são
+11. [roteiro-video.md](roteiro-video.md): roteiro de vídeo completo (apresentação, engenharia, filosofia e decisões técnicas)
 
 ## Módulos
 
