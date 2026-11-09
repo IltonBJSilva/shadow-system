@@ -25,8 +25,16 @@
     {% if channels %}
       <div class="row">
         {% for ch in channels %}
-          <span class="tag {{ 'tag-success' if ch.usable else 'tag-muted' }}" title="{{ ch.id }}">
-            {{ ch.name }} · {{ ch.service }}{% if ch.disconnected %} · desconectado{% endif %}{% if ch.queue_paused %} · fila pausada{% endif %}
+          <span class="tag tag-{{ ch.service }}" title="{{ ch.id }}">
+            {% if ch.service == 'instagram' %}📷 Instagram
+            {% elif ch.service == 'tiktok' %}🎵 TikTok
+            {% elif ch.service == 'linkedin' %}💼 LinkedIn
+            {% elif ch.service == 'twitter' or ch.service == 'x' %}𝕏 Twitter
+            {% elif ch.service == 'facebook' %}👥 Facebook
+            {% elif ch.service == 'youtube' %}▶ YouTube
+            {% else %}{{ ch.service | capitalize }}
+            {% endif %}
+            · {{ ch.name }}{% if ch.disconnected %} · desconectado{% endif %}{% if ch.queue_paused %} · fila pausada{% endif %}
           </span>
         {% endfor %}
       </div>
@@ -52,10 +60,35 @@
             <div class="item-main">
               <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
               <div class="item-meta">
+                <span class="tag tag-{{ post.service }}">
+                  {% if post.service == 'instagram' %}📷 Instagram
+                  {% elif post.service == 'tiktok' %}🎵 TikTok
+                  {% elif post.service == 'linkedin' %}💼 LinkedIn
+                  {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
+                  {% elif post.service == 'facebook' %}👥 Facebook
+                  {% elif post.service == 'youtube' %}▶ YouTube
+                  {% else %}{{ post.service | capitalize }}
+                  {% endif %}
+                </span>
                 <span class="tag tag-blue">{{ post.channel_name }}</span>
                 <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
                 {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
               </div>
+            </div>
+            <div class="item-actions">
+              {% if tab in ('scheduled', 'draft') %}
+                <form method="post" action="{{ url_for('buffer.share_now_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
+                </form>
+                <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=post.id) }}" title="Editar post">✏️ Editar</a>
+              {% endif %}
+              {% if tab in ('scheduled', 'draft', 'error') %}
+                <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir esta publicação no {{ post.service | capitalize }}?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
+                </form>
+              {% endif %}
             </div>
           </li>
         {% endfor %}
