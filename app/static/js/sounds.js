@@ -18,7 +18,7 @@
   const LEGACY_KEY = "shadow.sound";
   const ENTRANCE_KEY = "shadow.entrance";
   const MUSIC_POS_KEY = "shadow.music.pos";
-  const DEFAULTS = { music: true, musicVolume: 0.35, sfx: true, sfxVolume: 0.8, entrance: true };
+  const DEFAULTS = { music: true, musicVolume: 0.15, sfx: true, sfxVolume: 0.25, entrance: true };
   const VOICE_SLOTS = ["levelup", "achievement", "penalty"];
 
   // ---------- Preferências ----------
@@ -32,6 +32,8 @@
     try {
       if (!("sfx" in saved) && storage("localStorage").getItem(LEGACY_KEY) === "off") saved.sfx = false;
     } catch (e) { /* sem storage */ }
+    if (saved.sfxVolume === 0.8) saved.sfxVolume = 0.25;
+    if (saved.musicVolume === 0.35) saved.musicVolume = 0.15;
     return Object.assign({}, DEFAULTS, saved);
   }
 
@@ -105,7 +107,7 @@
   }
 
   // Um tom com envelope (ataque rápido, decaimento suave) e eco leve.
-  function tone(ac, { freq, start = 0, duration = 0.18, type = "sine", gain = 0.18, slideTo = null, echo = true }) {
+  function tone(ac, { freq, start = 0, duration = 0.18, type = "sine", gain = 0.10, slideTo = null, echo = true }) {
     const t0 = ac.currentTime + start;
     const osc = ac.createOscillator();
     const amp = ac.createGain();
@@ -133,54 +135,54 @@
   const SYNTH = {
     // "Ding" de janela do sistema
     notify(ac) {
-      tone(ac, { freq: 1320, duration: 0.09, gain: 0.12 });
-      tone(ac, { freq: 1760, start: 0.08, duration: 0.16, gain: 0.1 });
+      tone(ac, { freq: 1320, duration: 0.09, gain: 0.08 });
+      tone(ac, { freq: 1760, start: 0.08, duration: 0.16, gain: 0.06 });
     },
     // Abertura de painel importante: varredura curta e "holográfica"
     open(ac) {
-      tone(ac, { freq: 520, duration: 0.22, type: "triangle", gain: 0.07, slideTo: 1560 });
-      tone(ac, { freq: 2093, start: 0.16, duration: 0.12, gain: 0.05, echo: false });
+      tone(ac, { freq: 520, duration: 0.22, type: "triangle", gain: 0.05, slideTo: 1560 });
+      tone(ac, { freq: 2093, start: 0.16, duration: 0.12, gain: 0.03, echo: false });
     },
     // Quest concluída: arpejo maior curto
     quest(ac) {
-      [784, 988, 1175, 1568].forEach((f, i) => tone(ac, { freq: f, start: i * 0.07, duration: 0.22, type: "triangle" }));
+      [784, 988, 1175, 1568].forEach((f, i) => tone(ac, { freq: f, start: i * 0.07, duration: 0.22, type: "triangle", gain: 0.09 }));
     },
     // Bônus: brilho rápido subindo
     bonus(ac) {
-      [1175, 1480, 1760, 2349].forEach((f, i) => tone(ac, { freq: f, start: i * 0.045, duration: 0.14, gain: 0.1 }));
+      [1175, 1480, 1760, 2349].forEach((f, i) => tone(ac, { freq: f, start: i * 0.045, duration: 0.14, gain: 0.07 }));
     },
     // Level up: subida longa + acorde sustentado
     levelup(ac) {
       [523, 659, 784, 1047, 1319, 1568].forEach((f, i) =>
-        tone(ac, { freq: f, start: i * 0.08, duration: 0.25, type: "triangle", gain: 0.16 }));
-      [1047, 1319, 1568].forEach((f) => tone(ac, { freq: f, start: 0.5, duration: 0.9, gain: 0.08 }));
+        tone(ac, { freq: f, start: i * 0.08, duration: 0.25, type: "triangle", gain: 0.10 }));
+      [1047, 1319, 1568].forEach((f) => tone(ac, { freq: f, start: 0.5, duration: 0.9, gain: 0.05 }));
     },
     // Punição / Penalty Zone: alarme grave descendente
     penalty(ac) {
-      tone(ac, { freq: 220, duration: 0.35, type: "sawtooth", gain: 0.1, slideTo: 110, echo: false });
-      tone(ac, { freq: 196, start: 0.4, duration: 0.5, type: "sawtooth", gain: 0.1, slideTo: 82, echo: false });
-      tone(ac, { freq: 55, duration: 0.9, type: "sine", gain: 0.2, echo: false });
+      tone(ac, { freq: 220, duration: 0.35, type: "sawtooth", gain: 0.08, slideTo: 110, echo: false });
+      tone(ac, { freq: 196, start: 0.4, duration: 0.5, type: "sawtooth", gain: 0.08, slideTo: 82, echo: false });
+      tone(ac, { freq: 55, duration: 0.9, type: "sine", gain: 0.12, echo: false });
     },
     // Inicialização: zumbido grave subindo, como um sistema ligando
     boot(ac) {
-      tone(ac, { freq: 60, duration: 1.4, type: "sine", gain: 0.16, slideTo: 140, echo: false });
-      tone(ac, { freq: 240, start: 0.15, duration: 1.1, type: "triangle", gain: 0.05, slideTo: 480 });
-      [0.35, 0.7, 1.05].forEach((t) => tone(ac, { freq: 1900, start: t, duration: 0.04, gain: 0.05, echo: false }));
+      tone(ac, { freq: 60, duration: 1.4, type: "sine", gain: 0.10, slideTo: 140, echo: false });
+      tone(ac, { freq: 240, start: 0.15, duration: 1.1, type: "triangle", gain: 0.03, slideTo: 480 });
+      [0.35, 0.7, 1.05].forEach((t) => tone(ac, { freq: 1900, start: t, duration: 0.04, gain: 0.03, echo: false }));
     },
     // Sistema ativado: acorde aberto com brilho
     activate(ac) {
-      [392, 587, 784].forEach((f) => tone(ac, { freq: f, duration: 0.9, type: "triangle", gain: 0.09 }));
-      tone(ac, { freq: 1568, start: 0.12, duration: 0.5, gain: 0.07 });
+      [392, 587, 784].forEach((f) => tone(ac, { freq: f, duration: 0.9, type: "triangle", gain: 0.06 }));
+      tone(ac, { freq: 1568, start: 0.12, duration: 0.5, gain: 0.05 });
     },
     // Conquista desbloqueada: sino em quinta + cintilar
     achievement(ac) {
-      [880, 1319].forEach((f, i) => tone(ac, { freq: f, start: i * 0.12, duration: 0.6, gain: 0.12 }));
-      [1760, 2093, 2637].forEach((f, i) => tone(ac, { freq: f, start: 0.3 + i * 0.06, duration: 0.18, gain: 0.06 }));
+      [880, 1319].forEach((f, i) => tone(ac, { freq: f, start: i * 0.12, duration: 0.6, gain: 0.08 }));
+      [1760, 2093, 2637].forEach((f, i) => tone(ac, { freq: f, start: 0.3 + i * 0.06, duration: 0.18, gain: 0.04 }));
     },
     // Erro: dois bipes graves
     error(ac) {
-      tone(ac, { freq: 180, duration: 0.12, type: "square", gain: 0.06, echo: false });
-      tone(ac, { freq: 150, start: 0.15, duration: 0.16, type: "square", gain: 0.06, echo: false });
+      tone(ac, { freq: 180, duration: 0.12, type: "square", gain: 0.05, echo: false });
+      tone(ac, { freq: 150, start: 0.15, duration: 0.16, type: "square", gain: 0.05, echo: false });
     },
   };
 
@@ -220,7 +222,7 @@
     if (!el) return Promise.reject(new Error("sem arquivo"));
     if (currentVoice && currentVoice !== el) { currentVoice.pause(); currentVoice.currentTime = 0; }
     currentVoice = el;
-    setVolume(el, Math.min(1, prefs().sfxVolume * 1.1));
+    setVolume(el, Math.min(1, prefs().sfxVolume * 0.75));
     el.currentTime = 0;
     duck(true);
     return el.play().then(() => new Promise((resolve) => {
