@@ -45,6 +45,7 @@
     </div>
   {% endif %}
   <div class="layout">
+    {% if in_experience %}
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="/">
         <img class="brand-mark" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="40" height="40">
@@ -80,10 +81,18 @@
         <span class="muted small">{{ today | date_br }}</span>
       </div>
     </aside>
+    {% endif %}
 
     <div class="main">
       <header class="topbar">
-        <button class="btn btn-ghost menu-toggle" type="button" data-toggle-sidebar aria-label="Abrir menu">☰</button>
+        {% if in_experience %}
+          <button class="btn btn-ghost menu-toggle" type="button" data-toggle-sidebar aria-label="Abrir menu">☰</button>
+        {% else %}
+          <a class="brand" href="/" style="margin-right: .5rem;">
+            <img class="brand-mark" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="32" height="32">
+            <span class="brand-text">SHADOW<small>SYSTEM</small></span>
+          </a>
+        {% endif %}
         <h1 class="page-title">{% block heading %}{% endblock %}</h1>
         <div class="topbar-actions">{% block actions %}{% endblock %}</div>
       </header>

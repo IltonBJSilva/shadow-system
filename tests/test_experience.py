@@ -30,3 +30,13 @@ def test_no_boot_on_login_page():
     with app.app_context():
         db.create_all()
     assert "data-boot" not in app.test_client().get("/login").get_data(as_text=True)
+
+
+def test_sidebar_hidden_on_login_page():
+    app = create_app("testing", {"AUTH_ENABLED": True, "OWNER_PASSWORD_HASH": generate_password_hash("x")})
+    with app.app_context():
+        db.create_all()
+    client = app.test_client()
+    html = client.get("/login").get_data(as_text=True)
+    assert 'class="sidebar"' not in html
+    assert 'data-toggle-sidebar' not in html
