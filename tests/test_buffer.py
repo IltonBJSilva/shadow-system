@@ -25,6 +25,8 @@ CHANNELS = [
 class FakeBuffer:
     def __init__(self, reject_token=False):
         self.created: list[dict] = []
+        self.edited: list[dict] = []
+        self.deleted: list[str] = []
         self.reject_token = reject_token
         self.calls = 0
 
@@ -39,6 +41,14 @@ class FakeBuffer:
             return httpx.Response(200, json={"data": {"account": {"organizations": [{"id": "org1", "name": "Eu"}]}}})
         if "channels(" in query:
             return httpx.Response(200, json={"data": {"channels": CHANNELS}})
+        if "post(" in query:
+            post_id = body["variables"]["id"]
+            return httpx.Response(200, json={"data": {"post": {
+                "id": post_id, "text": "Post único", "status": "scheduled",
+                "dueAt": "2026-11-03T11:00:00.000Z", "channelId": "ig1",
+                "channelService": "instagram", "error": None,
+                "assets": [{"thumbnail": "https://img/1.png"}],
+            }}})
         if "posts(" in query:
             return httpx.Response(200, json={"data": {"posts": {"edges": [
                 {"node": {"id": "p2", "text": "Depois", "status": "scheduled", "dueAt": "2026-11-03T11:00:00.000Z",
@@ -55,6 +65,17 @@ class FakeBuffer:
                 return httpx.Response(200, json={"data": {"createPost": {"message": "Limite da fila atingido"}}})
             return httpx.Response(200, json={"data": {"createPost": {"post": {
                 "id": f"new{len(self.created)}", "status": "scheduled", "dueAt": post_input.get("dueAt")}}}})
+        if "editPost" in query:
+            post_input = body["variables"]["input"]
+            self.edited.append(post_input)
+            return httpx.Response(200, json={"data": {"editPost": {"post": {
+                "id": post_input["id"], "status": "sent" if post_input.get("mode") == "shareNow" else "scheduled",
+                "dueAt": post_input.get("dueAt"), "text": post_input.get("text", "")
+            }}}})
+        if "deletePost" in query:
+            post_id = body["variables"]["input"]["id"]
+            self.deleted.append(post_id)
+            return httpx.Response(200, json={"data": {"deletePost": {"id": post_id}}})
         return httpx.Response(400)
 
 
@@ -281,3 +302,76 @@ def test_offline_keeps_generic_message():
     client = buffer.client.BufferClient("x" * 40, transport=httpx.MockTransport(handler))
     with pytest.raises(buffer.client.BufferError, match="Confira a internet"):
         client.organization_id()
+
+
+# ---------- ações em posts (editar, excluir, postar agora) ----------
+
+def test_get_single_post(app, connected):
+    post = buffer.get_post("p2")
+    assert post.id == "p2"
+    assert post.channel_name == "iltonbsilva"
+    assert post.service == "instagram"
+    assert post.thumbnail == "https://img/1.png"
+
+
+def test_delete_post_client(app, connected):
+    deleted_id = buffer.delete_post("p2")
+    assert deleted_id == "p2"
+    assert connected.deleted == ["p2"]
+
+
+def test_share_post_now(app, connected):
+    res = buffer.share_post_now("p2")
+    assert res["status"] == "sent"
+    assert connected.edited[-1] == {"id": "p2", "mode": "shareNow"}
+
+
+def test_update_post(app, connected):
+    fut = _future()
+    res = buffer.update_post("p2", text="Texto alterado #tag1 #tag2", due_local=fut, service="instagram")
+    assert res["id"] == "p2"
+    assert connected.edited[-1]["id"] == "p2"
+    assert connected.edited[-1]["text"] == "Texto alterado #tag1 #tag2"
+    assert connected.edited[-1]["dueAt"].endswith(".000Z")
+
+
+def test_delete_post_route(client, connected):
+    res = client.post("/integrations/buffer/posts/p2/delete")
+    assert res.status_code == 302
+    assert "p2" in connected.deleted
+
+
+def test_share_now_route(client, connected):
+    res = client.post("/integrations/buffer/posts/p2/share-now")
+    assert res.status_code == 302
+    assert any(e.get("mode") == "shareNow" for e in connected.edited)
+
+
+def test_edit_post_route_get_and_post(client, connected):
+    # GET renders edit page
+    res_get = client.get("/integrations/buffer/posts/p2/edit")
+    assert res_get.status_code == 200
+    html = res_get.get_data(as_text=True)
+    assert "Editar post" in html
+    assert "Instagram" in html
+    assert "Post único" in html
+
+    # POST updates post
+    fut = _future()
+    res_post = client.post("/integrations/buffer/posts/p2/edit", data={
+        "text": "Texto editado via form",
+        "due_date": fut.strftime("%Y-%m-%d"),
+        "due_time": fut.strftime("%H:%M"),
+    })
+    assert res_post.status_code == 302
+    assert connected.edited[-1]["text"] == "Texto editado via form"
+
+
+def test_index_displays_network_tags_and_action_buttons(client, connected):
+    html = client.get("/integrations/buffer/").get_data(as_text=True)
+    assert "tag-instagram" in html
+    assert "tag-linkedin" in html
+    assert "Instagram" in html
+    assert "Postar agora" in html
+    assert "Editar" in html
+    assert "Excluir" in html
