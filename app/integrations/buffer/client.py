@@ -56,6 +56,8 @@ class Post:
     error: str | None
     thumbnail: str | None
     channel_name: str = ""
+    image_urls: tuple[str, ...] = ()
+    due_at_raw: str | None = None
 
 
 class BufferClient:
@@ -106,7 +108,7 @@ class BufferClient:
                     edges { node {
                         id text status dueAt channelId channelService
                         error { message }
-                        assets { ... on ImageAsset { thumbnail } }
+                        assets { ... on ImageAsset { source thumbnail } }
                     } }
                 }
             }""",
@@ -120,7 +122,7 @@ class BufferClient:
                 post(input: {id: $id}) {
                     id text status dueAt channelId channelService
                     error { message }
-                    assets { ... on ImageAsset { thumbnail } }
+                    assets { ... on ImageAsset { source thumbnail } }
                 }
             }""",
             {"id": post_id},
@@ -147,15 +149,7 @@ class BufferClient:
             raise BufferError(result.get("message") or "O Buffer não aceitou o post.")
         return result["post"]
 
-    def edit_post(self, post_id: str, text: str | None = None, due_at: str | None = None,
-                  mode: str | None = None) -> dict:
-        post_input: dict[str, str] = {"id": post_id}
-        if text is not None:
-            post_input["text"] = text
-        if due_at is not None:
-            post_input["dueAt"] = due_at
-        if mode is not None:
-            post_input["mode"] = mode
+    def edit_post(self, post_input: dict) -> dict:
         data = self._query(
             """mutation($input: EditPostInput!) {
                 editPost(input: $input) {
@@ -209,9 +203,10 @@ class BufferClient:
 
 def _parse_post(raw: dict) -> Post:
     due_at = None
-    if raw.get("dueAt"):
+    due_at_raw = raw.get("dueAt")
+    if due_at_raw:
         try:
-            due_at = time.to_local_naive(datetime.fromisoformat(raw["dueAt"].replace("Z", "+00:00")))
+            due_at = time.to_local_naive(datetime.fromisoformat(due_at_raw.replace("Z", "+00:00")))
         except ValueError:
             due_at = None
     error = raw.get("error")
@@ -219,6 +214,16 @@ def _parse_post(raw: dict) -> Post:
     thumb = thumbs[0] if thumbs else None
     if thumb and thumb.startswith("http://") and not thumb.startswith(("http://localhost", "http://127.0.0.1")):
         thumb = "https://" + thumb[len("http://"):]
+
+    urls = []
+    for a in raw.get("assets") or []:
+        if isinstance(a, dict):
+            u = a.get("source") or a.get("thumbnail")
+            if u:
+                if u.startswith("http://") and not u.startswith(("http://localhost", "http://127.0.0.1")):
+                    u = "https://" + u[len("http://"):]
+                urls.append(u)
+
     return Post(
         id=raw["id"],
         text=raw.get("text") or "",
@@ -228,4 +233,6 @@ def _parse_post(raw: dict) -> Post:
         service=raw.get("channelService") or "",
         error=error.get("message") if isinstance(error, dict) else None,
         thumbnail=thumb,
+        image_urls=tuple(urls),
+        due_at_raw=due_at_raw,
     )

@@ -185,22 +185,52 @@ def delete_post(post_id: str) -> str:
 
 
 def share_post_now(post_id: str) -> dict:
-    """Publica um post imediatamente no Buffer."""
+    """Publica um post imediatamente no Buffer, preservando texto, mídias e metadados."""
+    post = get_post(post_id)
+    post_input: dict = {
+        "id": post_id,
+        "text": post.text,
+        "mode": "shareNow",
+    }
+    if post.image_urls:
+        post_input["assets"] = [{"image": {"url": url}} for url in post.image_urls]
+    if post.service == "instagram":
+        post_input["metadata"] = {"instagram": {"type": "post", "shouldShareToFeed": True}}
+    elif post.service == "facebook":
+        post_input["metadata"] = {"facebook": {"type": "post"}}
+
     client = get_client()
-    return client.edit_post(post_id, mode="shareNow")
+    return client.edit_post(post_input)
 
 
 def update_post(post_id: str, text: str, due_local: datetime | None = None, service: str | None = None) -> dict:
-    """Atualiza o texto e/ou data/hora de um post agendado."""
+    """Atualiza o texto e/ou data/hora de um post agendado, preservando mídias e metadados."""
+    post = get_post(post_id)
+    svc = service or post.service
     text = text.strip()
-    if service == "instagram":
+    if svc == "instagram":
         text = posting.limit_instagram_hashtags(text)
-    limit = posting.MAX_TEXT.get(service) if service else None
+    limit = posting.MAX_TEXT.get(svc) if svc else None
     if limit and len(text) > limit:
-        raise PostValidationError(f"O texto para {service} passou de {limit} caracteres.")
-    due_utc = posting.due_at_utc(due_local) if due_local else None
+        raise PostValidationError(f"O texto para {svc} passou de {limit} caracteres.")
+
+    due_utc = posting.due_at_utc(due_local) if due_local else post.due_at_raw
+    post_input: dict = {
+        "id": post_id,
+        "text": text or post.text,
+        "mode": "customScheduled",
+    }
+    if due_utc:
+        post_input["dueAt"] = due_utc
+    if post.image_urls:
+        post_input["assets"] = [{"image": {"url": url}} for url in post.image_urls]
+    if svc == "instagram":
+        post_input["metadata"] = {"instagram": {"type": "post", "shouldShareToFeed": True}}
+    elif svc == "facebook":
+        post_input["metadata"] = {"facebook": {"type": "post"}}
+
     client = get_client()
-    return client.edit_post(post_id, text=text, due_at=due_utc)
+    return client.edit_post(post_input)
 
 
 __all__ = [

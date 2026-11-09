@@ -47,7 +47,7 @@ class FakeBuffer:
                 "id": post_id, "text": "Post único", "status": "scheduled",
                 "dueAt": "2026-11-03T11:00:00.000Z", "channelId": "ig1",
                 "channelService": "instagram", "error": None,
-                "assets": [{"thumbnail": "https://img/1.png"}],
+                "assets": [{"source": "https://img/1.png", "thumbnail": "https://img/1.png"}],
             }}})
         if "posts(" in query:
             return httpx.Response(200, json={"data": {"posts": {"edges": [
@@ -323,7 +323,10 @@ def test_delete_post_client(app, connected):
 def test_share_post_now(app, connected):
     res = buffer.share_post_now("p2")
     assert res["status"] == "sent"
-    assert connected.edited[-1] == {"id": "p2", "mode": "shareNow"}
+    assert connected.edited[-1]["id"] == "p2"
+    assert connected.edited[-1]["mode"] == "shareNow"
+    assert connected.edited[-1]["text"] == "Post único"
+    assert connected.edited[-1]["metadata"] == {"instagram": {"type": "post", "shouldShareToFeed": True}}
 
 
 def test_update_post(app, connected):
