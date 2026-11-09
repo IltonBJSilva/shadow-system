@@ -114,6 +114,22 @@ class BufferClient:
         )
         return [_parse_post(edge["node"]) for edge in data["posts"]["edges"]]
 
+    def post(self, post_id: str) -> Post:
+        data = self._query(
+            """query($id: PostId!) {
+                post(input: {id: $id}) {
+                    id text status dueAt channelId channelService
+                    error { message }
+                    assets { ... on ImageAsset { thumbnail } }
+                }
+            }""",
+            {"id": post_id},
+        )
+        post_data = data.get("post")
+        if not post_data:
+            raise BufferError("Post não encontrado no Buffer.")
+        return _parse_post(post_data)
+
     # ---------- escrita ----------
 
     def create_post(self, post_input: dict) -> dict:
@@ -130,6 +146,44 @@ class BufferClient:
         if "post" not in result:
             raise BufferError(result.get("message") or "O Buffer não aceitou o post.")
         return result["post"]
+
+    def edit_post(self, post_id: str, text: str | None = None, due_at: str | None = None,
+                  mode: str | None = None) -> dict:
+        post_input: dict[str, str] = {"id": post_id}
+        if text is not None:
+            post_input["text"] = text
+        if due_at is not None:
+            post_input["dueAt"] = due_at
+        if mode is not None:
+            post_input["mode"] = mode
+        data = self._query(
+            """mutation($input: EditPostInput!) {
+                editPost(input: $input) {
+                    ... on PostActionSuccess { post { id status dueAt text } }
+                    ... on MutationError { message }
+                }
+            }""",
+            {"input": post_input},
+        )
+        result = data["editPost"]
+        if "post" not in result:
+            raise BufferError(result.get("message") or "O Buffer não aceitou a alteração do post.")
+        return result["post"]
+
+    def delete_post(self, post_id: str) -> str:
+        data = self._query(
+            """mutation($input: DeletePostInput!) {
+                deletePost(input: $input) {
+                    ... on DeletePostSuccess { id }
+                    ... on MutationError { message }
+                }
+            }""",
+            {"input": {"id": post_id}},
+        )
+        result = data["deletePost"]
+        if "id" not in result:
+            raise BufferError(result.get("message") or "O Buffer não permitiu excluir o post.")
+        return result["id"]
 
     # ---------- interno ----------
 
@@ -162,6 +216,9 @@ def _parse_post(raw: dict) -> Post:
             due_at = None
     error = raw.get("error")
     thumbs = [a.get("thumbnail") for a in raw.get("assets") or [] if isinstance(a, dict) and a.get("thumbnail")]
+    thumb = thumbs[0] if thumbs else None
+    if thumb and thumb.startswith("http://") and not thumb.startswith(("http://localhost", "http://127.0.0.1")):
+        thumb = "https://" + thumb[len("http://"):]
     return Post(
         id=raw["id"],
         text=raw.get("text") or "",
@@ -170,5 +227,5 @@ def _parse_post(raw: dict) -> Post:
         channel_id=raw.get("channelId") or "",
         service=raw.get("channelService") or "",
         error=error.get("message") if isinstance(error, dict) else None,
-        thumbnail=thumbs[0] if thumbs else None,
+        thumbnail=thumb,
     )

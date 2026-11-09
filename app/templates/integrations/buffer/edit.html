@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Editar post{% endblock %}
+{% block heading %}Buffer · Editar post{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('buffer.index') }}">Voltar</a>{% endblock %}
+{% block content %}
+<form method="post" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="panel system-window">
+    <p class="system-label">[SYSTEM] Detalhes do Canal</p>
+    <div class="row" style="align-items: center; gap: .75rem; flex-wrap: wrap;">
+      <span class="tag tag-{{ post.service }}" style="font-size: .85rem; padding: .2rem .7rem;">
+        {% if post.service == 'instagram' %}📷 Instagram
+        {% elif post.service == 'tiktok' %}🎵 TikTok
+        {% elif post.service == 'linkedin' %}💼 LinkedIn
+        {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
+        {% elif post.service == 'facebook' %}👥 Facebook
+        {% elif post.service == 'youtube' %}▶ YouTube
+        {% else %}{{ post.service | capitalize }}
+        {% endif %}
+      </span>
+      <span class="tag tag-blue" style="font-size: .85rem; padding: .2rem .7rem;">{{ post.channel_name }}</span>
+      <span class="muted small">Status: <strong>{{ post.status }}</strong></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Texto / Legenda</h2></div>
+    <div class="form">
+      <div class="field">
+        <label class="label" for="text">Texto da publicação</label>
+        <textarea class="input" id="text" name="text" rows="8">{{ post.text }}</textarea>
+        {% if post.service == "instagram" %}<small class="muted">Instagram: máximo de 5 hashtags (as extras são removidas automaticamente; #PraTodosVerem sempre fica) e até 2.200 caracteres.</small>{% endif %}
+        {% if post.service == "linkedin" %}<small class="muted">LinkedIn: até 3.000 caracteres.</small>{% endif %}
+      </div>
+    </div>
+  </section>
+
+  {% if post.thumbnail %}
+  <section class="panel">
+    <div class="panel-header"><h2>Mídia do Post</h2></div>
+    <div>
+      <img src="{{ post.thumbnail }}" alt="Mídia" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--panel-border); object-fit: cover;">
+      <p class="small muted" style="margin-top: .4rem;">A mídia já está vinculada a este post no Buffer.</p>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-header"><h2>Agendamento (Data e Hora)</h2></div>
+    <div class="form-grid">
+      <div class="field">
+        <label class="label" for="due_date">Data (horário de Brasília)</label>
+        <input class="input" id="due_date" name="due_date" type="date" value="{% if post.due_at %}{{ post.due_at.strftime('%Y-%m-%d') }}{% else %}{{ today.isoformat() }}{% endif %}">
+      </div>
+      <div class="field">
+        <label class="label" for="due_time">Hora</label>
+        <input class="input" id="due_time" name="due_time" type="time" value="{% if post.due_at %}{{ post.due_at.strftime('%H:%M') }}{% else %}12:00{% endif %}">
+      </div>
+      <small class="muted full">A data e a hora precisam estar no futuro para reagendamento.</small>
+    </div>
+  </section>
+
+  <section class="panel system-window">
+    <div class="row" style="gap: .75rem;">
+      <button class="btn btn-primary" type="submit">Salvar alterações</button>
+      <a class="btn btn-ghost" href="{{ url_for('buffer.index') }}">Cancelar</a>
+    </div>
+  </section>
+</form>
+{% endblock %}
+

@@ -102,6 +102,15 @@ def posts(statuses: list[str] | None) -> list[Post]:
     return sorted(result, key=lambda p: p.due_at or datetime.max)
 
 
+def get_post(post_id: str) -> Post:
+    """Busca um único post com o nome do canal preenchido."""
+    client = get_client()
+    p = client.post(post_id)
+    org = organization_id(client)
+    names = {ch.id: ch.name for ch in client.channels(org)}
+    return replace(p, channel_name=names.get(p.channel_id, p.service))
+
+
 def scheduled_posts_safe(limit: int = 5) -> tuple[list[Post], str | None]:
     """Para o dashboard: nunca quebra a página. Devolve (posts, erro)."""
     if not is_configured():
@@ -169,8 +178,34 @@ def storage_enabled() -> bool:
     return storage.is_configured()
 
 
+def delete_post(post_id: str) -> str:
+    """Exclui um post no Buffer."""
+    client = get_client()
+    return client.delete_post(post_id)
+
+
+def share_post_now(post_id: str) -> dict:
+    """Publica um post imediatamente no Buffer."""
+    client = get_client()
+    return client.edit_post(post_id, mode="shareNow")
+
+
+def update_post(post_id: str, text: str, due_local: datetime | None = None, service: str | None = None) -> dict:
+    """Atualiza o texto e/ou data/hora de um post agendado."""
+    text = text.strip()
+    if service == "instagram":
+        text = posting.limit_instagram_hashtags(text)
+    limit = posting.MAX_TEXT.get(service) if service else None
+    if limit and len(text) > limit:
+        raise PostValidationError(f"O texto para {service} passou de {limit} caracteres.")
+    due_utc = posting.due_at_utc(due_local) if due_local else None
+    client = get_client()
+    return client.edit_post(post_id, text=text, due_at=due_utc)
+
+
 __all__ = [
     "BufferClient", "BufferError", "Channel", "ChannelResult", "Post", "PostValidationError",
-    "StorageError", "Upload", "channels", "get_client", "is_configured", "posts", "save_token",
-    "schedule", "scheduled_posts_safe", "status", "storage_enabled",
+    "StorageError", "Upload", "channels", "delete_post", "get_client", "get_post", "is_configured",
+    "posts", "save_token", "schedule", "scheduled_posts_safe", "share_post_now", "status",
+    "storage_enabled", "update_post",
 ]

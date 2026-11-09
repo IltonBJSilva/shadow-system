@@ -70,7 +70,11 @@ def _upload_local(filename: str, content: bytes, content_type: str) -> str:
     db.session.commit()
 
     if has_request_context():
-        return url_for("buffer.serve_upload", token=token, filename=safe_name, _external=True)
+        from flask import request
+        url = url_for("buffer.serve_upload", token=token, filename=safe_name, _external=True)
+        if not request.host.startswith(("localhost", "127.0.0.1")) and url.startswith("http://"):
+            url = "https://" + url[len("http://"):]
+        return url
     return f"/integrations/buffer/uploads/{token}/{safe_name}"
 
 

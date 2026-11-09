@@ -6,8 +6,9 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 
 from app.core import time
 
-from . import (BufferError, PostValidationError, StorageError, Upload, channels, is_configured, posts,
-               save_token, schedule, storage, storage_enabled, token_store)
+from . import (BufferError, PostValidationError, StorageError, Upload, channels, delete_post,
+               get_post, is_configured, posts, save_token, schedule, share_post_now, storage,
+               storage_enabled, token_store, update_post)
 from .posting import MODES, parse_image_urls
 
 bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
@@ -108,6 +109,46 @@ def serve_upload(token: str, filename: str):
     response.cache_control.public = True
     response.headers["Accept-Ranges"] = "bytes"
     return response
+
+
+@bp.post("/posts/<post_id>/delete")
+def delete_post_route(post_id: str):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    delete_post(post_id)
+    flash("Post excluído com sucesso do Buffer.", "success")
+    return redirect(request.referrer if (request.referrer or "").startswith(request.host_url)
+                    else url_for("buffer.index"))
+
+
+@bp.post("/posts/<post_id>/share-now")
+def share_now_route(post_id: str):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    share_post_now(post_id)
+    flash("Publicação imediata solicitada ao Buffer.", "success")
+    return redirect(url_for("buffer.index", status="sent"))
+
+
+@bp.route("/posts/<post_id>/edit", methods=["GET", "POST"])
+def edit_post_route(post_id: str):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    post = get_post(post_id)
+    if request.method == "POST":
+        text = request.form.get("text", "")
+        due_date = request.form.get("due_date", "").strip()
+        due_time = request.form.get("due_time", "").strip()
+        due_local = None
+        if due_date and due_time:
+            try:
+                due_local = datetime.fromisoformat(f"{due_date}T{due_time}")
+            except ValueError as exc:
+                raise PostValidationError("Informe uma data e hora válidas.") from exc
+        update_post(post_id, text=text, due_local=due_local, service=post.service)
+        flash("Post atualizado com sucesso no Buffer.", "success")
+        return redirect(url_for("buffer.index"))
+    return render_template("integrations/buffer/edit.html", post=post, today=time.today())
 
 
 def _due_from_form() -> datetime:
