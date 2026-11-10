@@ -378,3 +378,202 @@ def test_index_displays_network_tags_and_action_buttons(client, connected):
     assert "Postar agora" in html
     assert "Editar" in html
     assert "Excluir" in html
+
+
+# ---------- Fila do Sistema (Batch + Forward Scheduling) ----------
+
+def test_calculate_forward_dates():
+    last_due = datetime(2026, 11, 20, 18, 30)
+    dates = buffer.calculate_forward_dates(last_due, count=5, default_time="18:30")
+    assert len(dates) == 5
+    assert [d.date().isoformat() for d in dates] == [
+        "2026-11-21", "2026-11-22", "2026-11-23", "2026-11-24", "2026-11-25"
+    ]
+    assert all(d.hour == 18 and d.minute == 30 for d in dates)
+
+
+def test_calculate_forward_dates_no_last_due():
+    dates = buffer.calculate_forward_dates(None, count=3, default_time="09:15")
+    assert len(dates) == 3
+    today = time.today()
+    assert dates[0].date() == today + timedelta(days=1)
+    assert dates[1].date() == today + timedelta(days=2)
+    assert dates[2].date() == today + timedelta(days=3)
+    assert all(d.hour == 9 and d.minute == 15 for d in dates)
+
+
+def test_enqueue_post_and_list_queue(app, connected):
+    post = buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Legenda de teste da fila local",
+        image_urls=["https://img.com/foto1.png"],
+        target_date=date(2026, 11, 25),
+        target_time="18:30",
+    )
+    assert post.id is not None
+    assert post.status == "pending"
+    assert post.thumbnail == "https://img.com/foto1.png"
+
+    queued = buffer.list_queue_posts()
+    assert len(queued) == 1
+    assert queued[0].id == post.id
+    assert queued[0].text == "Legenda de teste da fila local"
+    assert queued[0].images == ["https://img.com/foto1.png"]
+
+
+def test_dispatch_next_batch_success(app, connected):
+    # FakeBuffer tem 1 post agendado para ig1 (id p2 no dia 2026-11-03T11:00:00Z)
+    for i in range(3):
+        buffer.enqueue_post(
+            channel_id="ig1",
+            channel_name="iltonbsilva",
+            service="instagram",
+            text=f"Post lote #{i}",
+            image_urls=["https://img.com/1.png"],
+        )
+
+    dispatched = buffer.dispatch_next_batch("ig1", batch_size=5, trigger_threshold=5)
+    assert len(dispatched) == 3
+    assert all(p.status == "dispatched" for p in dispatched)
+    assert all(p.buffer_post_id is not None for p in dispatched)
+
+    # Confere se os posts chegaram ao FakeBuffer com modo customScheduled e dueAt no futuro
+    created = [c for c in connected.created if c["channelId"] == "ig1"]
+    assert len(created) == 3
+    assert all(c["mode"] == "customScheduled" for c in created)
+    assert all(c["dueAt"] is not None for c in created)
+
+
+def test_dispatch_next_batch_waits_if_scheduled_count_above_threshold(app, connected, monkeypatch):
+    # Simula 6 posts já agendados no Buffer para ig1 (acima do limiar 5)
+    six_posts = [
+        {"node": {"id": f"p_{i}", "text": f"Post {i}", "status": "scheduled",
+                  "dueAt": "2026-11-10T18:00:00.000Z", "channelId": "ig1",
+                  "channelService": "instagram", "error": None, "assets": []}}
+        for i in range(6)
+    ]
+    orig_call = connected.__call__
+
+    def mock_call(req):
+        body = json.loads(req.content)
+        if "posts(" in body.get("query", ""):
+            return httpx.Response(200, json={"data": {"posts": {"edges": six_posts}}})
+        return orig_call(req)
+
+    monkeypatch.setattr(buffer, "_transport", httpx.MockTransport(mock_call))
+
+    buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Post que deve aguardar",
+        image_urls=["https://img.com/1.png"],
+    )
+
+    dispatched = buffer.dispatch_next_batch("ig1", batch_size=5, trigger_threshold=5)
+    assert len(dispatched) == 0
+    pending = buffer.list_queue_posts(status="pending")
+    assert len(pending) == 1
+    assert pending[0].status == "pending"
+
+
+def test_schedule_graceful_fallback_to_queue_on_limit_reached(app, connected, monkeypatch):
+    # Quando o Buffer responde com limite atingido, schedule deve enfileirar automaticamente
+    def limit_call(req):
+        body = json.loads(req.content)
+        query = body.get("query", "")
+        if "createPost" in query:
+            return httpx.Response(200, json={"data": {"createPost": {
+                "message": "Scheduled posts limit reached. You have 10 scheduled posts out of 10 allowed."
+            }}})
+        return connected(req)
+
+    monkeypatch.setattr(buffer, "_transport", httpx.MockTransport(limit_call))
+
+    fut = _future()
+    results = buffer.schedule(
+        text="Post que estourou o limite",
+        overrides={},
+        channel_ids=["ig1"],
+        mode="customScheduled",
+        due_local=fut,
+        image_urls=["https://img.com/1.png"],
+        uploads=[],
+    )
+    assert len(results) == 1
+    assert results[0].ok is True
+    assert "Fila do Sistema" in results[0].message
+
+    queue_posts = buffer.list_queue_posts(status="pending")
+    assert len(queue_posts) == 1
+    assert queue_posts[0].text == "Post que estourou o limite"
+
+
+def test_queue_routes_crud_and_dispatch(client, connected):
+    # 1. Enfileira um post
+    p = buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Post na fila para teste de rota",
+        image_urls=["https://img.com/1.png"],
+        target_date=date(2026, 11, 28),
+        target_time="19:00",
+    )
+
+    # 2. GET index na aba queue
+    res = client.get("/integrations/buffer/?status=queue")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "Fila do Sistema" in html
+    assert "Post na fila para teste de rota" in html
+    assert "Pendente na Fila" in html
+
+    # 3. GET edit queue post
+    res_edit_get = client.get(f"/integrations/buffer/queue/{p.id}/edit")
+    assert res_edit_get.status_code == 200
+    assert "Editar post" in res_edit_get.get_data(as_text=True)
+
+    # 4. POST edit queue post
+    res_edit_post = client.post(f"/integrations/buffer/queue/{p.id}/edit", data={
+        "text": "Post na fila com texto editado",
+        "due_date": "2026-11-29",
+        "due_time": "20:00",
+    })
+    assert res_edit_post.status_code == 302
+    updated = buffer.get_queue_post(p.id)
+    assert updated.text == "Post na fila com texto editado"
+    assert updated.target_date == date(2026, 11, 29)
+    assert updated.target_time == "20:00"
+
+    # 5. POST dispatch single post
+    res_dispatch = client.post(f"/integrations/buffer/queue/{p.id}/dispatch")
+    assert res_dispatch.status_code == 302
+    dispatched = buffer.get_queue_post(p.id)
+    assert dispatched.status == "dispatched"
+    assert dispatched.buffer_post_id is not None
+
+    # 6. POST delete queue post
+    res_delete = client.post(f"/integrations/buffer/queue/{p.id}/delete")
+    assert res_delete.status_code == 302
+    assert buffer.get_queue_post(p.id) is None
+
+
+def test_sync_queue_route(client, connected):
+    # Enfileira posts para testar rota de sync
+    buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Sync route post",
+        image_urls=["https://img.com/1.png"],
+    )
+    res = client.post("/integrations/buffer/queue/sync")
+    assert res.status_code == 302
+    # Verifica que o post foi despachado
+    queued = buffer.list_queue_posts()
+    assert len(queued) == 1
+    assert queued[0].status == "dispatched"
+

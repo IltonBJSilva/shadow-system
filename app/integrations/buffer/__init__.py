@@ -8,9 +8,20 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime
 
 from ..registry import IntegrationStatus
-from . import posting, storage, token_store
+from . import posting, queue, storage, token_store
 from .client import BufferClient, BufferError, Channel, Post
 from .posting import PostValidationError
+from .queue import (
+    calculate_forward_dates,
+    delete_queue_post,
+    dispatch_next_batch,
+    dispatch_single_post,
+    enqueue_post,
+    get_queue_post,
+    list_queue_posts,
+    sync_queue,
+    update_queue_post,
+)
 from .storage import StorageError
 
 log = logging.getLogger(__name__)
@@ -124,16 +135,18 @@ def scheduled_posts_safe(limit: int = 5) -> tuple[list[Post], str | None]:
 # ---------- agendamento ----------
 
 def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mode: str,
-             due_local: datetime | None, image_urls: list[str], uploads: list[Upload]) -> list[ChannelResult]:
-    """Cria o post em cada canal escolhido. Um canal falhar não impede os outros.
+             due_local: datetime | None, image_urls: list[str], uploads: list[Upload],
+             send_to_queue: bool = False) -> list[ChannelResult]:
+    """Cria o post em cada canal escolhido ou adiciona à Fila do Sistema.
 
     overrides: texto específico por rede (ex.: {"linkedin": "...", "instagram": "..."}).
     Validações que valem para todos são feitas antes de qualquer envio.
+    Se o limite de agendamento do Buffer estiver atingido, salva automaticamente na Fila do Sistema.
     """
     if not channel_ids:
         raise PostValidationError("Escolha pelo menos um canal.")
     due = posting.due_at_utc(due_local) if mode == "customScheduled" and due_local else None
-    if mode == "customScheduled" and not due:
+    if mode == "customScheduled" and not due and not send_to_queue:
         raise PostValidationError("Escolha a data e a hora do agendamento.")
     if len(image_urls) + len(uploads) > posting.MAX_IMAGES:
         raise PostValidationError(f"No máximo {posting.MAX_IMAGES} imagens por post.")
@@ -152,7 +165,7 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
         posting.build_post_input(
             channel_id=channel.id, service=channel.service, text=overrides.get(channel.service) or text,
             # uploads ainda não têm link; contam como imagem só para a validação.
-            image_urls=image_urls + ["https://upload.pendente"] * len(uploads), mode=mode, due_at=due,
+            image_urls=image_urls + ["https://upload.pendente"] * len(uploads), mode=mode, due_at=due or "2099-01-01T00:00:00.000Z",
         )
 
     urls = list(image_urls)
@@ -161,8 +174,22 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
 
     results: list[ChannelResult] = []
     for channel in targets:
+        channel_text = overrides.get(channel.service) or text
+        if send_to_queue:
+            q_item = enqueue_post(
+                channel_id=channel.id,
+                channel_name=channel.name,
+                service=channel.service,
+                text=channel_text,
+                image_urls=urls,
+                target_date=due_local.date() if due_local else None,
+                target_time=due_local.strftime("%H:%M") if due_local else "18:30",
+            )
+            results.append(ChannelResult(channel.name, channel.service, True, f"Adicionado à Fila do Sistema (#{q_item.id})"))
+            continue
+
         body = posting.build_post_input(
-            channel_id=channel.id, service=channel.service, text=overrides.get(channel.service) or text,
+            channel_id=channel.id, service=channel.service, text=channel_text,
             image_urls=urls, mode=mode, due_at=due,
         )
         try:
@@ -170,7 +197,23 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
             when = post.get("dueAt") or "fila"
             results.append(ChannelResult(channel.name, channel.service, True, f"{post.get('status', 'ok')} ({when})"))
         except BufferError as exc:
-            results.append(ChannelResult(channel.name, channel.service, False, str(exc)))
+            exc_str = str(exc).lower()
+            if "scheduled posts limit reached" in exc_str or "limit of 10" in exc_str:
+                q_item = enqueue_post(
+                    channel_id=channel.id,
+                    channel_name=channel.name,
+                    service=channel.service,
+                    text=channel_text,
+                    image_urls=urls,
+                    target_date=due_local.date() if due_local else None,
+                    target_time=due_local.strftime("%H:%M") if due_local else "18:30",
+                )
+                results.append(ChannelResult(
+                    channel.name, channel.service, True,
+                    f"Limite do Buffer atingido. Salvo na Fila do Sistema (#{q_item.id}) para envio em lote (+5).",
+                ))
+            else:
+                results.append(ChannelResult(channel.name, channel.service, False, str(exc)))
     return results
 
 
@@ -235,7 +278,9 @@ def update_post(post_id: str, text: str, due_local: datetime | None = None, serv
 
 __all__ = [
     "BufferClient", "BufferError", "Channel", "ChannelResult", "Post", "PostValidationError",
-    "StorageError", "Upload", "channels", "delete_post", "get_client", "get_post", "is_configured",
+    "StorageError", "Upload", "calculate_forward_dates", "channels", "delete_post",
+    "delete_queue_post", "dispatch_next_batch", "dispatch_single_post", "enqueue_post",
+    "get_client", "get_post", "get_queue_post", "is_configured", "list_queue_posts",
     "posts", "save_token", "schedule", "scheduled_posts_safe", "share_post_now", "status",
-    "storage_enabled", "update_post",
+    "storage_enabled", "sync_queue", "update_post", "update_queue_post",
 ]

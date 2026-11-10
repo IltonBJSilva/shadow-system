@@ -1,7 +1,8 @@
 """Modelos e mixins compartilhados por todos os módulos."""
-from datetime import datetime
+import json
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.extensions import db
@@ -128,4 +129,45 @@ class BufferUpload(db.Model):
     size: Mapped[int] = mapped_column(Integer, nullable=False)
     data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=time.now, nullable=False)
+
+
+class BufferQueuePost(UserOwnedMixin, TimestampMixin, db.Model):
+    """Fila local de publicações do Buffer no Shadow System.
+
+    Permite agendar além do limite gratuito de 10 posts por rede social do Buffer.
+    Quando restarem <= 5 agendados no Buffer para um canal (5 já publicados),
+    o sistema despacha o próximo lote de 5 posts da fila local, projetando as datas
+    sempre para a frente a partir do último post agendado no canal.
+    """
+
+    __tablename__ = "buffer_queue_posts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    channel_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    channel_name: Mapped[str] = mapped_column(String(100), default="", server_default="", nullable=False)
+    service: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    image_urls: Mapped[str] = mapped_column(Text, default="[]", server_default="[]", nullable=False)
+    target_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    target_time: Mapped[str | None] = mapped_column(String(10), default="18:30", server_default="18:30", nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending", index=True, nullable=False)
+    buffer_post_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    @property
+    def images(self) -> list[str]:
+        try:
+            return json.loads(self.image_urls) if self.image_urls else []
+        except Exception:
+            return []
+
+    @images.setter
+    def images(self, urls: list[str]) -> None:
+        self.image_urls = json.dumps(urls)
+
+    @property
+    def thumbnail(self) -> str | None:
+        imgs = self.images
+        return imgs[0] if imgs else None
 

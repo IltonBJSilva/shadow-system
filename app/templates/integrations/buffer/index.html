@@ -47,54 +47,122 @@
     <div class="panel-header">
       <div class="row">
         {% for key, label in tabs.items() %}
-          <a class="btn btn-sm {{ 'btn-primary' if key == tab else 'btn-ghost' }}" href="{{ url_for('buffer.index', status=key) }}">{{ label }}</a>
+          <a class="btn btn-sm {{ 'btn-primary' if key == tab else 'btn-ghost' }}" href="{{ url_for('buffer.index', status=key) }}">
+            {{ label }}{% if key == 'queue' and queue_pending_count %} ({{ queue_pending_count }}){% endif %}
+          </a>
         {% endfor %}
       </div>
-      <span class="muted small">{{ posts | length }} post(s)</span>
+      <div class="row">
+        {% if tab == 'queue' %}
+          <form method="post" action="{{ url_for('buffer.sync_queue_route') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-primary" title="Verifica se há vagas no Buffer e despacha novo lote de 5">⚡ Sincronizar Fila (+5)</button>
+          </form>
+          <span class="muted small">{{ queue_posts | length }} na fila</span>
+        {% else %}
+          <span class="muted small">{{ posts | length }} post(s)</span>
+        {% endif %}
+      </div>
     </div>
-    {% if posts %}
-      <ul class="list">
-        {% for post in posts %}
-          <li class="list-item">
-            {% if post.thumbnail %}<img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover">{% endif %}
-            <div class="item-main">
-              <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
-              <div class="item-meta">
-                <span class="tag tag-{{ post.service }}">
-                  {% if post.service == 'instagram' %}📷 Instagram
-                  {% elif post.service == 'tiktok' %}🎵 TikTok
-                  {% elif post.service == 'linkedin' %}💼 LinkedIn
-                  {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
-                  {% elif post.service == 'facebook' %}👥 Facebook
-                  {% elif post.service == 'youtube' %}▶ YouTube
-                  {% else %}{{ post.service | capitalize }}
+
+    {% if tab == 'queue' %}
+      <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: rgba(0, 168, 255, 0.08); border-left: 3px solid var(--neon-blue, #00d2ff); border-radius: 4px; font-size: 0.85rem; color: #b4c2dc;">
+        ⚡ <strong>Fila Inteligente:</strong> Seus posts ficam guardados aqui sem estourar o limite de 10 do Buffer.
+        Quando 5 posts forem publicados no Buffer (restando &le; 5 agendados), o próximo lote de 5 posts é despachado automaticamente em sequência cronológica contínua.
+      </div>
+      {% if queue_posts %}
+        <ul class="list">
+          {% for post in queue_posts %}
+            <li class="list-item">
+              {% if post.thumbnail %}<img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover">{% endif %}
+              <div class="item-main">
+                <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
+                <div class="item-meta">
+                  <span class="tag tag-{{ post.service }}">
+                    {% if post.service == 'instagram' %}📷 Instagram
+                    {% elif post.service == 'tiktok' %}🎵 TikTok
+                    {% elif post.service == 'linkedin' %}💼 LinkedIn
+                    {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
+                    {% elif post.service == 'facebook' %}👥 Facebook
+                    {% elif post.service == 'youtube' %}▶ YouTube
+                    {% else %}{{ post.service | capitalize }}
+                    {% endif %}
+                  </span>
+                  <span class="tag tag-blue">{{ post.channel_name }}</span>
+                  <span>Previsto: {{ post.target_date | date_br or "Automático (+1 dia)" }} às {{ post.target_time or "18:30" }}</span>
+                  {% if post.status == 'pending' %}
+                    <span class="tag tag-warning">⏳ Pendente na Fila</span>
+                  {% elif post.status == 'dispatched' %}
+                    <span class="tag tag-success">✓ Despachado ao Buffer</span>
+                  {% elif post.status == 'error' %}
+                    <span class="tag tag-danger">✖ {{ post.error_message or "Erro" }}</span>
                   {% endif %}
-                </span>
-                <span class="tag tag-blue">{{ post.channel_name }}</span>
-                <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
-                {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
+                </div>
               </div>
-            </div>
-            <div class="item-actions">
-              {% if tab in ('scheduled', 'draft') %}
-                <form method="post" action="{{ url_for('buffer.share_now_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
+              <div class="item-actions">
+                {% if post.status in ('pending', 'error') %}
+                  <form method="post" action="{{ url_for('buffer.dispatch_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Despachar este post para o Buffer agora?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-ghost" title="Despachar para o Buffer">⚡ Enviar ao Buffer</button>
+                  </form>
+                  <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_queue_post_route', post_id=post.id) }}" title="Editar post da fila">✏️ Editar</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('buffer.delete_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Remover este post da Fila do Sistema?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
+                  <button type="submit" class="btn btn-sm btn-danger" title="Excluir da fila">🗑️ Excluir</button>
                 </form>
-                <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=post.id) }}" title="Editar post">✏️ Editar</a>
-              {% endif %}
-              {% if tab in ('scheduled', 'draft', 'error') %}
-                <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir esta publicação no {{ post.service | capitalize }}?');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
-                </form>
-              {% endif %}
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% elif not error %}
-      {{ ui.empty("Nenhum post nesta aba.") }}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        {{ ui.empty("A Fila do Sistema está vazia. Novos agendamentos que passarem de 10 posts cairão automaticamente aqui.") }}
+      {% endif %}
+    {% else %}
+      {% if posts %}
+        <ul class="list">
+          {% for post in posts %}
+            <li class="list-item">
+              {% if post.thumbnail %}<img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover">{% endif %}
+              <div class="item-main">
+                <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
+                <div class="item-meta">
+                  <span class="tag tag-{{ post.service }}">
+                    {% if post.service == 'instagram' %}📷 Instagram
+                    {% elif post.service == 'tiktok' %}🎵 TikTok
+                    {% elif post.service == 'linkedin' %}💼 LinkedIn
+                    {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
+                    {% elif post.service == 'facebook' %}👥 Facebook
+                    {% elif post.service == 'youtube' %}▶ YouTube
+                    {% else %}{{ post.service | capitalize }}
+                    {% endif %}
+                  </span>
+                  <span class="tag tag-blue">{{ post.channel_name }}</span>
+                  <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
+                  {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
+                </div>
+              </div>
+              <div class="item-actions">
+                {% if tab in ('scheduled', 'draft') %}
+                  <form method="post" action="{{ url_for('buffer.share_now_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
+                  </form>
+                  <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=post.id) }}" title="Editar post">✏️ Editar</a>
+                {% endif %}
+                {% if tab in ('scheduled', 'draft', 'error') %}
+                  <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir esta publicação no {{ post.service | capitalize }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
+                  </form>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% elif not error %}
+        {{ ui.empty("Nenhum post nesta aba.") }}
+      {% endif %}
     {% endif %}
   </section>
 </div>

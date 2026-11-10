@@ -85,8 +85,16 @@
   </section>
 
   <section class="panel">
-    <div class="panel-header"><h2>Quando</h2></div>
+    <div class="panel-header"><h2>Quando e Onde Enviar</h2></div>
     <div class="form-grid">
+      <div class="field full">
+        <label class="label" for="destination">Destino da publicação</label>
+        <select class="input" id="destination" name="destination">
+          <option value="buffer" selected>⚡ Agendar no Buffer (com salvamento automático na Fila se atingir limite de 10)</option>
+          <option value="queue">📥 Adicionar direto à Fila do Sistema (aguarda lote de +5)</option>
+        </select>
+        <small class="muted">Caso o limite de 10 posts do Buffer seja atingido, o post é guardado na Fila do Sistema e despachado automaticamente em lote (+5) quando houver vagas.</small>
+      </div>
       <div class="field full">
         <label class="label" for="mode">Modo</label>
         <select class="input" id="mode" name="mode">

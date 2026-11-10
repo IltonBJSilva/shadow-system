@@ -6,14 +6,42 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 
 from app.core import time
 
-from . import (BufferError, PostValidationError, StorageError, Upload, channels, delete_post,
-               get_post, is_configured, posts, save_token, schedule, share_post_now, storage,
-               storage_enabled, token_store, update_post)
+from . import (
+    BufferError,
+    PostValidationError,
+    StorageError,
+    Upload,
+    channels,
+    delete_post,
+    delete_queue_post,
+    dispatch_single_post,
+    enqueue_post,
+    get_post,
+    get_queue_post,
+    is_configured,
+    list_queue_posts,
+    posts,
+    save_token,
+    schedule,
+    share_post_now,
+    storage,
+    storage_enabled,
+    sync_queue,
+    token_store,
+    update_post,
+    update_queue_post,
+)
 from .posting import MODES, parse_image_urls
 
 bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
 
-TABS = {"scheduled": "Agendados", "draft": "Rascunhos", "sent": "Enviados", "error": "Com erro"}
+TABS = {
+    "scheduled": "Agendados",
+    "queue": "Fila do Sistema",
+    "draft": "Rascunhos",
+    "sent": "Enviados",
+    "error": "Com erro",
+}
 
 
 @bp.errorhandler(BufferError)
@@ -32,13 +60,43 @@ def index():
     tab = request.args.get("status", "scheduled")
     tab = tab if tab in TABS else "scheduled"
     error, items, chans = None, [], []
+    queue_posts = []
+    queue_pending_count = len(list_queue_posts(status="pending"))
+
     try:
         chans = channels()
-        items = posts([tab])
+        if tab == "queue":
+            queue_posts = list_queue_posts()
+        else:
+            items = posts([tab])
+            # Se estiver nos agendados e houver posts na fila do sistema, despacha lote para canais com <= 5
+            if tab == "scheduled" and queue_pending_count > 0:
+                try:
+                    dispatched_map = sync_queue()
+                    if dispatched_map:
+                        total_disp = sum(dispatched_map.values())
+                        summary_str = ", ".join(f"{ch} (+{c})" for ch, c in dispatched_map.items())
+                        flash(f"Fila Inteligente: {total_disp} post(s) despachado(s) para o Buffer ({summary_str})!", "success")
+                        queue_pending_count = len(list_queue_posts(status="pending"))
+                        items = posts([tab])
+                except Exception:
+                    pass
     except BufferError as exc:
         error = str(exc)
-    return render_template("integrations/buffer/index.html", tabs=TABS, tab=tab, posts=items,
-                           channels=chans, error=error, token=token_store.status())
+        if tab == "queue":
+            queue_posts = list_queue_posts()
+
+    return render_template(
+        "integrations/buffer/index.html",
+        tabs=TABS,
+        tab=tab,
+        posts=items,
+        queue_posts=queue_posts,
+        queue_pending_count=queue_pending_count,
+        channels=chans,
+        error=error,
+        token=token_store.status(),
+    )
 
 
 @bp.route("/token", methods=["GET", "POST"])
@@ -73,6 +131,8 @@ def new_post():
         if request.form.get("confirm") != "yes":
             raise PostValidationError("Marque a confirmação: publicar ou agendar é uma ação pública.")
         mode = request.form.get("mode", "customScheduled")
+        destination = request.form.get("destination", "buffer")
+        send_to_queue = (destination == "queue")
         results = schedule(
             text=request.form.get("text", "").strip(),
             overrides={s: request.form.get(f"text_{s}", "").strip() for s in services
@@ -83,10 +143,11 @@ def new_post():
             image_urls=parse_image_urls(request.form.get("image_urls", "")),
             uploads=[Upload(f.filename, f.read(), f.mimetype) for f in request.files.getlist("images")
                      if f and f.filename],
+            send_to_queue=send_to_queue,
         )
         for result in results:
             flash(f"{result.channel} ({result.service}): {result.message}", "success" if result.ok else "error")
-        return redirect(url_for("buffer.index"))
+        return redirect(url_for("buffer.index", status="queue" if send_to_queue else "scheduled"))
     host = request.host.lower()
     is_local = host.startswith(("localhost", "127.0.0.1"))
     return render_template("integrations/buffer/new.html", channels=chans, services=services, modes=MODES,
@@ -149,6 +210,70 @@ def edit_post_route(post_id: str):
         flash("Post atualizado com sucesso no Buffer.", "success")
         return redirect(url_for("buffer.index"))
     return render_template("integrations/buffer/edit.html", post=post, today=time.today())
+
+
+# ---------- rotas da Fila do Sistema ----------
+
+@bp.post("/queue/sync")
+def sync_queue_route():
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    results = sync_queue()
+    if results:
+        total = sum(results.values())
+        channels_str = ", ".join(f"{ch} (+{cnt})" for ch, cnt in results.items())
+        flash(f"Lote despachado para o Buffer: {total} post(s) ({channels_str}).", "success")
+    else:
+        pending = len(list_queue_posts(status="pending"))
+        if pending == 0:
+            flash("A Fila do Sistema está vazia. Não há posts para despachar.", "info")
+        else:
+            flash(
+                "Nenhum canal elegível para envio de lote no momento: os canais ainda possuem mais de 5 posts agendados no Buffer.",
+                "info",
+            )
+    return redirect(url_for("buffer.index", status="queue"))
+
+
+@bp.post("/queue/<int:post_id>/dispatch")
+def dispatch_queue_post_route(post_id: int):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    post = dispatch_single_post(post_id)
+    flash(f"Post #{post.id} ({post.service.capitalize()}) despachado com sucesso para o Buffer!", "success")
+    return redirect(url_for("buffer.index", status="queue"))
+
+
+@bp.post("/queue/<int:post_id>/delete")
+def delete_queue_post_route(post_id: int):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    delete_queue_post(post_id)
+    flash("Post removido da Fila do Sistema.", "info")
+    return redirect(url_for("buffer.index", status="queue"))
+
+
+@bp.route("/queue/<int:post_id>/edit", methods=["GET", "POST"])
+def edit_queue_post_route(post_id: int):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    post = get_queue_post(post_id)
+    if not post:
+        abort(404)
+    if request.method == "POST":
+        text = request.form.get("text", "")
+        due_date_raw = request.form.get("due_date", "").strip()
+        due_time_raw = request.form.get("due_time", "").strip()
+        target_d = None
+        if due_date_raw:
+            try:
+                target_d = date.fromisoformat(due_date_raw)
+            except ValueError as exc:
+                raise PostValidationError("Informe uma data válida.") from exc
+        update_queue_post(post_id, text=text, target_date=target_d, target_time=due_time_raw or "18:30")
+        flash("Post da fila atualizado com sucesso.", "success")
+        return redirect(url_for("buffer.index", status="queue"))
+    return render_template("integrations/buffer/queue_edit.html", post=post, today=time.today())
 
 
 def _due_from_form() -> datetime:
