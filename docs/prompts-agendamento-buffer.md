@@ -214,3 +214,33 @@ Ao solicitar agendamentos ao agente, as seguintes regras são aplicadas automati
 
 > [!NOTE]
 > **Modo Local vs Produção:** Quando você executa localmente em `http://127.0.0.1:5050`, o app armazena as imagens no banco local. Quando executado em produção no Render (`https://shadow-system-5v0w.onrender.com`), o Buffer consome as imagens diretamente com links HTTPS públicos persistentes gerados pelo próprio Shadow System.
+
+---
+
+## 5. Prompt: Enfileirar Pastas na Fila do Sistema (Regra de Lotes +5)
+
+> **Quando usar:** Quando você tiver um pacote de conteúdos para agendar além do limite gratuito de 10 posts do Buffer. Os posts ficarão salvos na **Fila do Sistema** e serão despachados automaticamente em lotes de **+5** à medida que vagas forem liberadas no Buffer.
+
+```markdown
+# ENFILEIRAMENTO DE POSTAGENS NA FILA DO SISTEMA | SHADOW SYSTEM
+
+Atue como o agente autônomo do Shadow System. Analise a pasta indicada, extraia as mídias e legendas e cadastre todos os posts diretamente na **Fila do Sistema** para as redes solicitadas.
+
+### 1. Diretório
+- Pasta: `[CAMINHO_DA_PASTA, ex: C:\Users\ilton\Downloads\postagens\minha_pasta]`
+- Destinos: [LinkedIn, Instagram, TikTok]
+
+### 2. Regra da Fila Inteligente (+5 quando postar 5)
+- Cadastre na Fila do Sistema (`destination="queue"`).
+- O sistema projeta as datas continuamente para a frente a partir do último post agendado no Buffer.
+- Quando o Buffer atingir <= 5 posts agendados no canal, o lote de +5 será despachado automaticamente.
+
+### 3. Execução
+- Acesse o Shadow System (produção ou local).
+- Suba as imagens e os textos de cada rede social.
+- Confirme a lista final na aba `Fila do Sistema` (/integrations/buffer/?status=queue).
+```
+
+> [!TIP]
+> Para consultar o histórico detalhado de todas as postagens já agendadas e os 87 itens atualmente na fila, veja [docs/contexto-historico-agendamentos.md](contexto-historico-agendamentos.md).
+
