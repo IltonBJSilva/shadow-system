@@ -81,8 +81,10 @@ def _upload_local(filename: str, content: bytes, content_type: str) -> str:
         url = url_for("buffer.serve_upload", token=token, filename=safe_name, _external=True)
         if not request.host.startswith(("localhost", "127.0.0.1")) and url.startswith("http://"):
             url = "https://" + url[len("http://"):]
+        elif request.host.startswith(("localhost", "127.0.0.1")):
+            url = f"https://shadow-system-5v0w.onrender.com/integrations/buffer/uploads/{token}/{safe_name}"
         return url
-    return f"/integrations/buffer/uploads/{token}/{safe_name}"
+    return f"https://shadow-system-5v0w.onrender.com/integrations/buffer/uploads/{token}/{safe_name}"
 
 
 def _upload_supabase(filename: str, content: bytes, content_type: str,

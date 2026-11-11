@@ -221,3 +221,4 @@ class YouTubeClient:
             url=f"https://youtu.be/{vid_id}",
             is_short=is_short,
         )
+

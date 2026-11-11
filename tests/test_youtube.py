@@ -192,3 +192,4 @@ def test_youtube_routes(client, fake_youtube, tmp_path):
     assert res_path.status_code == 302
     assert len(fake_youtube.uploaded) == 2
     assert fake_youtube.uploaded[1]["body"]["status"]["privacyStatus"] == "private"
+
