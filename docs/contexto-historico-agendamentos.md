@@ -129,7 +129,18 @@ Criamos a **Fila do Sistema** no Shadow System:
   10. `O Erro que Faz Você Gastar Tokens à Toa.mp4`
   11. `6 Hábitos para Gastar Menos Tokens na IA.mp4`
 - **Fila do Buffer:** **Enfileirados na Fila do Sistema** para as 3 redes (LinkedIn, Instagram e TikTok) = **33 itens** (datas previstas de 29/11/2026 a 09/12/2026).
-- **YouTube Shorts:** Script de agendamento em lote `scripts/schedule_youtube_batch.py` preparado com datas diárias de 11/11/2026 a 21/11/2026 às 12:00 (horário de Brasília) via YouTube Data API v3.
+- **YouTube Shorts:** **11 de 11 Shorts agendados com 100% de sucesso** via YouTube Data API v3 para as **12:00 BRT** (Canal Cultura IB):
+  1. `Você Não Paga a IA por Palavras 🤯 #Shorts` (11/11 às 12:00 BRT) -> https://youtu.be/F8NyEj7RyoQ
+  2. `Escrever em Português Gasta Mais Tokens? 🇧🇷 #Shorts` (12/11 às 12:00 BRT) -> https://youtu.be/V9SDbkR8Pa0
+  3. `O Segredo dos IDs de Tokens que Ninguém Te Conta 🔢 #Shorts` (13/11 às 12:00 BRT) -> https://youtu.be/TRmwtqeNeEE
+  4. `Pare de Usar o Modelo de IA Mais Caro! 💸 #Shorts` (14/11 às 12:00 BRT) -> https://youtu.be/Ooh9rQq7rfY
+  5. `Nem Todo Problema Precisa da IA Mais Inteligente 🧠 #Shorts` (15/11 às 12:00 BRT) -> https://youtu.be/nR2w2g-vOIw
+  6. `A Memória da IA Tem Limite (e Você Precisa Saber Disso) ⚠️ #Shorts` (16/11 às 12:00 BRT) -> https://youtu.be/-hZR68CNUIU
+  7. `A IA Relê Sua Conversa INTEIRA a Cada Mensagem 😱 #Shorts` (17/11 às 12:00 BRT) -> https://youtu.be/8k3StXZb558
+  8. `2 Comandos do Claude Code que Vão Te Salvar ⚡ #Shorts` (18/11 às 12:00 BRT) -> https://youtu.be/UEEEdtxp0O0
+  9. `Pare de Mandar Seu Código INTEIRO para a IA 🛑 #Shorts` (19/11 às 12:00 BRT) -> https://youtu.be/p3V3kXHmJws
+  10. `O Erro que Faz Você Gastar Tokens à Toa 🔥 #Shorts` (20/11 às 12:00 BRT) -> https://youtu.be/3t9NqDVlVjI
+  11. `6 Hábitos para Gastar Menos Tokens na IA ✅ #Shorts` (21/11 às 12:00 BRT) -> https://youtu.be/KwMg1Hu4_sI
 
 ---
 
