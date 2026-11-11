@@ -21,7 +21,8 @@ bp = Blueprint("security", __name__)
 # core.media confere o login por dentro: só a imagem da tela de acesso é pública.
 # buffer.serve_upload é público para o Buffer baixar imagens de posts enviados do computador.
 PUBLIC_ENDPOINTS = {"security.login", "security.invite", "static", "core.health", "core.media_file",
-                    "core.manifest", "core.service_worker", "core.offline", "buffer.serve_upload"}
+                    "core.manifest", "core.service_worker", "core.offline", "buffer.serve_upload",
+                    "buffer.sync_upload", "buffer.sync_queue_api"}
 
 # Política de conteúdo: scripts e estilos só do próprio app. 'unsafe-inline' em estilos é necessário
 # para larguras de barras de progresso definidas no template (style="width: 40%").
