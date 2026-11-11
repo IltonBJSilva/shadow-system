@@ -244,3 +244,29 @@ Atue como o agente autônomo do Shadow System. Analise a pasta indicada, extraia
 > [!TIP]
 > Para consultar o histórico detalhado de todas as postagens já agendadas e os 87 itens atualmente na fila, veja [docs/contexto-historico-agendamentos.md](contexto-historico-agendamentos.md).
 
+---
+
+## 6. Prompt: Agendamento e Enfileiramento de Vídeos (Reels, TikTok, LinkedIn)
+
+> **Quando usar:** Para enviar e agendar vídeos curtos (`.mp4`, `.mov`, `.webm`) para Instagram Reels, TikTok e LinkedIn. O sistema gerencia automaticamente tanto a fila quanto a aba exclusiva de vídeos.
+
+```markdown
+# AGENDAMENTO DE VÍDEOS | SHADOW SYSTEM
+
+Atue como o agente autônomo do Shadow System. Analise os vídeos no diretório fornecido e agende ou enfileire nas redes sociais selecionadas.
+
+### 1. Diretório
+- Pasta de Vídeos: `[ex: C:\Users\ilton\Videos\IA\renders]`
+- Destinos: [Instagram (Reels), TikTok, LinkedIn Vídeo]
+
+### 2. Formatação Automática
+- Instagram: configurado como Reel com publicação no feed (`type: "reel"`, `shouldShareToFeed: true`).
+- TikTok: configurado com título nativo.
+- LinkedIn: upload de vídeo nativo.
+- Aba exclusiva: gerenciável em `/integrations/buffer/?status=videos` (com filtros por Fila do Sistema e Agendados no Buffer).
+
+### 3. Ações Imediatas
+- Cada vídeo na fila possui o botão `⚡ Postar agora` caso queira publicar imediatamente sem esperar o agendamento futuro.
+```
+
+
