@@ -1,6 +1,6 @@
 """Script para agendar em lote os 11 Shorts no YouTube (YouTube Data API v3).
 
-Datas: 1 vídeo por dia, às 18:30 (horário de Brasília).
+Datas: 1 vídeo por dia, às 12:00 (horário de Brasília).
 Requer: Canal do YouTube autorizado em /integrations/youtube/.
 """
 from datetime import datetime, timezone
@@ -15,7 +15,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "Você Não Paga a IA por Palavras.mp4",
         "title": "Você Não Paga a IA por Palavras 🤯 #Shorts",
-        "date_utc": datetime(2026, 11, 11, 21, 30, tzinfo=timezone.utc),  # 18:30 BRT
+        "date_utc": datetime(2026, 11, 11, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Quando você usa o ChatGPT, o Claude ou qualquer outra IA, a cobrança não é por palavra: é por TOKEN. "
             "E entender isso muda o jeito como você escreve seus prompts.\n\n"
@@ -28,7 +28,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "Escrever em Português Gasta Mais Tokens.mp4",
         "title": "Escrever em Português Gasta Mais Tokens? 🇧🇷 #Shorts",
-        "date_utc": datetime(2026, 11, 12, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 12, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Você sabia que o mesmo texto pode custar mais tokens em português do que em inglês? "
             "Os modelos de IA quebram as palavras de um jeito diferente em cada idioma, e isso pesa no bolso e no limite de uso.\n\n"
@@ -41,7 +41,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "O Segredo dos IDs de Tokens que Ninguém Te Conta.mp4",
         "title": "O Segredo dos IDs de Tokens que Ninguém Te Conta 🔢 #Shorts",
-        "date_utc": datetime(2026, 11, 13, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 13, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "A IA não lê palavras: ela lê NÚMEROS. Cada pedaço de texto vira um ID de token antes de chegar ao modelo.\n\n"
             "Neste short eu mostro como funciona essa tradução de texto para números por trás de toda conversa com uma IA.\n\n"
@@ -53,7 +53,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "Pare de Usar o Modelo de IA Mais Caro.mp4",
         "title": "Pare de Usar o Modelo de IA Mais Caro! 💸 #Shorts",
-        "date_utc": datetime(2026, 11, 14, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 14, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Usar sempre o modelo mais poderoso parece a escolha certa, mas na maioria das vezes é só desperdício. "
             "Muitas tarefas são resolvidas perfeitamente por modelos menores, mais rápidos e mais baratos.\n\n"
@@ -66,7 +66,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "Nem Todo Problema Precisa da IA Mais Inteligente.mp4",
         "title": "Nem Todo Problema Precisa da IA Mais Inteligente 🧠 #Shorts",
-        "date_utc": datetime(2026, 11, 15, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 15, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Você não chama um cirurgião para colocar um curativo. Com a IA é a mesma coisa: nem todo problema precisa do modelo 'especialista'.\n\n"
             "Neste short eu mostro como pensar antes de escolher qual IA usar e economizar tempo e dinheiro.\n\n"
@@ -78,7 +78,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "A Memória da IA Tem Limite.mp4",
         "title": "A Memória da IA Tem Limite (e Você Precisa Saber Disso) ⚠️ #Shorts",
-        "date_utc": datetime(2026, 11, 16, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 16, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "A IA não lembra de tudo para sempre. Toda conversa tem uma 'janela de contexto', "
             "e quando ela enche, informações importantes começam a ser esquecidas.\n\n"
@@ -91,7 +91,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "A IA Relê Sua Conversa INTEIRA a Cada Mensagem.mp4",
         "title": "A IA Relê Sua Conversa INTEIRA a Cada Mensagem 😱 #Shorts",
-        "date_utc": datetime(2026, 11, 17, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 17, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Cada vez que você manda uma mensagem, a IA relê toda a conversa desde o começo. "
             "Por isso conversas longas ficam mais lentas, mais caras e consomem seu limite mais rápido.\n\n"
@@ -104,7 +104,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "2 Comandos do Claude Code que Vão Te Salvar.mp4",
         "title": "2 Comandos do Claude Code que Vão Te Salvar ⚡ #Shorts",
-        "date_utc": datetime(2026, 11, 18, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Se você usa o Claude Code para programar, precisa conhecer esses dois comandos. "
             "Eles ajudam a controlar o contexto da conversa e evitam desperdício de tokens.\n\n"
@@ -117,7 +117,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "Pare de Mandar Seu Código INTEIRO para a IA.mp4",
         "title": "Pare de Mandar Seu Código INTEIRO para a IA 🛑 #Shorts",
-        "date_utc": datetime(2026, 11, 19, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 19, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Jogar o projeto inteiro na IA parece ajudar, mas só gasta tokens e deixa as respostas piores. "
             "A IA funciona melhor quando recebe apenas o contexto que realmente importa.\n\n"
@@ -130,7 +130,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "O Erro que Faz Você Gastar Tokens à Toa.mp4",
         "title": "O Erro que Faz Você Gastar Tokens à Toa 🔥 #Shorts",
-        "date_utc": datetime(2026, 11, 20, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 20, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Tem um erro muito comum que faz você queimar tokens sem perceber, e quase todo mundo comete.\n\n"
             "Neste short eu mostro qual é esse erro e como evitar, para sua IA render muito mais.\n\n"
@@ -142,7 +142,7 @@ YOUTUBE_VIDEOS = [
     {
         "filename": "6 Hábitos para Gastar Menos Tokens na IA.mp4",
         "title": "6 Hábitos para Gastar Menos Tokens na IA ✅ #Shorts",
-        "date_utc": datetime(2026, 11, 21, 21, 30, tzinfo=timezone.utc),
+        "date_utc": datetime(2026, 11, 21, 15, 0, tzinfo=timezone.utc),  # 12:00 BRT
         "description": (
             "Quer usar a IA o dia inteiro sem estourar o limite? "
             "Esses 6 hábitos simples vão fazer você gastar muito menos tokens e ainda ter respostas melhores.\n\n"
@@ -194,3 +194,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

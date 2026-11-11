@@ -129,7 +129,7 @@ Criamos a **Fila do Sistema** no Shadow System:
   10. `O Erro que Faz Você Gastar Tokens à Toa.mp4`
   11. `6 Hábitos para Gastar Menos Tokens na IA.mp4`
 - **Fila do Buffer:** **Enfileirados na Fila do Sistema** para as 3 redes (LinkedIn, Instagram e TikTok) = **33 itens** (datas previstas de 29/11/2026 a 09/12/2026).
-- **YouTube Shorts:** Script de agendamento em lote `scripts/schedule_youtube_batch.py` preparado com datas diárias de 11/11/2026 a 21/11/2026 às 18:30 (horário de Brasília) via YouTube Data API v3.
+- **YouTube Shorts:** Script de agendamento em lote `scripts/schedule_youtube_batch.py` preparado com datas diárias de 11/11/2026 a 21/11/2026 às 12:00 (horário de Brasília) via YouTube Data API v3.
 
 ---
 
