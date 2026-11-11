@@ -5,6 +5,7 @@ from datetime import date, datetime
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.core import time
+from app.extensions import csrf
 
 from . import (
     BufferError,
@@ -315,3 +316,68 @@ def _due_from_form() -> datetime:
         return datetime.fromisoformat(f"{request.form.get('due_date', '')}T{request.form.get('due_time', '')}")
     except ValueError as exc:
         raise PostValidationError("Informe a data e a hora do agendamento.") from exc
+
+
+# ---------- Sincronização Local -> Produção (Render) ----------
+
+SYNC_KEY = "shadow-system-sync-2026-sec"
+
+
+@bp.post("/api/sync-upload")
+@csrf.exempt
+def sync_upload():
+    from app.extensions import db
+    from app.core.models import BufferUpload
+
+    if request.headers.get("X-Sync-Key") != SYNC_KEY and request.form.get("sync_key") != SYNC_KEY:
+        abort(403)
+    token = request.form.get("token")
+    filename = request.form.get("filename")
+    mimetype = request.form.get("mimetype", "video/mp4")
+    f = request.files.get("file")
+    if not token or not filename or not f:
+        abort(400)
+    data = f.read()
+    existing = db.session.get(BufferUpload, token)
+    if not existing:
+        upload_row = BufferUpload(token=token, filename=filename, mimetype=mimetype, size=len(data), data=data)
+        db.session.add(upload_row)
+        db.session.commit()
+    return {"status": "ok", "token": token, "size": len(data)}
+
+
+@bp.post("/api/sync-queue")
+@csrf.exempt
+def sync_queue_api():
+    from app.extensions import db
+    from app.core.models import BufferQueuePost
+
+    if request.headers.get("X-Sync-Key") != SYNC_KEY and request.form.get("sync_key") != SYNC_KEY:
+        abort(403)
+    data = request.get_json(silent=True) or {}
+    posts = data.get("posts", [])
+    added = 0
+    for p in posts:
+        target_d = date.fromisoformat(p["target_date"]) if p.get("target_date") else None
+        exists = BufferQueuePost.query.filter_by(
+            channel_id=p["channel_id"],
+            target_date=target_d,
+            target_time=p["target_time"],
+        ).first()
+        if not exists:
+            row = BufferQueuePost(
+                channel_id=p["channel_id"],
+                channel_name=p["channel_name"],
+                service=p["service"],
+                text=p["text"],
+                thumbnail=p["thumbnail"],
+                target_date=target_d,
+                target_time=p["target_time"],
+                status=p.get("status", "pending"),
+            )
+            db.session.add(row)
+            added += 1
+    if added > 0:
+        db.session.commit()
+    return {"status": "ok", "added": added}
+
