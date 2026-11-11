@@ -36,9 +36,8 @@ def run():
                     print(f"       ✖ Falha: {e}")
 
         # 2. Enviar os posts de vídeo da fila para buffer_queue_posts no Render
-        video_posts = BufferQueuePost.query.filter(
-            BufferQueuePost.thumbnail.like("%.mp4")
-        ).all()
+        all_posts = BufferQueuePost.query.all()
+        video_posts = [p for p in all_posts if p.is_video]
         print(f"\n=== Sincronizando {len(video_posts)} posts de vídeo da fila para o Render ===")
         payload = [
             {
@@ -82,3 +81,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

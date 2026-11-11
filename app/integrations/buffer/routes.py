@@ -370,11 +370,12 @@ def sync_queue_api():
                 channel_name=p["channel_name"],
                 service=p["service"],
                 text=p["text"],
-                thumbnail=p["thumbnail"],
                 target_date=target_d,
                 target_time=p["target_time"],
                 status=p.get("status", "pending"),
             )
+            if p.get("thumbnail"):
+                row.images = [p["thumbnail"]]
             db.session.add(row)
             added += 1
     if added > 0:
