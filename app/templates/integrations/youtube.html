@@ -3,38 +3,73 @@
 {% block title %}YouTube{% endblock %}
 {% block heading %}YouTube (Vídeos & Shorts){% endblock %}
 {% block actions %}
-  <a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">Integrações</a>
-  <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='videos') }}">Aba Vídeos</a>
+  <a class="btn btn-ghost" href="{{ url_for('integrations.index') }}">⇄ Integrações</a>
+  <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='videos') }}">🎬 Aba Vídeos Buffer</a>
+  {% if authorized %}
+    <a class="btn btn-ghost" data-turbo="false" href="{{ url_for('youtube.connect') }}">🔄 Reconectar Canal</a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="stack">
+  {# 1. Estado da Conexão e Alertas #}
   {% if not configured %}
     <section class="panel system-window">
       <p class="system-label">[SYSTEM] Google OAuth não configurado</p>
-      <p>Configure o arquivo <span class="mono">GOOGLE_CLIENT_SECRETS_FILE</span> no <span class="mono">.env</span> para habilitar a conexão Google.</p>
+      <p>Configure o arquivo de credenciais do Google para habilitar a integração com o YouTube:</p>
+      <ol class="small muted" style="margin: 0.5rem 0 0.5rem 1.25rem;">
+        <li>Ative a <strong>YouTube Data API v3</strong> no Google Cloud Console.</li>
+        <li>Defina <span class="mono">GOOGLE_CLIENT_SECRETS_FILE</span> no <span class="mono">.env</span> (ou no Render em <em>Secret Files</em>).</li>
+      </ol>
+      <p class="muted small">Passo a passo completo na aba <a href="{{ url_for('google_calendar.index') }}">Google Calendar</a>.</p>
     </section>
   {% elif not authorized %}
     <section class="panel system-window">
-      <p class="system-label">[SYSTEM] Autorizar YouTube</p>
+      <div class="panel-header">
+        <h2>Conectar Canal do YouTube</h2>
+        <span class="tag tag-warning">Não Conectado</span>
+      </div>
       <p>O YouTube utiliza a infraestrutura oficial do Google já presente no seu Shadow System.
-        Basta garantir que a <strong>YouTube Data API v3</strong> esteja ativada no seu projeto do Google Cloud Console e clicar no botão abaixo para autorizar o seu canal.
+        Basta garantir que a <strong>YouTube Data API v3</strong> esteja ativada no seu Google Cloud Console e clicar no botão abaixo para autorizar seu canal (sem limites de canais do Buffer).
       </p>
-      <div style="margin-top: 1rem;">
+      <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <a class="btn btn-primary" data-turbo="false" href="{{ url_for('youtube.connect') }}">▶️ Autorizar Canal do YouTube</a>
+        <a class="btn btn-ghost" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">🔗 Ativar YouTube API no Google Cloud ↗</a>
       </div>
     </section>
   {% endif %}
 
   {% if error %}
-    <section class="panel system-window"><p class="system-label">[SYSTEM] Erro</p><p>{{ error }}</p></section>
-  {% endif %}
-
-  {% if authorized and channel %}
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Erro no YouTube</p>
+      <p style="color: #ff6b6b; font-weight: 500; margin: 0.25rem 0 0.5rem 0;">{{ error }}</p>
+      <p class="muted small">Se o erro for de permissão ou API desativada, ative a YouTube Data API v3 no console do Google e reconecte:</p>
+      <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a class="btn btn-primary" data-turbo="false" href="{{ url_for('youtube.connect') }}">🔄 Reconectar / Autorizar Canal</a>
+        <a class="btn btn-ghost" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">🔗 Ativar YouTube API no Google Cloud ↗</a>
+      </div>
+    </section>
+  {% elif authorized and not channel %}
+    <section class="panel system-window">
+      <div class="panel-header">
+        <h2>Conta Google Conectada</h2>
+        <span class="tag tag-blue">Sem Canal Detectado</span>
+      </div>
+      <p>Sua conta Google está autorizada, mas nenhum canal do YouTube foi detectado para ela ou a permissão precisa de renovação.</p>
+      <p class="muted small">Certifique-se de que a conta Google conectada possui um canal ativo em <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">youtube.com</a> e que a YouTube Data API v3 está ativa.</p>
+      <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a class="btn btn-primary" data-turbo="false" href="{{ url_for('youtube.connect') }}">🔄 Reconectar / Trocar Conta Google</a>
+        <a class="btn btn-ghost" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">🔗 Ativar YouTube API no Google Cloud ↗</a>
+      </div>
+    </section>
+  {% elif authorized and channel %}
     <section class="panel">
       <div class="panel-header">
         <h2>Canal Conectado</h2>
-        <span class="tag tag-success">✓ Conectado</span>
+        <div class="row">
+          <span class="tag tag-success">✓ Conectado</span>
+          <a class="btn btn-sm btn-ghost" data-turbo="false" href="{{ url_for('youtube.connect') }}">Trocar canal</a>
+        </div>
       </div>
       <div style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
         {% if channel.avatar_url %}
@@ -53,137 +88,152 @@
         </div>
       </div>
     </section>
+  {% endif %}
 
-    <!-- Formulário de Upload e Agendamento -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Enviar ou Agendar Vídeo / Short</h2>
+  <!-- Formulário de Upload e Agendamento -->
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Enviar ou Agendar Vídeo / Short</h2>
+      {% if not authorized %}
+        <span class="tag tag-warning">Conecte o canal para publicar</span>
+      {% else %}
+        <span class="tag tag-blue">Envio Direto</span>
+      {% endif %}
+    </div>
+
+    {% if not authorized %}
+      <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: rgba(255, 170, 0, 0.08); border-left: 3px solid #ffaa00; border-radius: 4px; font-size: 0.85rem; color: #fce788;">
+        ⚠️ <strong>Canal não conectado:</strong> Autorize seu canal do YouTube no botão acima para poder enviar e agendar vídeos diretamente pelo painel.
       </div>
-      <form method="post" action="{{ url_for('youtube.upload') }}" enctype="multipart/form-data" class="stack">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
 
-        <div class="row">
-          <label class="field full">
-            <span class="label">Título do Vídeo / Short *</span>
-            <input class="input" type="text" name="title" required maxlength="100" placeholder="Ex: O que é Token em IA? Entenda em 60s #Shorts">
-          </label>
-        </div>
+    <form method="post" action="{{ url_for('youtube.upload') }}" enctype="multipart/form-data" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="row">
-          <label class="field full">
-            <span class="label">Descrição</span>
-            <textarea class="input" name="description" rows="3" placeholder="Descrição do vídeo, links e informações adicionais..."></textarea>
-          </label>
-        </div>
+      <div class="row">
+        <label class="field full">
+          <span class="label">Título do Vídeo / Short *</span>
+          <input class="input" type="text" name="title" required maxlength="100" placeholder="Ex: O que é Token em IA? Entenda em 60s #Shorts">
+        </label>
+      </div>
 
+      <div class="row">
+        <label class="field full">
+          <span class="label">Descrição</span>
+          <textarea class="input" name="description" rows="3" placeholder="Descrição do vídeo, links e informações adicionais..."></textarea>
+        </label>
+      </div>
+
+      <div class="grid grid-2">
+        <label class="field">
+          <span class="label">Tags (separadas por vírgula)</span>
+          <input class="input" type="text" name="tags" placeholder="ia, tokens, programacao, tech">
+        </label>
+        <label class="field">
+          <span class="label">Privacidade Padrão</span>
+          <select class="input" name="privacy_status">
+            <option value="public" selected>Público</option>
+            <option value="unlisted">Não listado</option>
+            <option value="private">Privado</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Arquivo de Vídeo (.mp4)</h4>
         <div class="grid grid-2">
           <label class="field">
-            <span class="label">Tags (separadas por vírgula)</span>
-            <input class="input" type="text" name="tags" placeholder="ia, tokens, programacao, tech">
+            <span class="label">Opção A: Upload do Computador</span>
+            <input class="input" type="file" name="video_file" accept="video/mp4,video/quicktime,video/webm">
           </label>
           <label class="field">
-            <span class="label">Privacidade Padrão</span>
-            <select class="input" name="privacy_status">
-              <option value="public" selected>Público</option>
-              <option value="unlisted">Não listado</option>
-              <option value="private">Privado</option>
-            </select>
+            <span class="label">Opção B: Caminho no Disco Local</span>
+            <input class="input" type="text" name="file_path" placeholder="Ex: C:\Users\ilton\Videos\IA\renders\01_o_que_e_token.mp4">
           </label>
         </div>
-
-        <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px;">
-          <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Arquivo de Vídeo (.mp4)</h4>
-          <div class="grid grid-2">
-            <label class="field">
-              <span class="label">Opção A: Upload do Computador</span>
-              <input class="input" type="file" name="video_file" accept="video/mp4,video/quicktime,video/webm">
-            </label>
-            <label class="field">
-              <span class="label">Opção B: Caminho no Disco Local</span>
-              <input class="input" type="text" name="file_path" placeholder="Ex: C:\Users\ilton\Videos\IA\renders\01_o_que_e_token.mp4">
-            </label>
-          </div>
-        </div>
-
-        <div style="padding: 1rem; background: rgba(0, 210, 255, 0.03); border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 6px;">
-          <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Programação de Publicação</h4>
-          <div style="display: flex; gap: 1.5rem; margin-bottom: 0.75rem;">
-            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-              <input type="radio" name="mode" value="now" checked onchange="document.getElementById('sched-fields').style.display = 'none';">
-              <span>Publicar agora imediatamente</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-              <input type="radio" name="mode" value="schedule" onchange="document.getElementById('sched-fields').style.display = 'flex';">
-              <span>📅 Agendar no YouTube</span>
-            </label>
-          </div>
-          <div id="sched-fields" style="display: none; gap: 1rem; flex-wrap: wrap;">
-            <label class="field">
-              <span class="label">Data de Publicação</span>
-              <input class="input" type="date" name="schedule_date">
-            </label>
-            <label class="field">
-              <span class="label">Horário (Fuso Local)</span>
-              <input class="input" type="time" name="schedule_time" value="18:30">
-            </label>
-          </div>
-          <p class="muted small" style="margin: 0.5rem 0 0 0;">
-            O agendamento programa o vídeo diretamente nos servidores do YouTube (com status programado até o horário definido).
-          </p>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-            <input type="checkbox" name="is_short" value="1" checked>
-            <span>Publicar como YouTube Short (adiciona tag #Shorts automaticamente)</span>
-          </label>
-          <button type="submit" class="btn btn-primary" onclick="return confirm('Confirma o envio do vídeo para o canal do YouTube?');">🚀 Enviar para o YouTube</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- Lista de Vídeos Recentes -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Vídeos Recentes no Canal</h2>
-        <span class="muted small">{{ videos | length }} carregado(s)</span>
       </div>
-      {% if videos %}
-        <ul class="list">
-          {% for vid in videos %}
-            <li class="list-item">
-              {% if vid.thumbnail_url %}
-                <img src="{{ vid.thumbnail_url }}" alt="" width="64" height="40" style="border-radius: 4px; object-fit: cover; flex-shrink: 0;">
-              {% else %}
-                <div style="width: 64px; height: 40px; border-radius: 4px; background: rgba(255, 0, 0, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">🎬</div>
-              {% endif %}
-              <div class="item-main">
-                <div class="item-title">
-                  <a href="{{ vid.url }}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
-                    {{ vid.title }}
-                  </a>
-                </div>
-                <div class="item-meta">
-                  {% if vid.is_short %}
-                    <span class="tag tag-youtube">▶️ Short</span>
-                  {% else %}
-                    <span class="tag tag-youtube">▶️ Vídeo</span>
-                  {% endif %}
-                  <span class="tag tag-blue">{{ vid.privacy_status | capitalize }}</span>
-                  <span>{{ vid.published_at | datetime_br or "Recente" }}</span>
-                </div>
+
+      <div style="padding: 1rem; background: rgba(0, 210, 255, 0.03); border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 6px;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Programação de Publicação</h4>
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 0.75rem;">
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <input type="radio" name="mode" value="now" checked onchange="document.getElementById('sched-fields').style.display = 'none';">
+            <span>Publicar agora imediatamente</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <input type="radio" name="mode" value="schedule" onchange="document.getElementById('sched-fields').style.display = 'flex';">
+            <span>📅 Agendar no YouTube</span>
+          </label>
+        </div>
+        <div id="sched-fields" style="display: none; gap: 1rem; flex-wrap: wrap;">
+          <label class="field">
+            <span class="label">Data de Publicação</span>
+            <input class="input" type="date" name="schedule_date">
+          </label>
+          <label class="field">
+            <span class="label">Horário (Fuso de Brasília)</span>
+            <input class="input" type="time" name="schedule_time" value="12:00">
+          </label>
+        </div>
+        <p class="muted small" style="margin: 0.5rem 0 0 0;">
+          O agendamento programa o vídeo diretamente nos servidores do YouTube (com status programado até o horário definido).
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" name="is_short" value="1" checked>
+          <span>Publicar como YouTube Short (adiciona tag #Shorts automaticamente)</span>
+        </label>
+        <button type="submit" class="btn btn-primary" {% if not authorized %}disabled title="Conecte seu canal do YouTube acima para publicar"{% endif %} onclick="return confirm('Confirma o envio do vídeo para o canal do YouTube?');">🚀 Enviar para o YouTube</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista de Vídeos Recentes -->
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Vídeos Recentes no Canal</h2>
+      <span class="muted small">{{ videos | length }} carregado(s)</span>
+    </div>
+    {% if videos %}
+      <ul class="list">
+        {% for vid in videos %}
+          <li class="list-item">
+            {% if vid.thumbnail_url %}
+              <img src="{{ vid.thumbnail_url }}" alt="" width="64" height="40" style="border-radius: 4px; object-fit: cover; flex-shrink: 0;">
+            {% else %}
+              <div style="width: 64px; height: 40px; border-radius: 4px; background: rgba(255, 0, 0, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">🎬</div>
+            {% endif %}
+            <div class="item-main">
+              <div class="item-title">
+                <a href="{{ vid.url }}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
+                  {{ vid.title }}
+                </a>
               </div>
-              <div class="item-actions">
-                <a class="btn btn-sm btn-ghost" href="{{ vid.url }}" target="_blank" rel="noopener noreferrer">Assistir no YouTube ↗</a>
+              <div class="item-meta">
+                {% if vid.is_short %}
+                  <span class="tag tag-youtube">▶️ Short</span>
+                {% else %}
+                  <span class="tag tag-youtube">▶️ Vídeo</span>
+                {% endif %}
+                <span class="tag tag-blue">{{ vid.privacy_status | capitalize }}</span>
+                <span>{{ vid.published_at | datetime_br or "Recente" }}</span>
               </div>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        {{ ui.empty("Nenhum vídeo listado recentemente no canal.") }}
-      {% endif %}
-    </section>
-  {% endif %}
+            </div>
+            <div class="item-actions">
+              <a class="btn btn-sm btn-ghost" href="{{ vid.url }}" target="_blank" rel="noopener noreferrer">Assistir no YouTube ↗</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% elif authorized and channel %}
+      {{ ui.empty("Nenhum vídeo listado recentemente no canal.") }}
+    {% elif not authorized %}
+      {{ ui.empty("Conecte seu canal do YouTube para visualizar os vídeos recentes.") }}
+    {% else %}
+      {{ ui.empty("Nenhum vídeo listado no momento.") }}
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
-

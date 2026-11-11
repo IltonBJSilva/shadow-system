@@ -24,6 +24,7 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("Finanças", "finance.index", "＄"),
     ("Calendário", "calendar.index", "▦"),
     ("Postagens", "buffer.index", "✎"),
+    ("YouTube", "youtube.index", "▶"),
     ("Integrações", "integrations.index", "⇄"),
     ("Configurações", "core.preferences", "⚙"),
 ]

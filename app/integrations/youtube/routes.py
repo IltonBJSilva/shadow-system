@@ -12,6 +12,7 @@ from . import (
     ChannelInfo,
     YouTubeError,
     channel_info,
+    get_client,
     is_authorized,
     recent_videos,
     status,
@@ -34,18 +35,25 @@ def index():
     ch_info = None
     videos = []
     error = None
+    authorized = is_authorized()
 
-    if is_authorized():
+    if authorized:
         try:
-            ch_info = channel_info()
-            videos = recent_videos(max_results=12)
+            client = get_client()
+            ch_info = client.channel_info()
+            try:
+                videos = client.recent_videos(max_results=12)
+            except Exception:
+                videos = []
         except (YouTubeError, GoogleAuthError) as exc:
             error = str(exc)
+        except Exception as exc:
+            error = f"Erro na comunicação com o YouTube: {exc}"
 
     return render_template(
         "integrations/youtube.html",
         status_info=info,
-        authorized=is_authorized(),
+        authorized=authorized,
         configured=oauth.is_configured(),
         channel=ch_info,
         videos=videos,
@@ -82,11 +90,10 @@ def upload():
     mode = request.form.get("mode") or "now"
     if mode == "schedule":
         sched_date = request.form.get("schedule_date")
-        sched_time = request.form.get("schedule_time") or "18:30"
+        sched_time = request.form.get("schedule_time") or "12:00"
         if sched_date:
             try:
                 local_dt = datetime.strptime(f"{sched_date} {sched_time}", "%Y-%m-%d %H:%M")
-                # Converter horário local para UTC
                 publish_at_utc = time.to_aware(local_dt).astimezone(timezone.utc)
             except ValueError:
                 flash("Formato de data ou hora inválido para agendamento.", "error")

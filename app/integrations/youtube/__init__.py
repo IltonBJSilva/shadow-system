@@ -57,19 +57,13 @@ def status() -> IntegrationStatus:
 def channel_info() -> ChannelInfo | None:
     if not is_authorized():
         return None
-    try:
-        return get_client().channel_info()
-    except (YouTubeError, GoogleAuthError):
-        return None
+    return get_client().channel_info()
 
 
 def recent_videos(max_results: int = 15) -> list[YouTubeVideo]:
     if not is_authorized():
         return []
-    try:
-        return get_client().recent_videos(max_results)
-    except (YouTubeError, GoogleAuthError):
-        return []
+    return get_client().recent_videos(max_results)
 
 
 def upload_video(
@@ -107,4 +101,3 @@ __all__ = [
     "status",
     "upload_video",
 ]
-

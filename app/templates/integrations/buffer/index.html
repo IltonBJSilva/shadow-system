@@ -3,6 +3,7 @@
 {% block title %}Buffer{% endblock %}
 {% block heading %}Buffer{% endblock %}
 {% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('youtube.index') }}">▶ YouTube</a>
   <a class="btn btn-ghost" href="{{ url_for('buffer.token') }}">Token</a>
   <a class="btn btn-primary" href="{{ url_for('buffer.new_post') }}">+ Novo post</a>
 {% endblock %}

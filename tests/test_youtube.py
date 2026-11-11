@@ -193,3 +193,48 @@ def test_youtube_routes(client, fake_youtube, tmp_path):
     assert len(fake_youtube.uploaded) == 2
     assert fake_youtube.uploaded[1]["body"]["status"]["privacyStatus"] == "private"
 
+
+def test_youtube_edge_cases_render(client, fake_youtube, monkeypatch):
+    from app.integrations.youtube import routes as yt_routes
+    # 1. Not authorized: should show connect prompt and upload form
+    monkeypatch.setattr(yt_routes, "is_authorized", lambda: False)
+    res = client.get("/integrations/youtube/")
+    assert res.status_code == 200
+    html = res.data.decode("utf-8")
+    assert "Conectar Canal do YouTube" in html
+    assert "Enviar ou Agendar" in html
+
+    # 2. Authorized but channel is None (no channel created yet)
+    monkeypatch.setattr(yt_routes, "is_authorized", lambda: True)
+    class FakeNoChannelClient:
+        def channel_info(self):
+            return None
+        def recent_videos(self, max_results=12):
+            return []
+    monkeypatch.setattr(yt_routes, "get_client", lambda: FakeNoChannelClient())
+    res2 = client.get("/integrations/youtube/")
+    assert res2.status_code == 200
+    html2 = res2.data.decode("utf-8")
+    assert "Sem Canal Detectado" in html2
+    assert "Enviar ou Agendar" in html2
+
+    # 3. Communication error with YouTube API
+    class FakeErrorClient:
+        def channel_info(self):
+            raise YouTubeError("YouTube Data API v3 has not been used in project")
+    monkeypatch.setattr(yt_routes, "get_client", lambda: FakeErrorClient())
+    res3 = client.get("/integrations/youtube/")
+    assert res3.status_code == 200
+    html3 = res3.data.decode("utf-8")
+    assert "Erro no YouTube" in html3
+    assert "YouTube Data API v3 has not been used" in html3
+
+
+def test_nav_items_contains_youtube(client):
+    res = client.get("/integrations/youtube/")
+    assert res.status_code == 200
+    html = res.data.decode("utf-8")
+    assert "YouTube" in html
+    assert "/integrations/youtube/" in html
+
+
