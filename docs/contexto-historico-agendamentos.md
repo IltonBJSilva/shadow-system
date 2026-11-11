@@ -114,13 +114,32 @@ Criamos a **Fila do Sistema** no Shadow System:
 
 ---
 
+### E. Pacote `Vídeos / Shorts sobre IA e Tokens` (11 Vídeos)
+- **Origem:** `C:\Users\ilton\Videos\IA\renders`
+- **Vídeos (.mp4):**
+  1. `Você Não Paga a IA por Palavras.mp4`
+  2. `Escrever em Português Gasta Mais Tokens.mp4`
+  3. `O Segredo dos IDs de Tokens que Ninguém Te Conta.mp4`
+  4. `Pare de Usar o Modelo de IA Mais Caro.mp4`
+  5. `Nem Todo Problema Precisa da IA Mais Inteligente.mp4`
+  6. `A Memória da IA Tem Limite.mp4`
+  7. `A IA Relê Sua Conversa INTEIRA a Cada Mensagem.mp4`
+  8. `2 Comandos do Claude Code que Vão Te Salvar.mp4`
+  9. `Pare de Mandar Seu Código INTEIRO para a IA.mp4`
+  10. `O Erro que Faz Você Gastar Tokens à Toa.mp4`
+  11. `6 Hábitos para Gastar Menos Tokens na IA.mp4`
+- **Fila do Buffer:** **Enfileirados na Fila do Sistema** para as 3 redes (LinkedIn, Instagram e TikTok) = **33 itens** (datas previstas de 29/11/2026 a 09/12/2026).
+- **YouTube Shorts:** Script de agendamento em lote `scripts/schedule_youtube_batch.py` preparado com datas diárias de 11/11/2026 a 21/11/2026 às 18:30 (horário de Brasília) via YouTube Data API v3.
+
+---
+
 ### 📊 Resumo Consolidado da Fila do Sistema:
-- **Total de Posts Únicos:** 29 posts (4 Matemática Discreta + 15 Posts Out 2026 + 10 Guia Tech).
-- **Total de Itens na Fila (29 × 3 redes):** **87 publicações cadastradas**.
+- **Total de Posts Únicos:** 40 posts (29 imagens + 11 vídeos).
+- **Total de Itens na Fila (40 × 3 redes):** **120 publicações cadastradas**.
 - **Distribuição:**
-  - 💼 LinkedIn: 29 posts aguardando.
-  - 📷 Instagram: 29 posts aguardando.
-  - 🎵 TikTok: 29 posts aguardando.
+  - 💼 LinkedIn: 40 posts aguardando.
+  - 📷 Instagram: 40 posts aguardando.
+  - 🎵 TikTok: 40 posts aguardando.
 
 ---
 
