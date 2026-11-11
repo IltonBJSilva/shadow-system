@@ -244,6 +244,15 @@ def dispatch_queue_post_route(post_id: int):
     return redirect(url_for("buffer.index", status="queue"))
 
 
+@bp.post("/queue/<int:post_id>/share-now")
+def share_now_queue_post_route(post_id: int):
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    post = dispatch_single_post(post_id, mode="shareNow")
+    flash(f"Post #{post.id} ({post.service.capitalize()}) publicado agora com sucesso via Buffer!", "success")
+    return redirect(url_for("buffer.index", status="sent"))
+
+
 @bp.post("/queue/<int:post_id>/delete")
 def delete_queue_post_route(post_id: int):
     if not is_configured():

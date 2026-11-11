@@ -316,10 +316,15 @@ def sync_queue(
 def dispatch_single_post(
     post_id: int,
     *,
+    mode: str = "customScheduled",
     due_local: datetime | None = None,
     client: BufferClient | None = None,
 ) -> BufferQueuePost:
-    """Despacha manualmente um post específico da fila para o Buffer."""
+    """Despacha manualmente um post específico da fila para o Buffer.
+
+    Se mode == 'shareNow', publica imediatamente.
+    Se mode == 'customScheduled', agenda para a data/hora especificada ou calcula a vaga futura.
+    """
     from . import get_client, organization_id as get_org_id
 
     post_item = get_queue_post(post_id)
@@ -329,11 +334,12 @@ def dispatch_single_post(
     buffer_client = client or get_client()
     org_id = get_org_id(buffer_client)
 
-    # Determina o horário alvo
-    if due_local:
-        target_dt = due_local
+    if mode == "shareNow":
+        due_utc = None
+    elif due_local:
+        due_utc = posting.due_at_utc(due_local)
     else:
-        # Se tem target_date e target_time válidos no futuro, usa
+        # Determina o horário alvo
         today = time.today()
         target_d = post_item.target_date or (today + timedelta(days=1))
         if target_d <= today:
@@ -349,22 +355,26 @@ def dispatch_single_post(
             except Exception:
                 h, m = 18, 30
             target_dt = datetime.combine(target_d, dtime(h, m))
+        due_utc = posting.due_at_utc(target_dt)
 
-    due_utc = posting.due_at_utc(target_dt)
     post_input = posting.build_post_input(
         channel_id=post_item.channel_id,
         service=post_item.service,
         text=post_item.text,
         image_urls=post_item.images,
-        mode="customScheduled",
+        mode=mode,
         due_at=due_utc,
     )
     created = buffer_client.create_post(post_input)
     post_item.status = "dispatched"
     post_item.buffer_post_id = created.get("id")
     post_item.dispatched_at = time.now()
-    post_item.target_date = target_dt.date()
-    post_item.target_time = target_dt.strftime("%H:%M")
+    if mode == "shareNow":
+        post_item.target_date = time.today()
+        post_item.target_time = time.now().strftime("%H:%M")
+    elif 'target_dt' in locals():
+        post_item.target_date = target_dt.date()
+        post_item.target_time = target_dt.strftime("%H:%M")
     post_item.error_message = None
     db.session.commit()
     return post_item

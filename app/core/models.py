@@ -171,3 +171,8 @@ class BufferQueuePost(UserOwnedMixin, TimestampMixin, db.Model):
         imgs = self.images
         return imgs[0] if imgs else None
 
+    @property
+    def is_video(self) -> bool:
+        imgs = self.images
+        return any(url.split("?")[0].lower().endswith((".mp4", ".mov", ".webm", ".m4v")) for url in imgs) if imgs else False
+

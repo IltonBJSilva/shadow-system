@@ -19,8 +19,11 @@ from app.core.models import BufferUpload
 from app.extensions import db
 from app.integrations.network import connection_message
 
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_BYTES = 20 * 1024 * 1024
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
+ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_VIDEO_TYPES
+MAX_IMAGE_BYTES = 20 * 1024 * 1024   # 20 MB
+MAX_VIDEO_BYTES = 100 * 1024 * 1024  # 100 MB
 
 
 class StorageError(Exception):
@@ -34,21 +37,25 @@ def is_supabase_configured() -> bool:
 
 
 def is_configured() -> bool:
-    """O armazenamento de imagens do computador está sempre ativo (via banco ou Supabase)."""
+    """O armazenamento de imagens e vídeos do computador está sempre ativo (via banco ou Supabase)."""
     return True
 
 
 def get_upload(token: str) -> BufferUpload | None:
-    """Busca uma imagem salva no banco pelo token público."""
+    """Busca um arquivo salvo no banco pelo token público."""
     return db.session.get(BufferUpload, token)
 
 
 def upload(filename: str, content: bytes, content_type: str, transport: httpx.BaseTransport | None = None) -> str:
-    """Valida a imagem, armazena (no Supabase se configurado, ou no banco de dados) e devolve o link público."""
+    """Valida o arquivo (imagem ou vídeo), armazena (no Supabase ou no banco de dados) e devolve o link público."""
     if content_type not in ALLOWED_TYPES:
-        raise StorageError(f"{filename}: formato não aceito (use JPG, PNG, WEBP ou GIF).")
-    if len(content) > MAX_BYTES:
-        raise StorageError(f"{filename}: imagem maior que 20 MB.")
+        raise StorageError(f"{filename}: formato não aceito (use JPG, PNG, WEBP, GIF ou MP4).")
+    if content_type in ALLOWED_VIDEO_TYPES:
+        if len(content) > MAX_VIDEO_BYTES:
+            raise StorageError(f"{filename}: arquivo maior que 100 MB.")
+    else:
+        if len(content) > MAX_IMAGE_BYTES:
+            raise StorageError(f"{filename}: arquivo maior que 20 MB.")
 
     if is_supabase_configured():
         return _upload_supabase(filename, content, content_type, transport=transport)

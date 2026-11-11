@@ -577,3 +577,45 @@ def test_sync_queue_route(client, connected):
     assert len(queued) == 1
     assert queued[0].status == "dispatched"
 
+
+def test_video_asset_support():
+    # Instagram com vídeo é formatado como Reel
+    body_ig = posting.build_post_input(
+        channel_id="ig1", service="instagram", text="Reel teste #ia #tech #PraTodosVerem Vídeo de IA",
+        image_urls=["https://a/video.mp4"], mode="addToQueue",
+    )
+    assert body_ig["assets"] == [{"video": {"url": "https://a/video.mp4"}}]
+    assert body_ig["metadata"]["instagram"] == {"type": "reel", "shouldShareToFeed": True}
+
+    # TikTok com vídeo recebe metadados de título
+    body_tt = posting.build_post_input(
+        channel_id="tt1", service="tiktok", text="TikTok teste sobre IA",
+        image_urls=["https://a/short.mp4"], mode="addToQueue",
+    )
+    assert body_tt["assets"] == [{"video": {"url": "https://a/short.mp4"}}]
+    assert body_tt["metadata"]["tiktok"] == {"title": "TikTok teste sobre IA"}
+
+
+def test_storage_accepts_mp4_video(app):
+    url = buffer.storage.upload("video_teste.mp4", b"fake-video-bytes-123", "video/mp4")
+    assert "video_teste.mp4" in url
+    upload_row = buffer.storage.get_upload(url.split("/")[-2])
+    assert upload_row is not None
+    assert upload_row.mimetype == "video/mp4"
+
+
+def test_share_now_queue_post_route(client, connected):
+    p = buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Post para teste share now",
+        image_urls=["https://img.com/1.png"],
+    )
+    res = client.post(f"/integrations/buffer/queue/{p.id}/share-now")
+    assert res.status_code == 302
+    assert any(c.get("mode") == "shareNow" for c in connected.created)
+    updated = buffer.get_queue_post(p.id)
+    assert updated.status == "dispatched"
+
+

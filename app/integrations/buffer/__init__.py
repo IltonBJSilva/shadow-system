@@ -235,12 +235,18 @@ def share_post_now(post_id: str) -> dict:
         "text": post.text,
         "mode": "shareNow",
     }
+    has_video = any(posting.is_video_url(url) for url in post.image_urls)
     if post.image_urls:
-        post_input["assets"] = [{"image": {"url": url}} for url in post.image_urls]
+        post_input["assets"] = [
+            {"video": {"url": url}} if posting.is_video_url(url) else {"image": {"url": url}}
+            for url in post.image_urls
+        ]
     if post.service == "instagram":
-        post_input["metadata"] = {"instagram": {"type": "post", "shouldShareToFeed": True}}
+        post_input["metadata"] = {"instagram": {"type": "reel" if has_video else "post", "shouldShareToFeed": True}}
     elif post.service == "facebook":
-        post_input["metadata"] = {"facebook": {"type": "post"}}
+        post_input["metadata"] = {"facebook": {"type": "reel" if has_video else "post"}}
+    elif post.service == "tiktok":
+        post_input["metadata"] = {"tiktok": {"title": post.text[:100]}}
 
     client = get_client()
     return client.edit_post(post_input)
@@ -265,12 +271,18 @@ def update_post(post_id: str, text: str, due_local: datetime | None = None, serv
     }
     if due_utc:
         post_input["dueAt"] = due_utc
+    has_video = any(posting.is_video_url(url) for url in post.image_urls)
     if post.image_urls:
-        post_input["assets"] = [{"image": {"url": url}} for url in post.image_urls]
+        post_input["assets"] = [
+            {"video": {"url": url}} if posting.is_video_url(url) else {"image": {"url": url}}
+            for url in post.image_urls
+        ]
     if svc == "instagram":
-        post_input["metadata"] = {"instagram": {"type": "post", "shouldShareToFeed": True}}
+        post_input["metadata"] = {"instagram": {"type": "reel" if has_video else "post", "shouldShareToFeed": True}}
     elif svc == "facebook":
-        post_input["metadata"] = {"facebook": {"type": "post"}}
+        post_input["metadata"] = {"facebook": {"type": "reel" if has_video else "post"}}
+    elif svc == "tiktok":
+        post_input["metadata"] = {"tiktok": {"title": (text or post.text)[:100]}}
 
     client = get_client()
     return client.edit_post(post_input)

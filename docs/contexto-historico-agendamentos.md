@@ -146,3 +146,4 @@ Criamos a **Fila do Sistema** no Shadow System:
 | **Postar Agora no Buffer** | `POST /integrations/buffer/posts/<id>/share-now` | Publica imediatamente um post já agendado no Buffer |
 | **Editar Post no Buffer** | `GET/POST /integrations/buffer/posts/<id>/edit` | Edita legenda/horário de um post já no Buffer |
 | **Excluir Post no Buffer** | `POST /integrations/buffer/posts/<id>/delete` | Deleta a publicação do Buffer |
+

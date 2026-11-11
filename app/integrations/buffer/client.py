@@ -20,7 +20,7 @@ from app.integrations.network import connection_message
 
 API_URL = "https://api.buffer.com"
 
-# Redes que aceitam post com imagem. YouTube pede vídeo, então fica de fora dos posts de imagem.
+# Redes que aceitam post com imagem ou vídeo.
 IMAGE_SERVICES = {
     "instagram", "facebook", "linkedin", "tiktok", "threads", "twitter",
     "bluesky", "mastodon", "pinterest", "googlebusiness",
@@ -108,7 +108,10 @@ class BufferClient:
                     edges { node {
                         id text status dueAt channelId channelService
                         error { message }
-                        assets { ... on ImageAsset { source thumbnail } }
+                        assets {
+                            ... on ImageAsset { source thumbnail }
+                            ... on VideoAsset { source thumbnailUrl }
+                        }
                     } }
                 }
             }""",
@@ -122,7 +125,10 @@ class BufferClient:
                 post(input: {id: $id}) {
                     id text status dueAt channelId channelService
                     error { message }
-                    assets { ... on ImageAsset { source thumbnail } }
+                    assets {
+                        ... on ImageAsset { source thumbnail }
+                        ... on VideoAsset { source thumbnailUrl }
+                    }
                 }
             }""",
             {"id": post_id},
@@ -210,7 +216,7 @@ def _parse_post(raw: dict) -> Post:
         except ValueError:
             due_at = None
     error = raw.get("error")
-    thumbs = [a.get("thumbnail") for a in raw.get("assets") or [] if isinstance(a, dict) and a.get("thumbnail")]
+    thumbs = [a.get("thumbnail") or a.get("thumbnailUrl") for a in raw.get("assets") or [] if isinstance(a, dict) and (a.get("thumbnail") or a.get("thumbnailUrl"))]
     thumb = thumbs[0] if thumbs else None
     if thumb and thumb.startswith("http://") and not thumb.startswith(("http://localhost", "http://127.0.0.1")):
         thumb = "https://" + thumb[len("http://"):]
@@ -218,7 +224,7 @@ def _parse_post(raw: dict) -> Post:
     urls = []
     for a in raw.get("assets") or []:
         if isinstance(a, dict):
-            u = a.get("source") or a.get("thumbnail")
+            u = a.get("source") or a.get("thumbnail") or a.get("thumbnailUrl")
             if u:
                 if u.startswith("http://") and not u.startswith(("http://localhost", "http://127.0.0.1")):
                     u = "https://" + u[len("http://"):]

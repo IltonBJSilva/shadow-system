@@ -17,10 +17,17 @@ MODES = {
     "shareNow": "Publicar agora",
 }
 MAX_IMAGES = 10
-MAX_TEXT = {"instagram": 2200, "linkedin": 3000, "twitter": 280, "threads": 500, "bluesky": 300}
+MAX_TEXT = {"instagram": 2200, "linkedin": 3000, "twitter": 280, "threads": 500, "bluesky": 300, "tiktok": 2200}
 INSTAGRAM_MAX_HASHTAGS = 5
 KEEP_HASHTAG = "#PraTodosVerem"
 _HASHTAG = re.compile(r"#\w+")
+VIDEO_EXTENSIONS = (".mp4", ".mov", ".webm", ".m4v")
+
+
+def is_video_url(url: str) -> bool:
+    """Verifica se a URL aponta para um arquivo de vídeo suportado."""
+    clean_url = url.split("?")[0].lower()
+    return any(clean_url.endswith(ext) for ext in VIDEO_EXTENSIONS)
 
 
 class PostValidationError(ValueError):
@@ -35,23 +42,36 @@ def due_at_utc(local: datetime, now: datetime | None = None) -> str:
     return time.to_aware(local).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-def build_post_input(*, channel_id: str, service: str, text: str, image_urls: list[str], mode: str,
-                     due_at: str | None = None) -> dict:
+def build_post_input(*, channel_id: str, service: str, text: str,
+                     image_urls: list[str] | None = None,
+                     media_urls: list[str] | None = None,
+                     mode: str, due_at: str | None = None) -> dict:
     if mode not in MODES:
         raise PostValidationError("Modo de publicação inválido.")
     if mode == "customScheduled" and not due_at:
         raise PostValidationError("Escolha a data e a hora do agendamento.")
+
+    urls = list(media_urls if media_urls is not None else (image_urls or []))
+
     if service == "instagram":
         text = limit_instagram_hashtags(text)
-        if not image_urls:
-            raise PostValidationError("O Instagram precisa de pelo menos uma imagem.")
-    if not text.strip() and not image_urls:
-        raise PostValidationError("Escreva um texto ou adicione uma imagem.")
+        if not urls:
+            raise PostValidationError("O Instagram precisa de pelo menos uma mídia (imagem ou vídeo).")
+    if not text.strip() and not urls:
+        raise PostValidationError("Escreva um texto ou adicione uma mídia (imagem ou vídeo).")
     limit = MAX_TEXT.get(service)
     if limit and len(text) > limit:
         raise PostValidationError(f"O texto para {service} passou de {limit} caracteres.")
-    if len(image_urls) > MAX_IMAGES:
-        raise PostValidationError(f"No máximo {MAX_IMAGES} imagens por post.")
+    if len(urls) > MAX_IMAGES:
+        raise PostValidationError(f"No máximo {MAX_IMAGES} mídias por post.")
+
+    has_video = any(is_video_url(u) for u in urls)
+    assets = []
+    for u in urls:
+        if is_video_url(u):
+            assets.append({"video": {"url": u}})
+        else:
+            assets.append({"image": {"url": u}})
 
     post: dict = {
         "channelId": channel_id,
@@ -59,14 +79,25 @@ def build_post_input(*, channel_id: str, service: str, text: str, image_urls: li
         "schedulingType": "automatic",
         "mode": mode,
         "needsApproval": False,
-        "assets": [{"image": {"url": url}} for url in image_urls],
+        "assets": assets,
     }
     if mode == "customScheduled":
         post["dueAt"] = due_at
+
+    metadata: dict = {}
     if service == "instagram":
-        post["metadata"] = {"instagram": {"type": "post", "shouldShareToFeed": True}}
+        metadata["instagram"] = {
+            "type": "reel" if has_video else "post",
+            "shouldShareToFeed": True,
+        }
     elif service == "facebook":
-        post["metadata"] = {"facebook": {"type": "post"}}
+        metadata["facebook"] = {"type": "reel" if has_video else "post"}
+    elif service == "tiktok":
+        metadata["tiktok"] = {"title": text[:100]}
+
+    if metadata:
+        post["metadata"] = metadata
+
     return post
 
 
