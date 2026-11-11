@@ -25,10 +25,12 @@ def all_statuses() -> list[IntegrationStatus]:
     from .google_calendar import status as google_status
     from .notion import status as notion_status
     from .whatsapp import status as whatsapp_status
+    from .youtube import status as youtube_status
 
     return [
         google_status(),
         gmail_status(),
+        youtube_status(),
         buffer_status(),
         notion_status(),
         whatsapp_status(),

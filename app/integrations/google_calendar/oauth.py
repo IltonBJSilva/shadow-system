@@ -27,6 +27,11 @@ SCOPES = [
 # Pedido só quando você autoriza o Gmail (somente leitura: nada é enviado nem apagado).
 GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 
+# Pedido só quando você autoriza o YouTube (upload de vídeos/shorts e leitura do canal).
+YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
+YOUTUBE_READONLY_SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
+YOUTUBE_SCOPES = [YOUTUBE_UPLOAD_SCOPE, YOUTUBE_READONLY_SCOPE]
+
 
 class GoogleAuthError(Exception):
     """Problema de configuração ou autorização. A mensagem é mostrada ao usuário."""

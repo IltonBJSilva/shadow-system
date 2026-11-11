@@ -15,8 +15,9 @@ def register_integrations(app: Flask) -> None:
     from .notion.routes import bp as notion_bp
     from .routes import bp as integrations_bp
     from .whatsapp.routes import bp as whatsapp_bp
+    from .youtube.routes import bp as youtube_bp
 
-    blueprints = [integrations_bp, google_bp, gmail_bp, buffer_bp, notion_bp, whatsapp_bp]
+    blueprints = [integrations_bp, google_bp, gmail_bp, youtube_bp, buffer_bp, notion_bp, whatsapp_bp]
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
 

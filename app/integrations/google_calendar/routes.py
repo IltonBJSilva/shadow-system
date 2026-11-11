@@ -45,13 +45,24 @@ def index():
 
 @bp.get("/connect")
 def connect():
-    """?gmail=1 pede também acesso de leitura ao Gmail (além do Calendar)."""
-    scopes = oauth.SCOPES + ([oauth.GMAIL_SCOPE] if request.args.get("gmail") or oauth.has_scope(oauth.GMAIL_SCOPE) else [])
+    """?gmail=1 pede acesso ao Gmail, ?youtube=1 pede acesso ao YouTube (além do Calendar)."""
+    scopes = list(oauth.SCOPES)
+    if request.args.get("gmail") or oauth.has_scope(oauth.GMAIL_SCOPE):
+        scopes.append(oauth.GMAIL_SCOPE)
+    if request.args.get("youtube") or oauth.has_scope(oauth.YOUTUBE_UPLOAD_SCOPE):
+        for sc in oauth.YOUTUBE_SCOPES:
+            if sc not in scopes:
+                scopes.append(sc)
     url, state, code_verifier = oauth.authorization_url(scopes)
     session["google_oauth_state"] = state
     session["google_code_verifier"] = code_verifier
     session["google_scopes"] = scopes
-    session["google_return_to"] = "/integrations/gmail/" if request.args.get("gmail") else "/integrations/google/"
+    if request.args.get("youtube"):
+        session["google_return_to"] = "/integrations/youtube/"
+    elif request.args.get("gmail"):
+        session["google_return_to"] = "/integrations/gmail/"
+    else:
+        session["google_return_to"] = "/integrations/google/"
     return redirect(url)
 
 
