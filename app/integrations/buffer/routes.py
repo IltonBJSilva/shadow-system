@@ -38,6 +38,7 @@ bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
 TABS = {
     "scheduled": "Agendados",
     "queue": "Fila do Sistema",
+    "videos": "Vídeos",
     "draft": "Rascunhos",
     "sent": "Enviados",
     "error": "Com erro",
@@ -59,32 +60,52 @@ def index():
         return redirect(url_for("buffer.token"))
     tab = request.args.get("status", "scheduled")
     tab = tab if tab in TABS else "scheduled"
+    video_sub = request.args.get("video_sub", "all")
+    if video_sub not in ("all", "queue", "scheduled"):
+        video_sub = "all"
+
     error, items, chans = None, [], []
     queue_posts = []
+    video_queue_posts = []
+    video_scheduled_posts = []
     queue_pending_count = len(list_queue_posts(status="pending"))
+    video_total_count = len([p for p in list_queue_posts() if p.is_video])
 
     try:
         chans = channels()
         if tab == "queue":
             queue_posts = list_queue_posts()
+        elif tab == "videos":
+            video_queue_posts = [p for p in list_queue_posts() if p.is_video]
+            try:
+                buf_sched = posts(["scheduled"])
+                video_scheduled_posts = [p for p in buf_sched if p.is_video]
+            except Exception:
+                video_scheduled_posts = []
+            video_total_count = len(video_queue_posts) + len(video_scheduled_posts)
         else:
             items = posts([tab])
-            # Se estiver nos agendados e houver posts na fila do sistema, despacha lote para canais com <= 5
-            if tab == "scheduled" and queue_pending_count > 0:
-                try:
-                    dispatched_map = sync_queue()
-                    if dispatched_map:
-                        total_disp = sum(dispatched_map.values())
-                        summary_str = ", ".join(f"{ch} (+{c})" for ch, c in dispatched_map.items())
-                        flash(f"Fila Inteligente: {total_disp} post(s) despachado(s) para o Buffer ({summary_str})!", "success")
-                        queue_pending_count = len(list_queue_posts(status="pending"))
-                        items = posts([tab])
-                except Exception:
-                    pass
+            if tab == "scheduled":
+                video_total_count += len([p for p in items if p.is_video])
+                # Se estiver nos agendados e houver posts na fila do sistema, despacha lote para canais com <= 5
+                if queue_pending_count > 0:
+                    try:
+                        dispatched_map = sync_queue()
+                        if dispatched_map:
+                            total_disp = sum(dispatched_map.values())
+                            summary_str = ", ".join(f"{ch} (+{c})" for ch, c in dispatched_map.items())
+                            flash(f"Fila Inteligente: {total_disp} post(s) despachado(s) para o Buffer ({summary_str})!", "success")
+                            queue_pending_count = len(list_queue_posts(status="pending"))
+                            items = posts([tab])
+                            video_total_count = len([p for p in list_queue_posts() if p.is_video]) + len([p for p in items if p.is_video])
+                    except Exception:
+                        pass
     except BufferError as exc:
         error = str(exc)
         if tab == "queue":
             queue_posts = list_queue_posts()
+        elif tab == "videos":
+            video_queue_posts = [p for p in list_queue_posts() if p.is_video]
 
     return render_template(
         "integrations/buffer/index.html",
@@ -93,6 +114,10 @@ def index():
         posts=items,
         queue_posts=queue_posts,
         queue_pending_count=queue_pending_count,
+        video_sub=video_sub,
+        video_queue_posts=video_queue_posts,
+        video_scheduled_posts=video_scheduled_posts,
+        video_total_count=video_total_count,
         channels=chans,
         error=error,
         token=token_store.status(),

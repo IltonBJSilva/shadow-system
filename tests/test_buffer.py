@@ -619,3 +619,41 @@ def test_share_now_queue_post_route(client, connected):
     assert updated.status == "dispatched"
 
 
+def test_videos_tab_queue_and_scheduled(client, connected):
+    v_queue = buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Reel exclusivo na fila",
+        image_urls=["https://example.com/video1.mp4"],
+    )
+    img_queue = buffer.enqueue_post(
+        channel_id="li1",
+        channel_name="Ilton Batista",
+        service="linkedin",
+        text="Apenas imagem na fila",
+        image_urls=["https://example.com/foto.png"],
+    )
+
+    res = client.get("/integrations/buffer/?status=videos")
+    assert res.status_code == 200
+    html = res.data.decode("utf-8")
+    assert "Vídeos na Fila do Sistema" in html
+    assert "Reel exclusivo na fila" in html
+    assert "Apenas imagem na fila" not in html
+    assert "Vídeos Agendados no Buffer" in html
+
+    res_q = client.get("/integrations/buffer/?status=videos&video_sub=queue")
+    assert res_q.status_code == 200
+    html_q = res_q.data.decode("utf-8")
+    assert "Vídeos na Fila do Sistema" in html_q
+    assert "Vídeos Agendados no Buffer" not in html_q
+
+    res_s = client.get("/integrations/buffer/?status=videos&video_sub=scheduled")
+    assert res_s.status_code == 200
+    html_s = res_s.data.decode("utf-8")
+    assert "Vídeos Agendados no Buffer" in html_s
+    assert "Vídeos na Fila do Sistema" not in html_s
+
+
+

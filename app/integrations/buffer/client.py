@@ -58,6 +58,7 @@ class Post:
     channel_name: str = ""
     image_urls: tuple[str, ...] = ()
     due_at_raw: str | None = None
+    is_video: bool = False
 
 
 class BufferClient:
@@ -222,13 +223,22 @@ def _parse_post(raw: dict) -> Post:
         thumb = "https://" + thumb[len("http://"):]
 
     urls = []
+    has_video = (raw.get("channelService") == "tiktok")
     for a in raw.get("assets") or []:
         if isinstance(a, dict):
+            if a.get("__typename") == "VideoAsset" or a.get("thumbnailUrl"):
+                has_video = True
             u = a.get("source") or a.get("thumbnail") or a.get("thumbnailUrl")
             if u:
                 if u.startswith("http://") and not u.startswith(("http://localhost", "http://127.0.0.1")):
                     u = "https://" + u[len("http://"):]
                 urls.append(u)
+                if any(u.split("?")[0].lower().endswith(ext) for ext in (".mp4", ".mov", ".webm", ".m4v")):
+                    has_video = True
+
+    if not has_video and thumb:
+        if any(thumb.split("?")[0].lower().endswith(ext) for ext in (".mp4", ".mov", ".webm", ".m4v")):
+            has_video = True
 
     return Post(
         id=raw["id"],
@@ -241,4 +251,5 @@ def _parse_post(raw: dict) -> Post:
         thumbnail=thumb,
         image_urls=tuple(urls),
         due_at_raw=due_at_raw,
+        is_video=has_video,
     )
