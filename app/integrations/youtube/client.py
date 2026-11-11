@@ -222,3 +222,53 @@ class YouTubeClient:
             is_short=is_short,
         )
 
+    def create_playlist(
+        self,
+        title: str,
+        description: str = "",
+        privacy_status: str = "public",
+    ) -> str:
+        """Cria uma nova playlist no canal do YouTube e retorna o ID dela."""
+        try:
+            res = self._service.playlists().insert(
+                part="snippet,status",
+                body={
+                    "snippet": {
+                        "title": title,
+                        "description": description,
+                    },
+                    "status": {
+                        "privacyStatus": privacy_status,
+                    },
+                },
+            ).execute()
+        except HttpError as exc:
+            raise YouTubeError(f"Falha ao criar playlist no YouTube: {exc.reason or exc}") from exc
+
+        pl_id = res.get("id")
+        if not pl_id:
+            raise YouTubeError("O YouTube não retornou o ID da playlist criada.")
+        return pl_id
+
+    def add_video_to_playlist(self, playlist_id: str, video_id: str, position: int | None = None) -> str:
+        """Adiciona um vídeo existente à playlist especificada."""
+        snippet = {
+            "playlistId": playlist_id,
+            "resourceId": {
+                "kind": "youtube#video",
+                "videoId": video_id,
+            },
+        }
+        if position is not None:
+            snippet["position"] = position
+
+        try:
+            res = self._service.playlistItems().insert(
+                part="snippet",
+                body={"snippet": snippet},
+            ).execute()
+        except HttpError as exc:
+            raise YouTubeError(f"Falha ao adicionar vídeo {video_id} à playlist: {exc.reason or exc}") from exc
+
+        return res.get("id", "")
+

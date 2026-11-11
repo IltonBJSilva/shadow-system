@@ -61,7 +61,15 @@ class FakeYouTubeService:
                         "status": {"privacyStatus": "public"},
                     }]
                 })
+            def insert(self, part, body):
+                return _Req({"id": "pl_item_123"})
         return PlaylistItems()
+
+    def playlists(self):
+        class Playlists:
+            def insert(self, part, body):
+                return _Req({"id": "pl_new_456"})
+        return Playlists()
 
     def videos(self):
         fake = self
@@ -192,6 +200,14 @@ def test_youtube_routes(client, fake_youtube, tmp_path):
     assert res_path.status_code == 302
     assert len(fake_youtube.uploaded) == 2
     assert fake_youtube.uploaded[1]["body"]["status"]["privacyStatus"] == "private"
+
+
+def test_create_playlist_and_add_videos(fake_youtube):
+    pl_id = youtube.create_playlist("Minha Playlist", "Descricao da playlist")
+    assert pl_id == "pl_new_456"
+
+    item_id = youtube.add_video_to_playlist(pl_id, "vid_abc123")
+    assert item_id == "pl_item_123"
 
 
 def test_youtube_edge_cases_render(client, fake_youtube, monkeypatch):

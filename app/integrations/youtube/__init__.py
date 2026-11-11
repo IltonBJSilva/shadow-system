@@ -89,12 +89,22 @@ def upload_video(
     )
 
 
+def create_playlist(title: str, description: str = "", privacy_status: str = "public") -> str:
+    return get_client().create_playlist(title, description, privacy_status)
+
+
+def add_video_to_playlist(playlist_id: str, video_id: str, position: int | None = None) -> str:
+    return get_client().add_video_to_playlist(playlist_id, video_id, position)
+
+
 __all__ = [
     "ChannelInfo",
     "YouTubeClient",
     "YouTubeError",
     "YouTubeVideo",
+    "add_video_to_playlist",
     "channel_info",
+    "create_playlist",
     "get_client",
     "is_authorized",
     "recent_videos",

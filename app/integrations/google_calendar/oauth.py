@@ -27,10 +27,11 @@ SCOPES = [
 # Pedido só quando você autoriza o Gmail (somente leitura: nada é enviado nem apagado).
 GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 
-# Pedido só quando você autoriza o YouTube (upload de vídeos/shorts e leitura do canal).
+# Pedido só quando você autoriza o YouTube (upload de vídeos/shorts, gerenciamento de playlists e leitura do canal).
 YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 YOUTUBE_READONLY_SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
-YOUTUBE_SCOPES = [YOUTUBE_UPLOAD_SCOPE, YOUTUBE_READONLY_SCOPE]
+YOUTUBE_FORCE_SSL_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl"
+YOUTUBE_SCOPES = [YOUTUBE_UPLOAD_SCOPE, YOUTUBE_READONLY_SCOPE, YOUTUBE_FORCE_SSL_SCOPE]
 
 
 class GoogleAuthError(Exception):
