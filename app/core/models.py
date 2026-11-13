@@ -172,9 +172,24 @@ class BufferQueuePost(UserOwnedMixin, TimestampMixin, db.Model):
         return imgs[0] if imgs else None
 
     @property
+    def video_url(self) -> str | None:
+        from app.integrations.buffer.posting import is_video_url
+
+        for url in self.images:
+            if is_video_url(url):
+                return url
+        return None
+
+    @property
+    def poster_url(self) -> str | None:
+        from app.integrations.buffer.posting import is_video_url
+
+        thumb = self.thumbnail
+        if thumb and not is_video_url(thumb):
+            return thumb
+        return None
+
+    @property
     def is_video(self) -> bool:
-        if self.service == "tiktok":
-            return True
-        imgs = self.images
-        return any(url.split("?")[0].lower().endswith((".mp4", ".mov", ".webm", ".m4v")) for url in imgs) if imgs else False
+        return self.video_url is not None
 

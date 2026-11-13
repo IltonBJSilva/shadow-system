@@ -18,6 +18,8 @@ import httpx
 from app.core import time
 from app.integrations.network import connection_message
 
+from .posting import is_video_url
+
 API_URL = "https://api.buffer.com"
 
 # Redes que aceitam post com imagem ou vídeo.
@@ -59,6 +61,23 @@ class Post:
     image_urls: tuple[str, ...] = ()
     due_at_raw: str | None = None
     is_video: bool = False
+
+    @property
+    def video_url(self) -> str | None:
+        for u in self.image_urls:
+            if is_video_url(u):
+                return u
+        if self.thumbnail and is_video_url(self.thumbnail):
+            return self.thumbnail
+        if self.is_video and self.image_urls:
+            return self.image_urls[0]
+        return None
+
+    @property
+    def poster_url(self) -> str | None:
+        if self.thumbnail and not is_video_url(self.thumbnail):
+            return self.thumbnail
+        return None
 
 
 class BufferClient:
@@ -225,7 +244,7 @@ def _parse_post(raw: dict) -> Post:
         thumb = "https://" + thumb[len("http://"):]
 
     urls = []
-    has_video = (raw.get("channelService") == "tiktok")
+    has_video = False
     for a in raw.get("assets") or []:
         if isinstance(a, dict):
             if a.get("__typename") == "VideoAsset":
@@ -235,12 +254,11 @@ def _parse_post(raw: dict) -> Post:
                 if u.startswith("http://") and not u.startswith(("http://localhost", "http://127.0.0.1")):
                     u = "https://" + u[len("http://"):]
                 urls.append(u)
-                if any(u.split("?")[0].lower().endswith(ext) for ext in (".mp4", ".mov", ".webm", ".m4v")):
+                if is_video_url(u):
                     has_video = True
 
-    if not has_video and thumb:
-        if any(thumb.split("?")[0].lower().endswith(ext) for ext in (".mp4", ".mov", ".webm", ".m4v")):
-            has_video = True
+    if not has_video and thumb and is_video_url(thumb):
+        has_video = True
 
     return Post(
         id=raw["id"],

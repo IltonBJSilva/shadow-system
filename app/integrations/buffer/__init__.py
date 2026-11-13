@@ -101,14 +101,19 @@ def channels() -> list[Channel]:
     return client.channels(organization_id(client))
 
 
-def posts(statuses: list[str] | None) -> list[Post]:
+def posts(
+    statuses: list[str] | None,
+    channels_list: list[Channel] | None = None,
+    first: int = 50,
+) -> list[Post]:
     """Posts com o nome do canal preenchido, ordenados por data."""
     client = get_client()
     org = organization_id(client)
-    names = {ch.id: ch.name for ch in client.channels(org)}
+    ch_source = channels_list if channels_list is not None else client.channels(org)
+    names = {ch.id: ch.name for ch in ch_source}
     result = [
         replace(p, channel_name=names.get(p.channel_id, p.service))
-        for p in client.posts(org, statuses)
+        for p in client.posts(org, statuses, first=first)
     ]
     return sorted(result, key=lambda p: p.due_at or datetime.max)
 

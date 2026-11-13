@@ -1,12 +1,210 @@
 {% extends "base.html" %}
 {% import "partials/_macros.html" as ui %}
-{% block title %}Buffer{% endblock %}
-{% block heading %}Buffer{% endblock %}
+{% block title %}Buffer & Publicações{% endblock %}
+{% block heading %}Buffer & Publicações{% endblock %}
 {% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='all', view='grouped') }}" title="Ver a mesma postagem lado a lado entre Instagram, LinkedIn, TikTok e YouTube">🧩 Comparar Redes</a>
   <a class="btn btn-ghost" href="{{ url_for('youtube.index') }}">▶ YouTube</a>
   <a class="btn btn-ghost" href="{{ url_for('buffer.token') }}">Token</a>
   <a class="btn btn-primary" href="{{ url_for('buffer.new_post') }}">+ Novo post</a>
 {% endblock %}
+
+{% macro service_label(service, is_video_tab=False) -%}
+  {% if service == 'instagram' %}{{ '📷 Reel' if is_video_tab else '📷 Instagram' }}
+  {% elif service == 'tiktok' %}🎵 TikTok
+  {% elif service == 'linkedin' %}{{ '💼 LinkedIn Vídeo' if is_video_tab else '💼 LinkedIn' }}
+  {% elif service == 'twitter' or service == 'x' %}𝕏 Twitter
+  {% elif service == 'facebook' %}👥 Facebook
+  {% elif service == 'youtube' %}▶ YouTube
+  {% else %}{{ service | capitalize }}
+  {% endif %}
+{%- endmacro %}
+
+{% macro media_thumb(post, fallback_title='Mídia') -%}
+  {% set v_url = post.video_url %}
+  {% set p_url = post.poster_url %}
+  {% set preview_title = (post.service | capitalize ~ ' · ' ~ post.channel_name) if post.service is defined and post.service else fallback_title %}
+  {% set preview_text = post.text if post.text is defined else (post.title if post.title is defined else '') %}
+  {% if v_url %}
+    <button type="button" class="buffer-media-thumb" data-media-preview data-media-type="video"
+            data-media-url="{{ v_url }}"
+            data-media-title="{{ preview_title }}"
+            data-media-text="{{ preview_text }}"
+            title="Clique para assistir à prévia do vídeo">
+      <video src="{{ v_url }}#t=0.5" {% if p_url %}poster="{{ p_url }}"{% endif %} muted playsinline preload="metadata"></video>
+      <span class="buffer-video-badge" aria-hidden="true">▶</span>
+    </button>
+  {% elif post.media_type == 'video' %}
+    {% if p_url %}
+      <button type="button" class="buffer-media-thumb" data-media-preview data-media-type="image"
+              data-media-url="{{ p_url }}"
+              data-media-title="{{ preview_title }}"
+              data-media-text="{{ preview_text }}"
+              title="Clique para ampliar a prévia">
+        <img src="{{ p_url }}" alt="">
+        <span class="buffer-video-badge" aria-hidden="true">▶</span>
+      </button>
+    {% else %}
+      <div class="buffer-media-thumb buffer-media-fallback" title="Vídeo sem URL de prévia">🎬</div>
+    {% endif %}
+  {% elif post.thumbnail %}
+    <button type="button" class="buffer-media-thumb" data-media-preview data-media-type="image"
+            data-media-url="{{ post.thumbnail }}"
+            data-media-title="{{ preview_title }}"
+            data-media-text="{{ preview_text }}"
+            title="Clique para ampliar a imagem">
+      <img src="{{ post.thumbnail }}" alt="">
+    </button>
+  {% endif %}
+{%- endmacro %}
+
+{% macro item_status_badge(item) -%}
+  {% if item.error_message %}
+    <span class="tag tag-danger">✖ {{ item.error_message }}</span>
+  {% elif item.status == 'dispatched' %}
+    <span class="tag tag-success">✓ Despachado ao Buffer</span>
+  {% elif item.status == 'pending' %}
+    <span class="tag tag-warning">⏳ Pendente na Fila</span>
+  {% elif item.status == 'scheduled' %}
+    <span class="tag tag-blue">📅 Agendado</span>
+  {% elif item.status == 'sent' %}
+    <span class="tag tag-success">✓ Publicado</span>
+  {% elif item.status == 'draft' %}
+    <span class="tag">📝 Rascunho</span>
+  {% else %}
+    <span class="tag">{{ item.status_label }}</span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro item_actions(item, current_tab) -%}
+  {% if item.origin == 'queue' %}
+    {% if item.can_share_now %}
+      <form method="post" action="{{ url_for('buffer.share_now_queue_post_route', post_id=item.id) }}" class="inline-form"
+            data-confirm="Publicar agora no {{ item.service | capitalize }} ({{ item.channel_name }})?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-ghost" title="Publicar imediatamente">⚡ Postar agora</button>
+      </form>
+    {% endif %}
+    {% if item.can_dispatch %}
+      <form method="post" action="{{ url_for('buffer.dispatch_queue_post_route', post_id=item.id) }}" class="inline-form"
+            data-confirm="Enviar este post para a fila de agendamento do Buffer?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="tab" value="{{ current_tab }}">
+        <button type="submit" class="btn btn-sm btn-ghost" title="Enviar para agendamento no Buffer">📅 Agendar no Buffer</button>
+      </form>
+    {% endif %}
+    {% if item.can_edit %}
+      <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_queue_post_route', post_id=item.id, tab=current_tab) }}" title="Editar post da fila">✏️ Editar</a>
+    {% endif %}
+    {% if item.status == 'error' or item.error_message %}
+      <a class="btn btn-sm btn-ghost" href="{{ item.buffer_channel_url }}" target="_blank" rel="noopener noreferrer" title="Abrir canal no Buffer">🌐 Abrir no Buffer ↗</a>
+    {% endif %}
+    {% if item.can_delete %}
+      <form method="post" action="{{ url_for('buffer.delete_queue_post_route', post_id=item.id) }}" class="inline-form"
+            data-confirm="Remover este post da Fila do Sistema?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="tab" value="{{ current_tab }}">
+        <button type="submit" class="btn btn-sm btn-danger" title="Excluir da fila">🗑️ Excluir</button>
+      </form>
+    {% endif %}
+  {% elif item.origin == 'buffer' %}
+    {% if item.can_share_now %}
+      <form method="post" action="{{ url_for('buffer.share_now_route', post_id=item.id) }}" class="inline-form"
+            data-confirm="Publicar agora no {{ item.service | capitalize }} ({{ item.channel_name }})?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
+      </form>
+    {% endif %}
+    {% if item.can_edit %}
+      <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=item.id, tab=current_tab) }}" title="Editar post">✏️ Editar</a>
+    {% endif %}
+    {% if item.status == 'error' or item.error_message %}
+      <a class="btn btn-sm btn-ghost" href="{{ item.buffer_channel_url }}" target="_blank" rel="noopener noreferrer" title="Abrir canal no Buffer para corrigir lá dentro">🌐 Abrir no Buffer ↗</a>
+    {% endif %}
+    {% if item.can_delete %}
+      <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=item.id) }}" class="inline-form"
+            data-confirm="Tem certeza que deseja excluir esta publicação no {{ item.service | capitalize }}?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
+      </form>
+    {% endif %}
+  {% elif item.origin == 'youtube' %}
+    {% if item.external_url %}
+      <a class="btn btn-sm btn-ghost" href="{{ item.external_url }}" target="_blank" rel="noopener noreferrer" title="Assistir no YouTube">▶ Ver no YouTube ↗</a>
+    {% endif %}
+    <a class="btn btn-sm btn-ghost" href="{{ url_for('youtube.index') }}" title="Gerenciar no painel do YouTube">Gerenciar YouTube</a>
+  {% endif %}
+{%- endmacro %}
+
+{% macro render_post_item(item, current_tab, is_video_tab=False) -%}
+  <li class="list-item">
+    {{ media_thumb(item) }}
+    <div class="item-main">
+      {% if item.origin == 'youtube' and item.title %}
+        <div class="item-title">
+          <strong>{{ item.title }}</strong>
+          {% if item.text and item.text != item.title %}
+            <span class="muted small"> — {{ item.text[:110] }}{% if item.text | length > 110 %}…{% endif %}</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="item-title">{{ item.text[:160] }}{% if item.text | length > 160 %}…{% endif %}</div>
+      {% endif %}
+      <div class="item-meta">
+        <span class="buffer-origin-tag">{{ item.origin_label }}</span>
+        <span class="tag tag-{{ item.service }}">{{ service_label(item.service, is_video_tab=is_video_tab) }}</span>
+        {% if item.channel_name %}
+          <span class="tag tag-blue">{{ item.channel_name }}</span>
+        {% endif %}
+        <span>{{ item.due_at | datetime_br or "sem horário" }}</span>
+        {% if item.media_filename %}
+          <span class="buffer-filename-badge" title="Arquivo de mídia">{{ item.media_filename }}</span>
+        {% endif %}
+        {{ item_status_badge(item) }}
+      </div>
+    </div>
+    <div class="item-actions">
+      {{ item_actions(item, current_tab) }}
+    </div>
+  </li>
+{%- endmacro %}
+
+{% macro render_post_card(item, current_tab, is_video_tab=False) -%}
+  <article class="buffer-grid-card">
+    <div class="buffer-grid-card-top">
+      {{ media_thumb(item) }}
+      <div style="min-width: 0; flex: 1;">
+        <div class="buffer-grid-card-meta">
+          <span class="tag tag-{{ item.service }}">{{ service_label(item.service, is_video_tab=is_video_tab) }}</span>
+          <span class="buffer-origin-tag">{{ item.origin_label }}</span>
+        </div>
+        <div class="muted small" style="margin-top: 0.25rem;">
+          {{ item.channel_name }} · {{ item.due_at | datetime_br or "sem horário" }}
+        </div>
+        <div style="margin-top: 0.25rem;">
+          {{ item_status_badge(item) }}
+        </div>
+      </div>
+    </div>
+    <div class="buffer-grid-card-text">
+      {% if item.origin == 'youtube' and item.title %}
+        <strong>{{ item.title }}</strong>
+        {% if item.text and item.text != item.title %}
+          <div class="muted small" style="margin-top: 0.2rem;">{{ item.text[:120] }}{% if item.text | length > 120 %}…{% endif %}</div>
+        {% endif %}
+      {% else %}
+        {{ item.text[:150] }}{% if item.text | length > 150 %}…{% endif %}
+      {% endif %}
+    </div>
+    {% if item.media_filename %}
+      <div><span class="buffer-filename-badge">{{ item.media_filename }}</span></div>
+    {% endif %}
+    <div class="item-actions">
+      {{ item_actions(item, current_tab) }}
+    </div>
+  </article>
+{%- endmacro %}
+
 {% block content %}
 <div class="stack">
   {% if token.level in ("warning", "expired") %}
@@ -23,21 +221,20 @@
 
   <section class="panel">
     <div class="panel-header"><h2>Canais</h2></div>
-    {% if channels %}
+    {% if channels or youtube_channel %}
       <div class="row">
         {% for ch in channels %}
           <span class="tag tag-{{ ch.service }}" title="{{ ch.id }}">
-            {% if ch.service == 'instagram' %}📷 Instagram
-            {% elif ch.service == 'tiktok' %}🎵 TikTok
-            {% elif ch.service == 'linkedin' %}💼 LinkedIn
-            {% elif ch.service == 'twitter' or ch.service == 'x' %}𝕏 Twitter
-            {% elif ch.service == 'facebook' %}👥 Facebook
-            {% elif ch.service == 'youtube' %}▶ YouTube
-            {% else %}{{ ch.service | capitalize }}
-            {% endif %}
+            {{ service_label(ch.service) }}
             · {{ ch.name }}{% if ch.disconnected %} · desconectado{% endif %}{% if ch.queue_paused %} · fila pausada{% endif %}
           </span>
         {% endfor %}
+        {% if youtube_channel %}
+          <a class="tag tag-youtube" href="{{ youtube_channel.url }}" style="text-decoration: none;"
+             title="Canal do YouTube integrado via YouTube Data API v3">
+            ▶ YouTube · {{ youtube_channel.name }}
+          </a>
+        {% endif %}
       </div>
     {% elif not error %}
       {{ ui.empty("Nenhum canal conectado. Conecte suas redes no Buffer.") }}
@@ -48,7 +245,8 @@
     <div class="panel-header">
       <div class="row">
         {% for key, label in tabs.items() %}
-          <a class="btn btn-sm {{ 'btn-primary' if key == tab else 'btn-ghost' }}" href="{{ url_for('buffer.index', status=key) }}">
+          <a class="btn btn-sm {{ 'btn-primary' if key == tab else 'btn-ghost' }}"
+             href="{{ url_for('buffer.index', status=key, view=filter_params.view if filter_params.view != 'list' else None, sort=filter_params.sort if filter_params.sort != 'date_asc' else None, q=filter_params.q or None, source=filter_params.source or None, media_type=filter_params.media_type or None, post_status=filter_params.post_status or None, date_from=filter_params.date_from.isoformat() if filter_params.date_from else None, date_to=filter_params.date_to.isoformat() if filter_params.date_to else None, service=filter_params.services or None) }}">
             {{ label }}{% if key == 'queue' and queue_pending_count %} ({{ queue_pending_count }}){% elif key == 'videos' and video_total_count %} ({{ video_total_count }}){% endif %}
           </a>
         {% endfor %}
@@ -57,15 +255,117 @@
         {% if tab == 'queue' %}
           <form method="post" action="{{ url_for('buffer.sync_queue_route') }}" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="tab" value="queue">
             <button type="submit" class="btn btn-sm btn-primary" title="Verifica se há vagas no Buffer e despacha novo lote de 5">⚡ Sincronizar Fila (+5)</button>
           </form>
-          <span class="muted small">{{ queue_posts | length }} na fila</span>
-        {% elif tab == 'videos' %}
-          <span class="muted small">{{ (video_queue_posts | length) + (video_scheduled_posts | length) }} vídeo(s)</span>
-        {% else %}
-          <span class="muted small">{{ posts | length }} post(s)</span>
+        {% endif %}
+        <span class="muted small">{{ items | length }} post(s)</span>
+      </div>
+    </div>
+
+    <form method="get" action="{{ url_for('buffer.index') }}" class="buffer-filter-bar" aria-label="Filtros detalhados de postagens">
+      <input type="hidden" name="status" value="{{ tab }}">
+      {% if tab == 'videos' and video_sub != 'all' %}
+        <input type="hidden" name="video_sub" value="{{ video_sub }}">
+      {% endif %}
+
+      <div class="buffer-filter-top">
+        <div class="buffer-filter-search">
+          <input type="search" name="q" value="{{ filter_params.q }}"
+                 placeholder="🔎 Buscar por legenda, título, arquivo (.mp4), rede, erro..."
+                 aria-label="Buscar postagens">
+        </div>
+        <div class="buffer-filter-controls">
+          <select name="view" aria-label="Formato de exibição">
+            <option value="list" {% if filter_params.view == 'list' %}selected{% endif %}>📋 Lista detalhada</option>
+            <option value="grouped" {% if filter_params.view == 'grouped' %}selected{% endif %}>🧩 Agrupado por Postagem</option>
+            <option value="grid" {% if filter_params.view == 'grid' %}selected{% endif %}>🗂️ Grade visual</option>
+          </select>
+          <select name="sort" aria-label="Ordenação">
+            <option value="date_asc" {% if filter_params.sort == 'date_asc' %}selected{% endif %}>⏱️ Próximos primeiro</option>
+            <option value="date_desc" {% if filter_params.sort == 'date_desc' %}selected{% endif %}>📅 Mais distantes / recentes</option>
+            <option value="service" {% if filter_params.sort == 'service' %}selected{% endif %}>🌐 Por rede social</option>
+            <option value="title" {% if filter_params.sort == 'title' %}selected{% endif %}>🔤 Alfabética (A–Z)</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+          {% if filter_params.has_active_filters or filter_params.view != 'list' or filter_params.sort != 'date_asc' %}
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.index', status=tab) }}">Limpar filtros</a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if available_services %}
+        <div class="buffer-filter-pills">
+          <span class="buffer-filter-label">Redes:</span>
+          {% for svc in available_services %}
+            <label class="buffer-filter-chip">
+              <input type="checkbox" name="service" value="{{ svc }}" {% if svc in filter_params.services %}checked{% endif %}>
+              <span>{{ service_label(svc) }}</span>
+              <span class="buffer-chip-count">{{ total_service_counts.get(svc, 0) }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <details class="buffer-filter-advanced" {% if filter_params.has_advanced_filters %}open{% endif %}>
+        <summary>⚙️ Filtros avançados (Origem, Tipo de Mídia, Status, Período)</summary>
+        <div class="buffer-filter-grid">
+          <div class="buffer-filter-field">
+            <label for="f-source">Origem</label>
+            <select id="f-source" name="source">
+              <option value="">Todas as origens</option>
+              <option value="queue" {% if filter_params.source == 'queue' %}selected{% endif %}>Fila do Sistema</option>
+              <option value="buffer" {% if filter_params.source == 'buffer' %}selected{% endif %}>Buffer</option>
+              <option value="youtube" {% if filter_params.source == 'youtube' %}selected{% endif %}>YouTube Direto</option>
+            </select>
+          </div>
+          <div class="buffer-filter-field">
+            <label for="f-media">Tipo de mídia</label>
+            <select id="f-media" name="media_type">
+              <option value="">Todos os formatos</option>
+              <option value="video" {% if filter_params.media_type == 'video' %}selected{% endif %}>🎬 Vídeos</option>
+              <option value="image" {% if filter_params.media_type == 'image' %}selected{% endif %}>🖼️ Imagens</option>
+              <option value="text" {% if filter_params.media_type == 'text' %}selected{% endif %}>📝 Somente Texto</option>
+            </select>
+          </div>
+          <div class="buffer-filter-field">
+            <label for="f-status">Status</label>
+            <select id="f-status" name="post_status">
+              <option value="">Todos os status</option>
+              <option value="scheduled" {% if filter_params.post_status == 'scheduled' %}selected{% endif %}>Agendado</option>
+              <option value="pending" {% if filter_params.post_status == 'pending' %}selected{% endif %}>Pendente na Fila</option>
+              <option value="dispatched" {% if filter_params.post_status == 'dispatched' %}selected{% endif %}>Despachado ao Buffer</option>
+              <option value="sent" {% if filter_params.post_status == 'sent' %}selected{% endif %}>Publicado / Enviado</option>
+              <option value="draft" {% if filter_params.post_status == 'draft' %}selected{% endif %}>Rascunho</option>
+              <option value="error" {% if filter_params.post_status == 'error' %}selected{% endif %}>Com erro</option>
+            </select>
+          </div>
+          <div class="buffer-filter-field">
+            <label for="f-from">De (data)</label>
+            <input id="f-from" type="date" name="date_from" value="{{ filter_params.date_from.isoformat() if filter_params.date_from else '' }}">
+          </div>
+          <div class="buffer-filter-field">
+            <label for="f-to">Até (data)</label>
+            <input id="f-to" type="date" name="date_to" value="{{ filter_params.date_to.isoformat() if filter_params.date_to else '' }}">
+          </div>
+        </div>
+      </details>
+    </form>
+
+    <div class="buffer-summary-bar">
+      <div>
+        <strong>Mostrando {{ items | length }}</strong> de {{ raw_total }} item(ns)
+        {% if filter_params.view == 'grouped' %}
+          · <strong>{{ grouped_posts | length }}</strong> grupo(s) de postagem
         {% endif %}
       </div>
+      {% if service_counts %}
+        <div class="row">
+          {% for svc, count in service_counts.items() %}
+            <span class="tag tag-{{ svc }}">{{ service_label(svc) }}: {{ count }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
 
     {% if tab == 'queue' %}
@@ -73,75 +373,71 @@
         ⚡ <strong>Fila Inteligente:</strong> Seus posts ficam guardados aqui sem estourar o limite de 10 do Buffer.
         Quando 5 posts forem publicados no Buffer (restando &le; 5 agendados), o próximo lote de 5 posts é despachado automaticamente em sequência cronológica contínua.
       </div>
-      {% if queue_posts %}
-        <ul class="list">
-          {% for post in queue_posts %}
-            <li class="list-item">
-              {% if post.thumbnail %}
-                {% if post.is_video or post.thumbnail.endswith(('.mp4', '.mov', '.webm', '.m4v')) %}
-                  <div style="width: 48px; height: 48px; border-radius: 6px; background: rgba(0, 210, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;" title="Vídeo">🎬</div>
-                {% else %}
-                  <img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover; flex-shrink: 0;">
-                {% endif %}
-              {% endif %}
-              <div class="item-main">
-                <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
-                <div class="item-meta">
-                  <span class="tag tag-{{ post.service }}">
-                    {% if post.service == 'instagram' %}📷 Instagram
-                    {% elif post.service == 'tiktok' %}🎵 TikTok
-                    {% elif post.service == 'linkedin' %}💼 LinkedIn
-                    {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
-                    {% elif post.service == 'facebook' %}👥 Facebook
-                    {% elif post.service == 'youtube' %}▶ YouTube
-                    {% else %}{{ post.service | capitalize }}
+    {% endif %}
+
+    {% if filter_params.view == 'grouped' %}
+      {% if grouped_posts %}
+        {% for group in grouped_posts %}
+          <section class="buffer-group-card">
+            <div class="buffer-group-header">
+              <div class="buffer-group-lead">
+                {{ media_thumb(group, fallback_title=group.title) }}
+                <div>
+                  <h3 class="buffer-group-title">{{ group.title }}</h3>
+                  <div class="row">
+                    {% for svc in group.services %}
+                      <span class="tag tag-{{ svc }}">{{ service_label(svc) }}</span>
+                    {% endfor %}
+                    {% if group.media_filename %}
+                      <span class="buffer-filename-badge">{{ group.media_filename }}</span>
                     {% endif %}
-                  </span>
-                  <span class="tag tag-blue">{{ post.channel_name }}</span>
-                  <span>Previsto: {{ post.target_date | date_br or "Automático (+1 dia)" }} às {{ post.target_time or "18:30" }}</span>
-                  {% if post.status == 'pending' %}
-                    <span class="tag tag-warning">⏳ Pendente na Fila</span>
-                  {% elif post.status == 'dispatched' %}
-                    <span class="tag tag-success">✓ Despachado ao Buffer</span>
-                  {% elif post.status == 'error' %}
-                    <span class="tag tag-danger">✖ {{ post.error_message or "Erro" }}</span>
-                  {% endif %}
+                  </div>
                 </div>
               </div>
-              <div class="item-actions">
-                {% if post.status in ('pending', 'error') %}
-                  <form method="post" action="{{ url_for('buffer.share_now_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora imediatamente">⚡ Postar agora</button>
-                  </form>
-                  <form method="post" action="{{ url_for('buffer.dispatch_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Enviar este post para a fila de agendamento do Buffer?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-ghost" title="Enviar para agendamento no Buffer">📅 Agendar no Buffer</button>
-                  </form>
-                  <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_queue_post_route', post_id=post.id) }}" title="Editar post da fila">✏️ Editar</a>
-                {% endif %}
-                <form method="post" action="{{ url_for('buffer.delete_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Remover este post da Fila do Sistema?');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-sm btn-danger" title="Excluir da fila">🗑️ Excluir</button>
-                </form>
+              <div class="muted small">
+                {{ group.items | length }} publicação(ões){% if group.earliest_due %} · a partir de {{ group.earliest_due | datetime_br }}{% endif %}
               </div>
-            </li>
-          {% endfor %}
-        </ul>
+            </div>
+            <div class="buffer-group-grid">
+              {% for item in group.items %}
+                {{ render_post_card(item, tab, is_video_tab=(tab == 'videos')) }}
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
       {% else %}
-        {{ ui.empty("A Fila do Sistema está vazia. Novos agendamentos que passarem de 10 posts cairão automaticamente aqui.") }}
+        {{ ui.empty("Nenhuma postagem encontrada para os filtros selecionados.") }}
       {% endif %}
+
+    {% elif filter_params.view == 'grid' %}
+      {% if items %}
+        <div class="buffer-cards-grid">
+          {% for item in items %}
+            {{ render_post_card(item, tab, is_video_tab=(tab == 'videos')) }}
+          {% endfor %}
+        </div>
+      {% else %}
+        {{ ui.empty("Nenhuma postagem encontrada para os filtros selecionados.") }}
+      {% endif %}
+
     {% elif tab == 'videos' %}
       <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'all' else 'btn-ghost' }}" href="{{ url_for('buffer.index', status='videos', video_sub='all') }}">
-            🎬 Todos ({{ (video_queue_posts | length) + (video_scheduled_posts | length) }})
+          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'all' else 'btn-ghost' }}"
+             href="{{ url_for('buffer.index', status='videos', video_sub='all', service=filter_params.services or None, q=filter_params.q or None, sort=filter_params.sort if filter_params.sort != 'date_asc' else None) }}">
+            🎬 Todos ({{ video_total_count }})
           </a>
-          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'queue' else 'btn-ghost' }}" href="{{ url_for('buffer.index', status='videos', video_sub='queue') }}">
+          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'queue' else 'btn-ghost' }}"
+             href="{{ url_for('buffer.index', status='videos', video_sub='queue', service=filter_params.services or None, q=filter_params.q or None, sort=filter_params.sort if filter_params.sort != 'date_asc' else None) }}">
             ⏳ Fila do Sistema ({{ video_queue_posts | length }})
           </a>
-          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'scheduled' else 'btn-ghost' }}" href="{{ url_for('buffer.index', status='videos', video_sub='scheduled') }}">
+          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'scheduled' else 'btn-ghost' }}"
+             href="{{ url_for('buffer.index', status='videos', video_sub='scheduled', service=filter_params.services or None, q=filter_params.q or None, sort=filter_params.sort if filter_params.sort != 'date_asc' else None) }}">
             📅 Agendados no Buffer ({{ video_scheduled_posts | length }})
+          </a>
+          <a class="btn btn-sm {{ 'btn-primary' if video_sub == 'youtube' else 'btn-ghost' }}"
+             href="{{ url_for('buffer.index', status='videos', video_sub='youtube', service=filter_params.services or None, q=filter_params.q or None, sort=filter_params.sort if filter_params.sort != 'date_asc' else None) }}">
+            ▶ YouTube ({{ video_youtube_posts | length }})
           </a>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -160,64 +456,25 @@
             {% if video_queue_posts %}
               <form method="post" action="{{ url_for('buffer.sync_queue_route') }}" class="inline-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="tab" value="videos">
                 <button type="submit" class="btn btn-xs btn-primary" title="Sincronizar lote de vídeos para o Buffer">⚡ Sincronizar Fila (+5)</button>
               </form>
             {% endif %}
           </div>
           {% if video_queue_posts %}
             <ul class="list">
-              {% for post in video_queue_posts %}
-                <li class="list-item">
-                  <div style="width: 48px; height: 48px; border-radius: 6px; background: rgba(0, 210, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;" title="Vídeo">🎬</div>
-                  <div class="item-main">
-                    <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
-                    <div class="item-meta">
-                      <span class="tag tag-{{ post.service }}">
-                        {% if post.service == 'instagram' %}📷 Reel
-                        {% elif post.service == 'tiktok' %}🎵 TikTok
-                        {% elif post.service == 'linkedin' %}💼 LinkedIn Vídeo
-                        {% else %}{{ post.service | capitalize }}
-                        {% endif %}
-                      </span>
-                      <span class="tag tag-blue">{{ post.channel_name }}</span>
-                      <span>Previsto: {{ post.target_date | date_br or "Automático (+1 dia)" }} às {{ post.target_time or "18:30" }}</span>
-                      {% if post.status == 'pending' %}
-                        <span class="tag tag-warning">⏳ Aguardando Vaga</span>
-                      {% elif post.status == 'dispatched' %}
-                        <span class="tag tag-success">✓ Despachado ao Buffer</span>
-                      {% elif post.status == 'error' %}
-                        <span class="tag tag-danger">✖ {{ post.error_message or "Erro" }}</span>
-                      {% endif %}
-                    </div>
-                  </div>
-                  <div class="item-actions">
-                    {% if post.status in ('pending', 'error') %}
-                      <form method="post" action="{{ url_for('buffer.share_now_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar vídeo agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-ghost" title="Publicar vídeo imediatamente">⚡ Postar agora</button>
-                      </form>
-                      <form method="post" action="{{ url_for('buffer.dispatch_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Enviar este vídeo para a fila do Buffer agora?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-ghost" title="Agendar vídeo no Buffer">📅 Agendar no Buffer</button>
-                      </form>
-                      <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_queue_post_route', post_id=post.id) }}" title="Editar vídeo da fila">✏️ Editar</a>
-                    {% endif %}
-                    <form method="post" action="{{ url_for('buffer.delete_queue_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Remover este vídeo da Fila do Sistema?');">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-sm btn-danger" title="Excluir vídeo">🗑️ Excluir</button>
-                    </form>
-                  </div>
-                </li>
+              {% for item in video_queue_posts %}
+                {{ render_post_item(item, 'videos', is_video_tab=True) }}
               {% endfor %}
             </ul>
           {% else %}
-            {{ ui.empty("Nenhum vídeo na Fila do Sistema no momento.") }}
+            {{ ui.empty("Nenhum vídeo na Fila do Sistema para os filtros atuais.") }}
           {% endif %}
         </div>
       {% endif %}
 
       {% if video_sub in ('all', 'scheduled') %}
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 2rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.5rem;">
             <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
               <span>📅 Vídeos Agendados no Buffer</span>
@@ -226,97 +483,51 @@
           </div>
           {% if video_scheduled_posts %}
             <ul class="list">
-              {% for post in video_scheduled_posts %}
-                <li class="list-item">
-                  {% if post.thumbnail and not post.thumbnail.endswith(('.mp4', '.mov', '.webm', '.m4v')) %}
-                    <img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover; flex-shrink: 0;">
-                  {% else %}
-                    <div style="width: 48px; height: 48px; border-radius: 6px; background: rgba(0, 210, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;" title="Vídeo">🎬</div>
-                  {% endif %}
-                  <div class="item-main">
-                    <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
-                    <div class="item-meta">
-                      <span class="tag tag-{{ post.service }}">
-                        {% if post.service == 'instagram' %}📷 Reel
-                        {% elif post.service == 'tiktok' %}🎵 TikTok
-                        {% elif post.service == 'linkedin' %}💼 LinkedIn Vídeo
-                        {% else %}{{ post.service | capitalize }}
-                        {% endif %}
-                      </span>
-                      <span class="tag tag-blue">{{ post.channel_name }}</span>
-                      <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
-                      {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
-                    </div>
-                  </div>
-                  <div class="item-actions">
-                    <form method="post" action="{{ url_for('buffer.share_now_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar vídeo agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
-                    </form>
-                    <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=post.id) }}" title="Editar post">✏️ Editar</a>
-                    <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir este vídeo no {{ post.service | capitalize }}?');">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
-                    </form>
-                  </div>
-                </li>
+              {% for item in video_scheduled_posts %}
+                {{ render_post_item(item, 'videos', is_video_tab=True) }}
               {% endfor %}
             </ul>
           {% else %}
-            {{ ui.empty("Nenhum vídeo agendado diretamente no Buffer no momento.") }}
+            {{ ui.empty("Nenhum vídeo agendado no Buffer para os filtros atuais.") }}
           {% endif %}
         </div>
       {% endif %}
+
+      {% if video_sub in ('all', 'youtube') %}
+        <div style="margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.5rem;">
+            <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>▶ Vídeos no YouTube</span>
+              <span class="tag tag-youtube">{{ video_youtube_posts | length }}</span>
+            </h3>
+          </div>
+          {% if video_youtube_posts %}
+            <ul class="list">
+              {% for item in video_youtube_posts %}
+                {{ render_post_item(item, 'videos', is_video_tab=True) }}
+              {% endfor %}
+            </ul>
+          {% else %}
+            {{ ui.empty("Nenhum vídeo do YouTube encontrado para os filtros atuais.") }}
+          {% endif %}
+        </div>
+      {% endif %}
+
     {% else %}
-      {% if posts %}
+      {% if items %}
         <ul class="list">
-          {% for post in posts %}
-            <li class="list-item">
-              {% if post.thumbnail %}
-                {% if post.thumbnail.endswith(('.mp4', '.mov', '.webm', '.m4v')) %}
-                  <div style="width: 48px; height: 48px; border-radius: 6px; background: rgba(0, 210, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;" title="Vídeo">🎬</div>
-                {% else %}
-                  <img src="{{ post.thumbnail }}" alt="" width="48" height="48" style="border-radius: 6px; object-fit: cover; flex-shrink: 0;">
-                {% endif %}
-              {% endif %}
-              <div class="item-main">
-                <div class="item-title">{{ post.text[:160] }}{% if post.text | length > 160 %}…{% endif %}</div>
-                <div class="item-meta">
-                  <span class="tag tag-{{ post.service }}">
-                    {% if post.service == 'instagram' %}📷 Instagram
-                    {% elif post.service == 'tiktok' %}🎵 TikTok
-                    {% elif post.service == 'linkedin' %}💼 LinkedIn
-                    {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
-                    {% elif post.service == 'facebook' %}👥 Facebook
-                    {% elif post.service == 'youtube' %}▶ YouTube
-                    {% else %}{{ post.service | capitalize }}
-                    {% endif %}
-                  </span>
-                  <span class="tag tag-blue">{{ post.channel_name }}</span>
-                  <span>{{ post.due_at | datetime_br or "sem horário" }}</span>
-                  {% if post.error %}<span class="tag tag-danger">{{ post.error }}</span>{% endif %}
-                </div>
-              </div>
-              <div class="item-actions">
-                {% if tab in ('scheduled', 'draft') %}
-                  <form method="post" action="{{ url_for('buffer.share_now_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Publicar agora no {{ post.service | capitalize }} ({{ post.channel_name }})?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-ghost" title="Publicar agora">⚡ Postar agora</button>
-                  </form>
-                  <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.edit_post_route', post_id=post.id) }}" title="Editar post">✏️ Editar</a>
-                {% endif %}
-                {% if tab in ('scheduled', 'draft', 'error') %}
-                  <form method="post" action="{{ url_for('buffer.delete_post_route', post_id=post.id) }}" class="inline-form" onsubmit="return confirm('Tem certeza que deseja excluir esta publicação no {{ post.service | capitalize }}?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-danger" title="Excluir post">🗑️ Excluir</button>
-                  </form>
-                {% endif %}
-              </div>
-            </li>
+          {% for item in items %}
+            {{ render_post_item(item, tab) }}
           {% endfor %}
         </ul>
       {% elif not error %}
-        {{ ui.empty("Nenhum post nesta aba.") }}
+        {% if filter_params.has_active_filters %}
+          {{ ui.empty("Nenhum post encontrado com os filtros selecionados.") }}
+        {% elif tab == 'queue' %}
+          {{ ui.empty("A Fila do Sistema está vazia. Novos agendamentos que passarem de 10 posts cairão automaticamente aqui.") }}
+        {% else %}
+          {{ ui.empty("Nenhum post nesta aba.") }}
+        {% endif %}
       {% endif %}
     {% endif %}
   </section>

@@ -44,6 +44,14 @@ class YouTubeVideo:
     privacy_status: str
     url: str
     is_short: bool = False
+    publish_at: datetime | None = None
+
+    @property
+    def is_scheduled(self) -> bool:
+        if not self.publish_at or self.privacy_status != "private":
+            return False
+        now_utc = datetime.now(self.publish_at.tzinfo) if self.publish_at.tzinfo else datetime.utcnow()
+        return self.publish_at > now_utc
 
 
 def build_service(credentials):
@@ -103,8 +111,28 @@ class YouTubeClient:
         except HttpError as exc:
             raise YouTubeError(f"YouTube: {exc.reason or exc}") from exc
 
+        raw_items = pl_res.get("items") or []
+        vid_ids = [
+            it.get("snippet", {}).get("resourceId", {}).get("videoId")
+            for it in raw_items
+            if it.get("snippet", {}).get("resourceId", {}).get("videoId")
+        ]
+        publish_at_map: dict[str, datetime] = {}
+        if vid_ids:
+            try:
+                v_res = self._service.videos().list(part="status", id=",".join(vid_ids[:50])).execute()
+                for v in v_res.get("items") or []:
+                    raw_pat = v.get("status", {}).get("publishAt")
+                    if raw_pat:
+                        try:
+                            publish_at_map[v["id"]] = datetime.fromisoformat(raw_pat.replace("Z", "+00:00"))
+                        except ValueError:
+                            pass
+            except Exception:
+                pass
+
         videos = []
-        for it in pl_res.get("items") or []:
+        for it in raw_items:
             snip = it.get("snippet", {})
             st = it.get("status", {})
             vid_id = snip.get("resourceId", {}).get("videoId")
@@ -132,6 +160,7 @@ class YouTubeClient:
                     privacy_status=st.get("privacyStatus", "public"),
                     url=f"https://youtu.be/{vid_id}",
                     is_short="#shorts" in title.lower() or "#short" in title.lower(),
+                    publish_at=publish_at_map.get(vid_id),
                 )
             )
         return videos

@@ -89,7 +89,7 @@ function initBufferImagePreviews() {
     }
     container.style.display = "block";
     if (countLabel) {
-      countLabel.textContent = `${files.length} imagem(ns) selecionada(s) · carrossel`;
+      countLabel.textContent = `${files.length} mídia(s) selecionada(s)`;
     }
     files.forEach((file, index) => {
       const card = document.createElement("div");
@@ -97,12 +97,23 @@ function initBufferImagePreviews() {
 
       const badge = document.createElement("span");
       badge.className = "buffer-preview-badge";
-      badge.textContent = index === 0 ? "1ª (Capa)" : `${index + 1}ª`;
+      const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(file.name);
+      badge.textContent = isVideo ? "▶ Vídeo" : (index === 0 ? "1ª (Capa)" : `${index + 1}ª`);
 
-      const img = document.createElement("img");
-      img.className = "buffer-preview-img";
-      img.src = URL.createObjectURL(file);
-      img.alt = file.name;
+      let mediaEl;
+      if (isVideo) {
+        mediaEl = document.createElement("video");
+        mediaEl.className = "buffer-preview-img";
+        mediaEl.src = URL.createObjectURL(file) + "#t=0.5";
+        mediaEl.muted = true;
+        mediaEl.playsInline = true;
+        mediaEl.preload = "metadata";
+      } else {
+        mediaEl = document.createElement("img");
+        mediaEl.className = "buffer-preview-img";
+        mediaEl.src = URL.createObjectURL(file);
+        mediaEl.alt = file.name;
+      }
 
       const name = document.createElement("span");
       name.className = "buffer-preview-name";
@@ -110,7 +121,7 @@ function initBufferImagePreviews() {
       name.title = file.name;
 
       card.appendChild(badge);
-      card.appendChild(img);
+      card.appendChild(mediaEl);
       card.appendChild(name);
       grid.appendChild(card);
     });
@@ -124,6 +135,89 @@ function initBufferImagePreviews() {
     });
   }
 }
+
+// ---------- Modal de pré-visualização de vídeos e imagens no Buffer ----------
+(function initBufferMediaModal() {
+  let modal = null;
+  let titleEl = null;
+  let bodyEl = null;
+  let captionEl = null;
+
+  const ensureModal = () => {
+    if (modal && document.body.contains(modal)) return;
+    modal = document.createElement("div");
+    modal.className = "buffer-media-modal";
+    modal.hidden = true;
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.innerHTML = `
+      <div class="buffer-media-modal-card">
+        <div class="buffer-media-modal-head">
+          <span class="buffer-media-modal-title"></span>
+          <button type="button" class="btn btn-sm btn-ghost" data-media-close>✕ Fechar</button>
+        </div>
+        <div class="buffer-media-modal-body"></div>
+        <div class="buffer-media-modal-caption"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    titleEl = modal.querySelector(".buffer-media-modal-title");
+    bodyEl = modal.querySelector(".buffer-media-modal-body");
+    captionEl = modal.querySelector(".buffer-media-modal-caption");
+  };
+
+  const closeModal = () => {
+    if (!modal || modal.hidden) return;
+    const vid = bodyEl && bodyEl.querySelector("video");
+    if (vid) {
+      vid.pause();
+      vid.removeAttribute("src");
+      vid.load();
+    }
+    if (bodyEl) bodyEl.innerHTML = "";
+    modal.hidden = true;
+  };
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-media-preview]");
+    if (trigger) {
+      ensureModal();
+      const url = trigger.dataset.mediaUrl || "";
+      const type = trigger.dataset.mediaType || "image";
+      const title = trigger.dataset.mediaTitle || "Pré-visualização";
+      const text = trigger.dataset.mediaText || "";
+
+      titleEl.textContent = title;
+      bodyEl.innerHTML = "";
+      if (type === "video") {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = "auto";
+        bodyEl.appendChild(video);
+      } else {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = title;
+        bodyEl.appendChild(img);
+      }
+      captionEl.textContent = text;
+      captionEl.hidden = !text;
+      modal.hidden = false;
+      return;
+    }
+    if (modal && !modal.hidden) {
+      if (event.target === modal || event.target.closest("[data-media-close]")) {
+        closeModal();
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeModal();
+  });
+})();
 
 document.addEventListener("turbo:load", initPage);
 document.addEventListener("DOMContentLoaded", () => { if (!window.Turbo) initPage(); });

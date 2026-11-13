@@ -656,4 +656,323 @@ def test_videos_tab_queue_and_scheduled(client, connected):
     assert "Vídeos na Fila do Sistema" not in html_s
 
 
+def test_video_preview_renders_video_player_and_excludes_non_video_tiktok(client, connected):
+    v_queue = buffer.enqueue_post(
+        channel_id="li1",
+        channel_name="Ilton Batista",
+        service="linkedin",
+        text="Vídeo LinkedIn na fila",
+        image_urls=["https://example.com/aula-tokens.mp4"],
+    )
+    tt_image = buffer.enqueue_post(
+        channel_id="tt1",
+        channel_name="iltonbsilva",
+        service="tiktok",
+        text="Post TikTok apenas imagem",
+        image_urls=["https://example.com/card.png"],
+    )
+    assert v_queue.is_video is True
+    assert tt_image.is_video is False
+
+    res = client.get("/integrations/buffer/?status=videos")
+    assert res.status_code == 200
+    assert "media-src 'self' blob: https:" in res.headers.get("Content-Security-Policy", "")
+    html = res.get_data(as_text=True)
+    assert "Vídeo LinkedIn na fila" in html
+    assert "Post TikTok apenas imagem" not in html
+    assert 'data-media-type="video"' in html
+    assert '<video src="https://example.com/aula-tokens.mp4#t=0.5"' in html
+
+    edit_html = client.get(f"/integrations/buffer/queue/{v_queue.id}/edit?tab=videos").get_data(as_text=True)
+    assert '<video class="buffer-edit-video" src="https://example.com/aula-tokens.mp4"' in edit_html
+
+
+def test_error_tab_shows_edit_share_now_and_buffer_link(client, connected):
+    res = client.get("/integrations/buffer/?status=error")
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "✏️ Editar" in html
+    assert "⚡ Postar agora" in html
+    assert "https://publish.buffer.com/channels/li1" in html
+    assert "Abrir no Buffer" in html
+    assert "falhou" in html
+
+
+def test_queue_error_shows_message_and_clears_on_edit(client, connected, db):
+    p = buffer.enqueue_post(
+        channel_id="li1",
+        channel_name="Ilton Batista",
+        service="linkedin",
+        text="Post com erro na fila",
+        image_urls=["https://example.com/v.mp4"],
+    )
+    p.status = "error"
+    p.error_message = "LinkedIn rejeitou formato"
+    db.session.commit()
+
+    html = client.get("/integrations/buffer/?status=queue").get_data(as_text=True)
+    assert "LinkedIn rejeitou formato" in html
+    assert "https://publish.buffer.com/channels/li1" in html
+
+    res_post = client.post(f"/integrations/buffer/queue/{p.id}/edit?tab=videos", data={
+        "text": "Texto corrigido",
+        "due_date": "2026-12-01",
+        "due_time": "08:00",
+        "tab": "videos",
+    })
+    assert res_post.status_code == 302
+    assert "status=videos" in res_post.headers["Location"]
+    updated = buffer.get_queue_post(p.id)
+    assert updated.status == "pending"
+    assert updated.error_message is None
+
+
+def test_channels_bar_shows_youtube_without_duplicating_and_when_connected(client, connected, monkeypatch):
+    from app.integrations import youtube
+    from app.integrations.buffer import routes as buf_routes
+    from types import SimpleNamespace
+
+    buf_routes._YT_CHANNEL_CACHE.clear()
+    # 1. Quando CHANNELS já tem yt1, não duplica
+    html = client.get("/integrations/buffer/").get_data(as_text=True)
+    assert "▶ YouTube" in html
+
+    # 2. Quando Buffer não retorna YouTube, mostra canal YouTube direto do Shadow System
+    monkeypatch.setattr(buf_routes, "channels", lambda: [c for c in buffer.channels() if c.service != "youtube"])
+    monkeypatch.setattr(youtube, "is_authorized", lambda: True)
+    monkeypatch.setattr(youtube, "channel_info", lambda: SimpleNamespace(title="Cultura IB"))
+    html2 = client.get("/integrations/buffer/").get_data(as_text=True)
+    assert "▶ YouTube · Cultura IB" in html2
+    assert "/integrations/youtube/" in html2
+
+
+def test_detailed_filters_multi_service_origin_media_date_and_search(client, connected, db, monkeypatch):
+    from app.integrations.buffer import routes as buf_routes
+    from app.integrations import youtube
+    from app.integrations.youtube.client import YouTubeVideo
+
+    buf_routes._YT_VIDEOS_CACHE.clear()
+
+    # Fila com TikTok (vídeo) + Instagram (vídeo com erro)
+    buffer.enqueue_post(
+        channel_id="tt1",
+        service="tiktok",
+        channel_name="ilton_tt",
+        text="Post TikTok sobre tokens #ia",
+        image_urls=["https://example.com/uploads/voce-nao-paga-a-ia-por-palavras.mp4"],
+        target_date=date(2026, 12, 10),
+        target_time="18:30",
+    )
+    err_q = buffer.enqueue_post(
+        channel_id="ig1",
+        service="instagram",
+        channel_name="iltonbsilva",
+        text="Post Instagram erro antigo",
+        image_urls=["https://example.com/uploads/outro-video.mp4"],
+        target_date=date(2026, 12, 20),
+        target_time="18:30",
+    )
+    err_q.status = "error"
+    err_q.error_message = "Falha de token"
+    db.session.commit()
+
+    # YouTube direto (1 agendado + 1 publicado)
+    yt_videos = [
+        YouTubeVideo(
+            id="yt_vid_1",
+            title="Você Não Paga a IA por Palavras 🤯 #Shorts",
+            description="Explicando tokens na prática",
+            thumbnail_url="https://i.ytimg.com/vi/yt_vid_1/hqdefault.jpg",
+            published_at=datetime(2026, 11, 10, 12, 0),
+            privacy_status="private",
+            url="https://youtu.be/yt_vid_1",
+            is_short=True,
+            publish_at=datetime(2026, 12, 10, 18, 30),
+        ),
+        YouTubeVideo(
+            id="yt_vid_2",
+            title="Video Antigo Publicado",
+            description="Outro conteudo",
+            thumbnail_url="https://i.ytimg.com/vi/yt_vid_2/hqdefault.jpg",
+            published_at=datetime(2026, 10, 1, 10, 0),
+            privacy_status="public",
+            url="https://youtu.be/yt_vid_2",
+            is_short=False,
+        ),
+    ]
+    monkeypatch.setattr(youtube, "is_authorized", lambda: True)
+    monkeypatch.setattr(youtube, "recent_videos", lambda max_results=25: yt_videos)
+
+    # 1. Somente TikTok
+    html_tt = client.get("/integrations/buffer/?status=all&service=tiktok").get_data(as_text=True)
+    assert "Post TikTok sobre tokens" in html_tt
+    assert "Depois" not in html_tt
+    assert "Você Não Paga a IA por Palavras" not in html_tt
+
+    # 2. Multi-seleção Instagram + YouTube (sem TikTok nem LinkedIn)
+    html_multi = client.get("/integrations/buffer/?status=all&service=instagram&service=youtube").get_data(as_text=True)
+    assert "Depois" in html_multi
+    assert "Você Não Paga a IA por Palavras" in html_multi
+    assert "Post TikTok sobre tokens" not in html_multi
+    assert "Antes" not in html_multi
+
+    # 3. Origem = queue vs youtube
+    html_q = client.get("/integrations/buffer/?status=all&source=queue").get_data(as_text=True)
+    assert "Post TikTok sobre tokens" in html_q
+    assert "Depois" not in html_q
+    assert "Você Não Paga a IA por Palavras" not in html_q
+
+    html_yt = client.get("/integrations/buffer/?status=all&source=youtube").get_data(as_text=True)
+    assert "Você Não Paga a IA por Palavras" in html_yt
+    assert "Post TikTok sobre tokens" not in html_yt
+
+    # 4. Tipo de mídia (imagem vs vídeo)
+    html_img = client.get("/integrations/buffer/?status=all&media_type=image").get_data(as_text=True)
+    assert "Depois" in html_img
+    assert "Post TikTok sobre tokens" not in html_img
+
+    # 5. Status específico (error)
+    html_err = client.get("/integrations/buffer/?status=all&post_status=error").get_data(as_text=True)
+    assert "Post Instagram erro antigo" in html_err
+    assert "Antes" in html_err  # FakeBuffer retorna p1 com error={'message': 'falhou'}
+    assert "Depois" not in html_err
+
+    # 6. Período de datas (date_from -> date_to)
+    html_dates = client.get("/integrations/buffer/?status=all&date_from=2026-12-09&date_to=2026-12-11").get_data(as_text=True)
+    assert "Post TikTok sobre tokens" in html_dates
+    assert "Você Não Paga a IA por Palavras" in html_dates
+    assert "Post Instagram erro antigo" not in html_dates
+    assert "Depois" not in html_dates
+
+    # 7. Busca livre sem acento e por nome de arquivo
+    html_search = client.get("/integrations/buffer/?status=all&q=voce nao paga a ia").get_data(as_text=True)
+    assert "Post TikTok sobre tokens" in html_search
+    assert "Você Não Paga a IA por Palavras" in html_search
+    assert "Post Instagram erro antigo" not in html_search
+
+
+def test_grouped_view_unifies_same_post_across_networks_and_grid_view(client, connected, monkeypatch):
+    from app.integrations.buffer import filters, routes as buf_routes
+    from app.integrations import youtube
+    from app.integrations.youtube.client import YouTubeVideo
+
+    buf_routes._YT_VIDEOS_CACHE.clear()
+
+    # Mesmo vídeo agendado para Instagram e LinkedIn na Fila do Sistema + no YouTube API
+    buffer.enqueue_post(
+        channel_id="ig1",
+        service="instagram",
+        channel_name="iltonbsilva",
+        text="Legenda casual Reels sobre tokens",
+        image_urls=["https://example.com/uploads/voce-nao-paga-a-ia-por-palavras.mp4"],
+        target_date=date(2026, 12, 12),
+        target_time="18:30",
+    )
+    buffer.enqueue_post(
+        channel_id="li1",
+        service="linkedin",
+        channel_name="Ilton Silva",
+        text="Artigo executivo LinkedIn sobre economia de tokens em LLMs",
+        image_urls=["https://example.com/uploads/voce-nao-paga-a-ia-por-palavras.mp4"],
+        target_date=date(2026, 12, 12),
+        target_time="18:30",
+    )
+    monkeypatch.setattr(youtube, "is_authorized", lambda: True)
+    monkeypatch.setattr(youtube, "recent_videos", lambda max_results=25: [
+        YouTubeVideo(
+            id="yt_same_1",
+            title="Você Não Paga a IA por Palavras 🤯 #Shorts",
+            description="Shorts sobre tokens",
+            thumbnail_url="https://i.ytimg.com/vi/yt_same_1/hqdefault.jpg",
+            published_at=datetime(2026, 11, 10, 12, 0),
+            privacy_status="private",
+            url="https://youtu.be/yt_same_1",
+            is_short=True,
+            publish_at=datetime(2026, 12, 12, 18, 30),
+        ),
+    ])
+
+    # Verifica unidade pura group_posts
+    q_items = [filters.from_queue_post(p) for p in buffer.list_queue_posts()]
+    yt_items = [filters.from_youtube_video(v) for v in youtube.recent_videos()]
+    groups = filters.group_posts(q_items + yt_items)
+    assert len(groups) == 1
+    assert set(groups[0].services) == {"instagram", "linkedin", "youtube"}
+    assert len(groups[0].items) == 3
+
+    # Verifica rota HTML view=grouped
+    html_grouped = client.get("/integrations/buffer/?status=all&view=grouped&service=instagram&service=linkedin&service=youtube").get_data(as_text=True)
+    assert "buffer-group-card" in html_grouped
+    assert "Legenda casual Reels sobre tokens" in html_grouped
+    assert "Artigo executivo LinkedIn" in html_grouped
+    assert "Você Não Paga a IA por Palavras" in html_grouped
+    assert "3 publicação(ões)" in html_grouped
+
+    # Verifica rota HTML view=grid e ordenação
+    html_grid = client.get("/integrations/buffer/?status=all&view=grid&sort=service").get_data(as_text=True)
+    assert "buffer-cards-grid" in html_grid
+    assert "buffer-grid-card" in html_grid
+
+
+def test_youtube_client_recent_videos_populates_publish_at():
+    from app.integrations.youtube.client import YouTubeClient
+
+    class _Exec:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def execute(self):
+            return self._payload
+
+    class _PlaylistItems:
+        def list(self, **kwargs):
+            return _Exec({
+                "items": [{
+                    "snippet": {
+                        "title": "Video Agendado",
+                        "description": "Desc",
+                        "publishedAt": "2026-11-10T12:00:00Z",
+                        "resourceId": {"videoId": "vid_sched_1"},
+                        "thumbnails": {"high": {"url": "https://img/thumb.jpg"}},
+                    },
+                    "status": {"privacyStatus": "private"},
+                }]
+            })
+
+    class _Channels:
+        def list(self, **kwargs):
+            return _Exec({"items": [{"contentDetails": {"relatedPlaylists": {"uploads": "UU_test"}}}]})
+
+    class _Videos:
+        def list(self, **kwargs):
+            return _Exec({
+                "items": [{
+                    "id": "vid_sched_1",
+                    "status": {
+                        "privacyStatus": "private",
+                        "publishAt": "2026-12-01T21:30:00Z",
+                    },
+                }]
+            })
+
+    class _Svc:
+        def channels(self):
+            return _Channels()
+
+        def playlistItems(self):
+            return _PlaylistItems()
+
+        def videos(self):
+            return _Videos()
+
+    from datetime import timezone
+    yt = YouTubeClient(_Svc())
+    vids = yt.recent_videos(max_results=5)
+    assert len(vids) == 1
+    assert vids[0].is_scheduled is True
+    assert vids[0].publish_at == datetime(2026, 12, 1, 21, 30, tzinfo=timezone.utc)
+
+
+
+
 

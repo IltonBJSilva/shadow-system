@@ -27,10 +27,10 @@ PUBLIC_ENDPOINTS = {"security.login", "security.invite", "static", "core.health"
 # Política de conteúdo: scripts e estilos só do próprio app. 'unsafe-inline' em estilos é necessário
 # para larguras de barras de progresso definidas no template (style="width: 40%").
 # Imagens HTTPS externas são permitidas para as miniaturas dos posts do Buffer.
-# media-src 'self' blob:: músicas e efeitos do System são servidos pelo próprio app.
+# media-src 'self' blob: https:: áudios do System, prévias locais e vídeos dos posts do Buffer.
 CSP = (
     "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
-    "script-src 'self'; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; "
+    "script-src 'self'; media-src 'self' blob: https:; worker-src 'self'; manifest-src 'self'; "
     "frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
 )
 

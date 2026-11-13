@@ -1,69 +1,88 @@
 {% extends "base.html" %}
 {% block title %}Editar Post da Fila{% endblock %}
 {% block heading %}Fila do Sistema · Editar post{% endblock %}
-{% block actions %}<a class="btn btn-ghost" href="{{ url_for('buffer.index', status='queue') }}">Voltar à Fila</a>{% endblock %}
+{% block actions %}<a class="btn btn-ghost" href="{{ url_for('buffer.index', status=back_tab or 'queue') }}">Voltar</a>{% endblock %}
 {% block content %}
-<form method="post" class="stack">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-  <section class="panel system-window">
-    <p class="system-label">[SYSTEM] Detalhes do Post na Fila</p>
-    <div class="row" style="align-items: center; gap: .75rem; flex-wrap: wrap;">
-      <span class="tag tag-{{ post.service }}" style="font-size: .85rem; padding: .2rem .7rem;">
-        {% if post.service == 'instagram' %}📷 Instagram
-        {% elif post.service == 'tiktok' %}🎵 TikTok
-        {% elif post.service == 'linkedin' %}💼 LinkedIn
-        {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
-        {% elif post.service == 'facebook' %}👥 Facebook
-        {% elif post.service == 'youtube' %}▶ YouTube
-        {% else %}{{ post.service | capitalize }}
-        {% endif %}
-      </span>
-      <span class="tag tag-blue" style="font-size: .85rem; padding: .2rem .7rem;">{{ post.channel_name }}</span>
-      <span class="muted small">Status: <strong>{{ post.status }}</strong></span>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-header"><h2>Texto / Legenda</h2></div>
-    <div class="form">
-      <div class="field">
-        <label class="label" for="text">Texto da publicação</label>
-        <textarea class="input" id="text" name="text" rows="8">{{ post.text }}</textarea>
-        {% if post.service == "instagram" %}<small class="muted">Instagram: máximo de 5 hashtags (#PraTodosVerem sempre fica mantida) e até 2.200 caracteres.</small>{% endif %}
-        {% if post.service == "linkedin" %}<small class="muted">LinkedIn: até 3.000 caracteres.</small>{% endif %}
-      </div>
-    </div>
-  </section>
-
-  {% if post.thumbnail %}
-  <section class="panel">
-    <div class="panel-header"><h2>Mídia do Post</h2></div>
-    <div>
-      <img src="{{ post.thumbnail }}" alt="Mídia" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--panel-border); object-fit: cover;">
-      <p class="small muted" style="margin-top: .4rem;">Mídia salva internamente para envio automático ao Buffer.</p>
+<div class="stack">
+  {% if post.error_message or post.status == 'error' %}
+  <section class="panel system-window" style="border-color: rgba(248, 113, 113, 0.55);">
+    <p class="system-label" style="color: #f87171;">[SYSTEM] Erro ao enviar este post para o Buffer</p>
+    <p style="margin: .3rem 0 .75rem 0;">{{ post.error_message or "Falha no envio anterior ao Buffer." }}</p>
+    <div class="row" style="gap: .75rem; flex-wrap: wrap;">
+      <a class="btn btn-sm btn-primary" href="{{ buffer_url }}" target="_blank" rel="noopener noreferrer">🌐 Abrir canal no Buffer ↗</a>
+      <span class="small muted">Ao salvar suas alterações aqui, o erro será limpo para tentar o reenvio ao Buffer.</span>
     </div>
   </section>
   {% endif %}
 
-  <section class="panel">
-    <div class="panel-header"><h2>Previsão de Agendamento</h2></div>
-    <div class="form-grid">
-      <div class="field">
-        <label class="label" for="due_date">Data prevista</label>
-        <input class="input" id="due_date" name="due_date" type="date" value="{% if post.target_date %}{{ post.target_date.isoformat() }}{% else %}{{ today.isoformat() }}{% endif %}">
-      </div>
-      <div class="field">
-        <label class="label" for="due_time">Hora prevista</label>
-        <input class="input" id="due_time" name="due_time" type="time" value="{{ post.target_time or '18:30' }}">
-      </div>
-      <small class="muted full">Na projeção contínua para frente, caso a data calculada após o último post do Buffer seja maior, a cronologia para frente será respeitada.</small>
-    </div>
-  </section>
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="tab" value="{{ back_tab or 'queue' }}">
 
-  <div class="row" style="justify-content: flex-end; gap: .75rem;">
-    <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='queue') }}">Cancelar</a>
-    <button type="submit" class="btn btn-primary">Salvar alterações</button>
-  </div>
-</form>
+    <section class="panel system-window">
+      <p class="system-label">[SYSTEM] Detalhes do Post na Fila</p>
+      <div class="row" style="align-items: center; gap: .75rem; flex-wrap: wrap;">
+        <span class="tag tag-{{ post.service }}" style="font-size: .85rem; padding: .2rem .7rem;">
+          {% if post.service == 'instagram' %}📷 Instagram
+          {% elif post.service == 'tiktok' %}🎵 TikTok
+          {% elif post.service == 'linkedin' %}💼 LinkedIn
+          {% elif post.service == 'twitter' or post.service == 'x' %}𝕏 Twitter
+          {% elif post.service == 'facebook' %}👥 Facebook
+          {% elif post.service == 'youtube' %}▶ YouTube
+          {% else %}{{ post.service | capitalize }}
+          {% endif %}
+        </span>
+        <span class="tag tag-blue" style="font-size: .85rem; padding: .2rem .7rem;">{{ post.channel_name }}</span>
+        <span class="muted small">Status: <strong>{{ post.status }}</strong></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Texto / Legenda</h2></div>
+      <div class="form">
+        <div class="field">
+          <label class="label" for="text">Texto da publicação</label>
+          <textarea class="input" id="text" name="text" rows="8">{{ post.text }}</textarea>
+          {% if post.service == "instagram" %}<small class="muted">Instagram: máximo de 5 hashtags (#PraTodosVerem sempre fica mantida) e até 2.200 caracteres.</small>{% endif %}
+          {% if post.service == "linkedin" %}<small class="muted">LinkedIn: até 3.000 caracteres.</small>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    {% if post.video_url or post.thumbnail %}
+    <section class="panel">
+      <div class="panel-header"><h2>Mídia do Post</h2></div>
+      <div>
+        {% if post.video_url %}
+          <video class="buffer-edit-video" src="{{ post.video_url }}" {% if post.poster_url %}poster="{{ post.poster_url }}"{% endif %} controls preload="metadata" playsinline></video>
+        {% elif post.thumbnail %}
+          <img src="{{ post.thumbnail }}" alt="Mídia" style="max-width: 240px; max-height: 240px; border-radius: 8px; border: 1px solid var(--panel-border); object-fit: cover;">
+        {% endif %}
+        <p class="small muted" style="margin-top: .4rem;">Mídia salva internamente para envio automático ao Buffer.</p>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+      <div class="panel-header"><h2>Previsão de Agendamento</h2></div>
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="due_date">Data prevista</label>
+          <input class="input" id="due_date" name="due_date" type="date" value="{% if post.target_date %}{{ post.target_date.isoformat() }}{% else %}{{ today.isoformat() }}{% endif %}">
+        </div>
+        <div class="field">
+          <label class="label" for="due_time">Hora prevista</label>
+          <input class="input" id="due_time" name="due_time" type="time" value="{{ post.target_time or '18:30' }}">
+        </div>
+        <small class="muted full">Na projeção contínua para frente, caso a data calculada após o último post do Buffer seja maior, a cronologia para frente será respeitada.</small>
+      </div>
+    </section>
+
+    <div class="row" style="justify-content: flex-end; gap: .75rem; flex-wrap: wrap;">
+      <a class="btn btn-ghost" href="{{ buffer_url }}" target="_blank" rel="noopener noreferrer">🌐 Abrir no Buffer ↗</a>
+      <a class="btn btn-ghost" href="{{ url_for('buffer.index', status=back_tab or 'queue') }}">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Salvar alterações</button>
+    </div>
+  </form>
+</div>
 {% endblock %}

@@ -106,6 +106,7 @@ def update_queue_post(
     target_date: date | None = None,
     target_time: str | None = None,
     status: str | None = None,
+    clear_error: bool = False,
 ) -> BufferQueuePost:
     post = get_queue_post(post_id)
     if not post:
@@ -118,6 +119,10 @@ def update_queue_post(
         post.target_time = target_time.strip()
     if status is not None:
         post.status = status
+    if clear_error:
+        post.error_message = None
+        if post.status == "error":
+            post.status = "pending"
     db.session.commit()
     return post
 
@@ -170,6 +175,7 @@ def dispatch_next_batch(
     trigger_threshold: int = DEFAULT_TRIGGER_THRESHOLD,
     client: BufferClient | None = None,
     organization_id: str | None = None,
+    scheduled_posts: list[Post] | None = None,
 ) -> list[BufferQueuePost]:
     """Verifica e despacha até `batch_size` posts para o canal se o total de agendados <= `trigger_threshold`.
 
@@ -181,7 +187,7 @@ def dispatch_next_batch(
     org_id = organization_id or get_org_id(buffer_client)
 
     # 1. Busca posts agendados no Buffer
-    all_scheduled = buffer_client.posts(org_id, statuses=["scheduled"])
+    all_scheduled = scheduled_posts if scheduled_posts is not None else buffer_client.posts(org_id, statuses=["scheduled"])
     channel_scheduled = [p for p in all_scheduled if p.channel_id == channel_id]
 
     # Se ainda tem mais que o limiar (ex.: > 5 posts na fila), aguarda
@@ -272,12 +278,14 @@ def sync_queue(
     batch_size: int = DEFAULT_BATCH_SIZE,
     trigger_threshold: int = DEFAULT_TRIGGER_THRESHOLD,
     client: BufferClient | None = None,
+    channels_list: list | None = None,
+    scheduled_posts: list[Post] | None = None,
 ) -> dict[str, int]:
     """Varre todos os canais da conta e despacha lotes para os canais elegíveis (<= 5 posts agendados).
 
     Retorna um dicionário {nome_do_canal: quantidade_despachada}.
     """
-    from . import channels, get_client, is_configured, organization_id as get_org_id
+    from . import get_client, is_configured, organization_id as get_org_id
 
     if not is_configured():
         return {}
@@ -285,27 +293,40 @@ def sync_queue(
     buffer_client = client or get_client()
     try:
         org_id = get_org_id(buffer_client)
-        chans = [ch for ch in buffer_client.channels(org_id) if ch.usable]
+        raw_chans = channels_list if channels_list is not None else buffer_client.channels(org_id)
+        chans = [ch for ch in raw_chans if ch.usable]
     except Exception as exc:
         log.warning("sync_queue: não foi possível listar canais do Buffer: %s", exc)
         return {}
 
-    results: dict[str, int] = {}
+    eligible_chans = []
     for ch in chans:
-        # Confere se há posts pendentes antes de chamar o Buffer
         pending_count = db.session.scalar(
             db.select(db.func.count(BufferQueuePost.id))
             .where(BufferQueuePost.channel_id == ch.id, BufferQueuePost.status == "pending")
         )
-        if not pending_count:
-            continue
+        if pending_count:
+            eligible_chans.append(ch)
 
+    if not eligible_chans:
+        return {}
+
+    if scheduled_posts is None:
+        try:
+            scheduled_posts = buffer_client.posts(org_id, statuses=["scheduled"])
+        except Exception as exc:
+            log.warning("sync_queue: não foi possível listar posts agendados do Buffer: %s", exc)
+            return {}
+
+    results: dict[str, int] = {}
+    for ch in eligible_chans:
         dispatched = dispatch_next_batch(
             ch.id,
             batch_size=batch_size,
             trigger_threshold=trigger_threshold,
             client=buffer_client,
             organization_id=org_id,
+            scheduled_posts=scheduled_posts,
         )
         if dispatched:
             results[ch.name] = len(dispatched)

@@ -1,8 +1,9 @@
 """Telas do Buffer: visão geral, cadastro do token e novo post."""
 import io
-from datetime import date, datetime
+import time as pytime
+from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
 
 from app.core import time
 from app.extensions import csrf
@@ -32,11 +33,13 @@ from . import (
     update_post,
     update_queue_post,
 )
+from . import filters
 from .posting import MODES, parse_image_urls
 
 bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
 
 TABS = {
+    "all": "Todos",
     "scheduled": "Agendados",
     "queue": "Fila do Sistema",
     "videos": "Vídeos",
@@ -44,6 +47,69 @@ TABS = {
     "sent": "Enviados",
     "error": "Com erro",
 }
+
+_YT_CHANNEL_CACHE: dict[int, tuple[float, str]] = {}
+_YT_VIDEOS_CACHE: dict[int, tuple[float, list]] = {}
+_YT_CACHE_TTL_SECONDS = 300
+
+
+def _youtube_channel_summary(buffer_channels: list) -> dict | None:
+    """Retorna informações do canal YouTube conectado diretamente ao System, se não vier do Buffer."""
+    if any(ch.service == "youtube" for ch in buffer_channels):
+        return None
+    try:
+        from app.integrations import youtube
+
+        if not youtube.is_authorized():
+            return {
+                "connected": False,
+                "name": "desconectado",
+                "url": url_for("youtube.index"),
+            }
+        uid = getattr(g, "user_id", 1) or 1
+        now_ts = pytime.monotonic()
+        cached = _YT_CHANNEL_CACHE.get(uid)
+        if cached and (now_ts - cached[0]) < 600:
+            title = cached[1]
+        else:
+            title = "Conectado"
+            try:
+                info = youtube.channel_info()
+                if info and info.title:
+                    title = info.title
+            except Exception:
+                pass
+            _YT_CHANNEL_CACHE[uid] = (now_ts, title)
+        return {
+            "connected": True,
+            "name": title,
+            "url": url_for("youtube.index"),
+        }
+    except Exception:
+        return None
+
+
+def _youtube_post_items(yt_summary: dict | None, force_refresh: bool = False) -> list[filters.PostItem]:
+    """Busca vídeos/Shorts do YouTube (com cache em memória) convertidos em PostItem."""
+    if yt_summary is not None and not yt_summary.get("connected"):
+        return []
+    try:
+        from app.integrations import youtube
+
+        if not youtube.is_authorized():
+            return []
+        uid = getattr(g, "user_id", 1) or 1
+        now_ts = pytime.monotonic()
+        cached = None if force_refresh else _YT_VIDEOS_CACHE.get(uid)
+        if cached and (now_ts - cached[0]) < _YT_CACHE_TTL_SECONDS:
+            vids = cached[1]
+        else:
+            vids = youtube.recent_videos(max_results=25)
+            _YT_VIDEOS_CACHE[uid] = (now_ts, vids)
+        ch_name = (yt_summary or {}).get("name") or "YouTube"
+        return [filters.from_youtube_video(v, channel_name=ch_name) for v in vids]
+    except Exception:
+        return []
 
 
 @bp.errorhandler(BufferError)
@@ -62,64 +128,139 @@ def index():
     tab = request.args.get("status", "scheduled")
     tab = tab if tab in TABS else "scheduled"
     video_sub = request.args.get("video_sub", "all")
-    if video_sub not in ("all", "queue", "scheduled"):
+    if video_sub not in ("all", "queue", "scheduled", "youtube"):
         video_sub = "all"
 
-    error, items, chans = None, [], []
-    queue_posts = []
-    video_queue_posts = []
-    video_scheduled_posts = []
-    queue_pending_count = len(list_queue_posts(status="pending"))
-    video_total_count = len([p for p in list_queue_posts() if p.is_video])
+    params = filters.parse_filter_params(request.args)
+    force_refresh = request.args.get("refresh") == "1"
+
+    error, chans = None, []
+    all_queue_posts = list_queue_posts()
+    queue_pending_count = sum(1 for p in all_queue_posts if p.status == "pending")
+    video_total_count = sum(1 for p in all_queue_posts if p.is_video)
+
+    buf_items = []
+    raw_items: list[filters.PostItem] = []
 
     try:
         chans = channels()
+        yt_summary = _youtube_channel_summary(chans)
+
         if tab == "queue":
-            queue_posts = list_queue_posts()
+            raw_items = [filters.from_queue_post(p) for p in all_queue_posts]
         elif tab == "videos":
-            video_queue_posts = [p for p in list_queue_posts() if p.is_video]
+            q_videos = [filters.from_queue_post(p) for p in all_queue_posts if p.is_video]
             try:
-                buf_sched = posts(["scheduled"])
-                video_scheduled_posts = [p for p in buf_sched if p.is_video]
+                buf_sched = posts(["scheduled"], channels_list=chans)
+                buf_videos = [filters.from_buffer_post(p, "scheduled") for p in buf_sched if p.is_video]
             except Exception:
-                video_scheduled_posts = []
-            video_total_count = len(video_queue_posts) + len(video_scheduled_posts)
+                buf_videos = []
+            yt_videos = _youtube_post_items(yt_summary, force_refresh=force_refresh)
+            raw_items = q_videos + buf_videos + yt_videos
+            video_total_count = len(raw_items)
+        elif tab == "all":
+            try:
+                buf_all = posts(["scheduled", "draft", "error", "sent"], channels_list=chans, first=100)
+                buf_items = [filters.from_buffer_post(p) for p in buf_all]
+            except BufferError as exc:
+                error = str(exc)
+            buf_ids = {p.id for p in buf_items}
+            q_items = [
+                filters.from_queue_post(p)
+                for p in all_queue_posts
+                if not (p.status == "dispatched" and p.buffer_post_id in buf_ids)
+            ]
+            yt_videos = _youtube_post_items(yt_summary, force_refresh=force_refresh)
+            raw_items = q_items + buf_items + yt_videos
+            video_total_count += sum(1 for i in buf_items + yt_videos if i.is_video and i.status == "scheduled")
         else:
-            items = posts([tab])
+            raw_buf = posts([tab], channels_list=chans)
             if tab == "scheduled":
-                video_total_count += len([p for p in items if p.is_video])
-                # Se estiver nos agendados e houver posts na fila do sistema, despacha lote para canais com <= 5
+                video_total_count += sum(1 for p in raw_buf if p.is_video)
                 if queue_pending_count > 0:
                     try:
-                        dispatched_map = sync_queue()
+                        dispatched_map = sync_queue(channels_list=chans, scheduled_posts=raw_buf)
                         if dispatched_map:
                             total_disp = sum(dispatched_map.values())
                             summary_str = ", ".join(f"{ch} (+{c})" for ch, c in dispatched_map.items())
                             flash(f"Fila Inteligente: {total_disp} post(s) despachado(s) para o Buffer ({summary_str})!", "success")
-                            queue_pending_count = len(list_queue_posts(status="pending"))
-                            items = posts([tab])
-                            video_total_count = len([p for p in list_queue_posts() if p.is_video]) + len([p for p in items if p.is_video])
+                            all_queue_posts = list_queue_posts()
+                            queue_pending_count = sum(1 for p in all_queue_posts if p.status == "pending")
+                            raw_buf = posts([tab], channels_list=chans)
+                            video_total_count = sum(1 for p in all_queue_posts if p.is_video) + sum(1 for p in raw_buf if p.is_video)
                     except Exception:
                         pass
+                buf_items = [filters.from_buffer_post(p, "scheduled") for p in raw_buf]
+                yt_videos = [v for v in _youtube_post_items(yt_summary, force_refresh=force_refresh) if v.status == "scheduled"]
+                raw_items = buf_items + yt_videos
+            elif tab == "sent":
+                buf_items = [filters.from_buffer_post(p, "sent") for p in raw_buf]
+                yt_videos = [v for v in _youtube_post_items(yt_summary, force_refresh=force_refresh) if v.status == "sent"]
+                raw_items = buf_items + yt_videos
+            elif tab == "error":
+                buf_items = [filters.from_buffer_post(p, "error") for p in raw_buf]
+                q_errors = [
+                    filters.from_queue_post(p)
+                    for p in all_queue_posts
+                    if p.status == "error" or p.error_message
+                ]
+                raw_items = buf_items + q_errors
+            else:
+                raw_items = [filters.from_buffer_post(p, tab) for p in raw_buf]
     except BufferError as exc:
         error = str(exc)
-        if tab == "queue":
-            queue_posts = list_queue_posts()
+        yt_summary = _youtube_channel_summary(chans)
+        if tab in ("queue", "all"):
+            raw_items = [filters.from_queue_post(p) for p in all_queue_posts]
         elif tab == "videos":
-            video_queue_posts = [p for p in list_queue_posts() if p.is_video]
+            raw_items = [filters.from_queue_post(p) for p in all_queue_posts if p.is_video]
+        elif tab == "error":
+            raw_items = [
+                filters.from_queue_post(p)
+                for p in all_queue_posts
+                if p.status == "error" or p.error_message
+            ]
+        if tab in ("all", "videos"):
+            raw_items = raw_items + _youtube_post_items(yt_summary, force_refresh=force_refresh)
+
+    filtered_items = filters.sort_items(filters.apply_filters(raw_items, params), params.sort)
+    grouped_posts = filters.group_posts(filtered_items) if params.view == "grouped" else []
+    service_counts = filters.count_by_service(filtered_items)
+    total_service_counts = filters.count_by_service(raw_items)
+
+    # Lista ordenada de redes disponíveis para o painel de filtros
+    preferred_order = ["instagram", "linkedin", "tiktok", "youtube", "facebook", "twitter", "threads"]
+    seen_services = set(ch.service for ch in chans) | set(total_service_counts.keys())
+    if yt_summary is not None:
+        seen_services.add("youtube")
+    available_services = sorted(
+        seen_services,
+        key=lambda s: (preferred_order.index(s) if s in preferred_order else 99, s),
+    )
+
+    video_queue_posts = [i for i in filtered_items if i.origin == "queue"] if tab == "videos" else []
+    video_scheduled_posts = [i for i in filtered_items if i.origin == "buffer"] if tab == "videos" else []
+    video_youtube_posts = [i for i in filtered_items if i.origin == "youtube"] if tab == "videos" else []
 
     return render_template(
         "integrations/buffer/index.html",
         tabs=TABS,
         tab=tab,
-        posts=items,
-        queue_posts=queue_posts,
+        items=filtered_items,
+        raw_total=len(raw_items),
+        grouped_posts=grouped_posts,
+        filter_params=params,
+        available_services=available_services,
+        service_counts=service_counts,
+        total_service_counts=total_service_counts,
         queue_pending_count=queue_pending_count,
         video_sub=video_sub,
         video_queue_posts=video_queue_posts,
         video_scheduled_posts=video_scheduled_posts,
+        video_youtube_posts=video_youtube_posts,
         video_total_count=video_total_count,
         channels=chans,
+        youtube_channel=yt_summary,
         error=error,
         token=token_store.status(),
     )
@@ -221,6 +362,9 @@ def share_now_route(post_id: str):
 def edit_post_route(post_id: str):
     if not is_configured():
         return redirect(url_for("buffer.token"))
+    back_tab = request.args.get("tab") or request.form.get("tab") or "scheduled"
+    if back_tab not in TABS:
+        back_tab = "scheduled"
     post = get_post(post_id)
     if request.method == "POST":
         text = request.form.get("text", "")
@@ -234,8 +378,18 @@ def edit_post_route(post_id: str):
                 raise PostValidationError("Informe uma data e hora válidas.") from exc
         update_post(post_id, text=text, due_local=due_local, service=post.service)
         flash("Post atualizado com sucesso no Buffer.", "success")
-        return redirect(url_for("buffer.index"))
-    return render_template("integrations/buffer/edit.html", post=post, today=time.today())
+        return redirect(url_for("buffer.index", status=back_tab))
+    now_local = time.now()
+    suggested_due = post.due_at if (post.due_at and post.due_at > now_local) else (now_local + timedelta(days=1))
+    buffer_url = f"https://publish.buffer.com/channels/{post.channel_id}" if post.channel_id else "https://publish.buffer.com/"
+    return render_template(
+        "integrations/buffer/edit.html",
+        post=post,
+        today=time.today(),
+        suggested_due=suggested_due,
+        back_tab=back_tab,
+        buffer_url=buffer_url,
+    )
 
 
 # ---------- rotas da Fila do Sistema ----------
@@ -244,6 +398,7 @@ def edit_post_route(post_id: str):
 def sync_queue_route():
     if not is_configured():
         return redirect(url_for("buffer.token"))
+    back_tab = request.form.get("tab") if request.form.get("tab") in TABS else "queue"
     results = sync_queue()
     if results:
         total = sum(results.values())
@@ -258,16 +413,17 @@ def sync_queue_route():
                 "Nenhum canal elegível para envio de lote no momento: os canais ainda possuem mais de 5 posts agendados no Buffer.",
                 "info",
             )
-    return redirect(url_for("buffer.index", status="queue"))
+    return redirect(url_for("buffer.index", status=back_tab))
 
 
 @bp.post("/queue/<int:post_id>/dispatch")
 def dispatch_queue_post_route(post_id: int):
     if not is_configured():
         return redirect(url_for("buffer.token"))
+    back_tab = request.form.get("tab") if request.form.get("tab") in TABS else "queue"
     post = dispatch_single_post(post_id)
     flash(f"Post #{post.id} ({post.service.capitalize()}) despachado com sucesso para o Buffer!", "success")
-    return redirect(url_for("buffer.index", status="queue"))
+    return redirect(url_for("buffer.index", status=back_tab))
 
 
 @bp.post("/queue/<int:post_id>/share-now")
@@ -283,15 +439,19 @@ def share_now_queue_post_route(post_id: int):
 def delete_queue_post_route(post_id: int):
     if not is_configured():
         return redirect(url_for("buffer.token"))
+    back_tab = request.form.get("tab") if request.form.get("tab") in TABS else "queue"
     delete_queue_post(post_id)
     flash("Post removido da Fila do Sistema.", "info")
-    return redirect(url_for("buffer.index", status="queue"))
+    return redirect(url_for("buffer.index", status=back_tab))
 
 
 @bp.route("/queue/<int:post_id>/edit", methods=["GET", "POST"])
 def edit_queue_post_route(post_id: int):
     if not is_configured():
         return redirect(url_for("buffer.token"))
+    back_tab = request.args.get("tab") or request.form.get("tab") or "queue"
+    if back_tab not in TABS:
+        back_tab = "queue"
     post = get_queue_post(post_id)
     if not post:
         abort(404)
@@ -305,10 +465,17 @@ def edit_queue_post_route(post_id: int):
                 target_d = date.fromisoformat(due_date_raw)
             except ValueError as exc:
                 raise PostValidationError("Informe uma data válida.") from exc
-        update_queue_post(post_id, text=text, target_date=target_d, target_time=due_time_raw or "18:30")
+        update_queue_post(post_id, text=text, target_date=target_d, target_time=due_time_raw or "18:30", clear_error=True)
         flash("Post da fila atualizado com sucesso.", "success")
-        return redirect(url_for("buffer.index", status="queue"))
-    return render_template("integrations/buffer/queue_edit.html", post=post, today=time.today())
+        return redirect(url_for("buffer.index", status=back_tab))
+    buffer_url = f"https://publish.buffer.com/channels/{post.channel_id}" if post.channel_id else "https://publish.buffer.com/"
+    return render_template(
+        "integrations/buffer/queue_edit.html",
+        post=post,
+        today=time.today(),
+        back_tab=back_tab,
+        buffer_url=buffer_url,
+    )
 
 
 def _due_from_form() -> datetime:
