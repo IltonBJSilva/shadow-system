@@ -681,7 +681,8 @@ def test_video_preview_renders_video_player_and_excludes_non_video_tiktok(client
     assert "Vídeo LinkedIn na fila" in html
     assert "Post TikTok apenas imagem" not in html
     assert 'data-media-type="video"' in html
-    assert '<video src="https://example.com/aula-tokens.mp4#t=0.5"' in html
+    assert 'data-media-url="https://example.com/aula-tokens.mp4"' in html
+    assert "buffer-video-badge" in html
 
     edit_html = client.get(f"/integrations/buffer/queue/{v_queue.id}/edit?tab=videos").get_data(as_text=True)
     assert '<video class="buffer-edit-video" src="https://example.com/aula-tokens.mp4"' in edit_html

@@ -23,6 +23,7 @@
 {% macro media_thumb(post, fallback_title='Mídia') -%}
   {% set v_url = post.video_url %}
   {% set p_url = post.poster_url %}
+  {% set thumb = post.thumbnail %}
   {% set preview_title = (post.service | capitalize ~ ' · ' ~ post.channel_name) if post.service is defined and post.service else fallback_title %}
   {% set preview_text = post.text if post.text is defined else (post.title if post.title is defined else '') %}
   {% if v_url %}
@@ -31,29 +32,38 @@
             data-media-title="{{ preview_title }}"
             data-media-text="{{ preview_text }}"
             title="Clique para assistir à prévia do vídeo">
-      <video src="{{ v_url }}#t=0.5" {% if p_url %}poster="{{ p_url }}"{% endif %} muted playsinline preload="metadata"></video>
+      {% if p_url %}
+        <img src="{{ p_url }}" alt="" loading="lazy">
+      {% elif thumb %}
+        <img src="{{ thumb }}" alt="" loading="lazy">
+      {% else %}
+        <div class="buffer-video-placeholder" aria-hidden="true">
+          <span class="buffer-video-placeholder-icon">🎬</span>
+          <span class="buffer-video-placeholder-text">VÍDEO</span>
+        </div>
+      {% endif %}
       <span class="buffer-video-badge" aria-hidden="true">▶</span>
     </button>
   {% elif post.media_type == 'video' %}
-    {% if p_url %}
+    {% if p_url or thumb %}
       <button type="button" class="buffer-media-thumb" data-media-preview data-media-type="image"
-              data-media-url="{{ p_url }}"
+              data-media-url="{{ p_url or thumb }}"
               data-media-title="{{ preview_title }}"
               data-media-text="{{ preview_text }}"
               title="Clique para ampliar a prévia">
-        <img src="{{ p_url }}" alt="">
+        <img src="{{ p_url or thumb }}" alt="" loading="lazy">
         <span class="buffer-video-badge" aria-hidden="true">▶</span>
       </button>
     {% else %}
       <div class="buffer-media-thumb buffer-media-fallback" title="Vídeo sem URL de prévia">🎬</div>
     {% endif %}
-  {% elif post.thumbnail %}
+  {% elif thumb %}
     <button type="button" class="buffer-media-thumb" data-media-preview data-media-type="image"
-            data-media-url="{{ post.thumbnail }}"
+            data-media-url="{{ thumb }}"
             data-media-title="{{ preview_title }}"
             data-media-text="{{ preview_text }}"
             title="Clique para ampliar a imagem">
-      <img src="{{ post.thumbnail }}" alt="">
+      <img src="{{ thumb }}" alt="" loading="lazy">
     </button>
   {% endif %}
 {%- endmacro %}

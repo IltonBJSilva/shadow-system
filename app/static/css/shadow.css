@@ -858,29 +858,55 @@ body::after {
   position: relative;
   width: 68px;
   height: 68px;
+  max-width: 68px;
+  max-height: 68px;
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(8, 12, 28, 0.92);
+  background: radial-gradient(circle at 30% 30%, #1e293b, #090d1f);
   border: 1px solid rgba(56, 189, 248, 0.35);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color .2s, transform .15s;
+  transition: border-color .2s, transform .15s, box-shadow .2s;
 }
 .buffer-media-thumb:hover {
   border-color: var(--cyan);
-  transform: scale(1.03);
+  transform: scale(1.04);
+  box-shadow: 0 0 12px -2px var(--cyan);
 }
 .buffer-media-thumb img,
 .buffer-media-thumb video {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
+}
+.buffer-video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+}
+.buffer-video-placeholder-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.buffer-video-placeholder-text {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
 }
 .buffer-media-fallback {
   cursor: default;
