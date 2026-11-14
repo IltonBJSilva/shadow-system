@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,36 +14,40 @@
   {# Sem cache de páginas do Turbo: voltar no navegador busca a página de novo (dados sempre atuais). #}
   <meta name="turbo-cache-control" content="no-cache">
   <meta name="shadow-media" content="{{ media_versions | tojson | forceescape }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/shadow.css') }}">
-  <script src="{{ url_for('static', filename='js/vendor/turbo-8.0.12.min.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/sounds.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/shadow.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/boot.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ static_url('css/shadow.css') }}">
+  <script src="{{ static_url('js/vendor/turbo-8.0.12.min.js') }}" defer></script>
+  <script src="{{ static_url('js/sounds.js') }}" defer></script>
+  <script src="{{ static_url('js/shadow.js') }}" defer></script>
+  <script src="{{ static_url('js/boot.js') }}" defer></script>
 </head>
-{% set in_experience = not (auth_enabled and not current_user) and request.endpoint not in ("security.login", "security.invite") %}
-<body data-experience="{{ 'main' if in_experience else 'gate' }}"{% if media_versions.background %} class="has-art"{% endif %}>
+{% set in_experience = not (auth_enabled and not current_user) and request.endpoint not in ("security.login",
+"security.invite") %}
+
+<body data-experience="{{ 'main' if in_experience else 'gate' }}" {% if media_versions.background %} class="has-art" {%
+  endif %}>
   {% set show_boot = boot_mode != "off" and in_experience %}
   {% if show_boot %}
-    <div class="boot" data-boot data-boot-mode="{{ boot_mode }}" data-boot-page="{{ request.endpoint or '' }}"
-         role="dialog" aria-label="Inicialização do sistema" hidden>
-      <div class="boot-grid" aria-hidden="true"></div>
-      {% if media_versions.boot %}
-        <div class="boot-art" aria-hidden="true" style="background-image: url('{{ url_for('core.media_file', slot='boot', v=media_versions.boot) }}')"></div>
-      {% endif %}
-      <div class="boot-core">
-        <img class="boot-emblem" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="72" height="72">
-        <ol class="boot-log" aria-live="polite">
-          <li>INICIALIZANDO SISTEMA...</li>
-          <li>SINCRONIZANDO ATRIBUTOS...</li>
-          <li>CARREGANDO MISSÕES...</li>
-          <li>ANALISANDO JOGADOR...</li>
-          <li class="boot-ok">SISTEMA ATIVADO.</li>
-        </ol>
-        <div class="boot-bar" aria-hidden="true"><span></span></div>
-        <p class="boot-manifesto">{{ manifesto }}</p>
-        <button class="boot-skip" type="button" data-boot-skip>Pular (Esc)</button>
-      </div>
+  <div class="boot" data-boot data-boot-mode="{{ boot_mode }}" data-boot-page="{{ request.endpoint or '' }}"
+    role="dialog" aria-label="Inicialização do sistema" hidden>
+    <div class="boot-grid" aria-hidden="true"></div>
+    {% if media_versions.boot %}
+    <div class="boot-art" aria-hidden="true"
+      style="background-image: url('{{ url_for('core.media_file', slot='boot', v=media_versions.boot) }}')"></div>
+    {% endif %}
+    <div class="boot-core">
+      <img class="boot-emblem" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="72" height="72">
+      <ol class="boot-log" aria-live="polite">
+        <li>INICIALIZANDO SISTEMA...</li>
+        <li>SINCRONIZANDO ATRIBUTOS...</li>
+        <li>CARREGANDO MISSÕES...</li>
+        <li>ANALISANDO JOGADOR...</li>
+        <li class="boot-ok">SISTEMA ATIVADO.</li>
+      </ol>
+      <div class="boot-bar" aria-hidden="true"><span></span></div>
+      <p class="boot-manifesto">{{ manifesto }}</p>
+      <button class="boot-skip" type="button" data-boot-skip>Pular (Esc)</button>
     </div>
+  </div>
   {% endif %}
   <div class="layout">
     {% if in_experience %}
@@ -53,15 +58,15 @@
       </a>
       <nav class="nav">
         {% for item in nav_items %}
-          <a class="nav-link {% if item.active %}is-active{% endif %}" href="{{ item.url }}">
-            <span class="nav-icon">{{ item.icon }}</span>{{ item.label }}
-          </a>
+        <a class="nav-link {% if item.active %}is-active{% endif %}" href="{{ item.url }}">
+          <span class="nav-icon">{{ item.icon }}</span>{{ item.label }}
+        </a>
         {% endfor %}
       </nav>
       <div class="sidebar-footer">
         {% if is_owner %}
-          <a class="nav-link nav-link-sm {% if request.endpoint == 'security.testers' %}is-active{% endif %}"
-             href="{{ url_for('security.testers') }}"><span class="nav-icon">⚇</span>Usuários de teste</a>
+        <a class="nav-link nav-link-sm {% if request.endpoint == 'security.testers' %}is-active{% endif %}"
+          href="{{ url_for('security.testers') }}"><span class="nav-icon">⚇</span>Usuários de teste</a>
         {% endif %}
         <div class="footer-links small">
           <a href="{{ url_for('core.guide') }}">Como usar</a> · <a href="{{ url_for('core.changelog') }}">Novidades</a>
@@ -69,13 +74,14 @@
         </div>
         {% if current_user %}<span class="muted small">Jogador: {{ current_user }}</span>{% endif %}
         {% if current_user %}
-          <form method="post" action="{{ url_for('security.logout') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-ghost btn-block" type="submit">Sair</button>
-          </form>
+        <form method="post" action="{{ url_for('security.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-ghost btn-block" type="submit">Sair</button>
+        </form>
         {% endif %}
         <div class="audio-quick" role="group" aria-label="Áudio">
-          {% if media_versions.music %}<button class="btn btn-ghost btn-sm btn-block" type="button" data-audio-toggle="music">♫ Música</button>{% endif %}
+          {% if media_versions.music %}<button class="btn btn-ghost btn-sm btn-block" type="button"
+            data-audio-toggle="music">♫ Música</button>{% endif %}
           <button class="btn btn-ghost btn-sm btn-block" type="button" data-audio-toggle="sfx">🔊 Efeitos</button>
         </div>
         <span class="muted small">{{ today | date_br }}</span>
@@ -86,12 +92,13 @@
     <div class="main">
       <header class="topbar">
         {% if in_experience %}
-          <button class="btn btn-ghost menu-toggle" type="button" data-toggle-sidebar aria-label="Abrir menu">☰</button>
+        <button class="btn btn-ghost menu-toggle" type="button" data-toggle-sidebar aria-label="Abrir menu">☰</button>
         {% else %}
-          <a class="brand" href="/" style="margin-right: .5rem;">
-            <img class="brand-mark" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="32" height="32">
-            <span class="brand-text">SHADOW<small>SYSTEM</small></span>
-          </a>
+        <a class="brand" href="/" style="margin-right: .5rem;">
+          <img class="brand-mark" src="{{ url_for('static', filename='img/emblem.svg') }}" alt="" width="32"
+            height="32">
+          <span class="brand-text">SHADOW<small>SYSTEM</small></span>
+        </a>
         {% endif %}
         <h1 class="page-title">{% block heading %}{% endblock %}</h1>
         <div class="topbar-actions">{% block actions %}{% endblock %}</div>
@@ -105,4 +112,5 @@
     </div>
   </div>
 </body>
+
 </html>

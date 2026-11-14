@@ -1,4 +1,5 @@
 """Filtros e variáveis disponíveis em todos os templates."""
+import os
 from datetime import date, datetime
 
 from flask import Flask, request, url_for
@@ -44,6 +45,18 @@ def register(app: Flask) -> None:
     @app.template_filter("hour")
     def hour(value: datetime | None) -> str:
         return value.strftime("%H:%M") if value else ""
+
+    def static_url(filename: str) -> str:
+        """Gera URL estática com query string de versão baseada no mtime para evitar cache obsoleto."""
+        static_root = app.static_folder or ""
+        path = os.path.join(static_root, filename)
+        try:
+            version = int(os.path.getmtime(path))
+            return url_for("static", filename=filename, v=version)
+        except OSError:
+            return url_for("static", filename=filename)
+
+    app.jinja_env.globals["static_url"] = static_url
 
     @app.context_processor
     def inject_globals():

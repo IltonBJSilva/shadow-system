@@ -147,8 +147,10 @@
             <span class="muted small"> — {{ item.text[:110] }}{% if item.text | length > 110 %}…{% endif %}</span>
           {% endif %}
         </div>
-      {% else %}
+      {% elif item.text %}
         <div class="item-title">{{ item.text[:160] }}{% if item.text | length > 160 %}…{% endif %}</div>
+      {% else %}
+        <div class="item-title muted">{{ item.media_filename or "Publicação sem legenda" }}</div>
       {% endif %}
       <div class="item-meta">
         <span class="buffer-origin-tag">{{ item.origin_label }}</span>
@@ -271,35 +273,46 @@
 
       <div class="buffer-filter-top">
         <div class="buffer-filter-search">
-          <input type="search" name="q" value="{{ filter_params.q }}"
-                 placeholder="🔎 Buscar por legenda, título, arquivo (.mp4), rede, erro..."
+          <span class="buffer-filter-search-icon" aria-hidden="true">🔎</span>
+          <input class="input" type="search" name="q" value="{{ filter_params.q }}"
+                 placeholder="Buscar por legenda, título, arquivo (.mp4), rede ou erro..."
                  aria-label="Buscar postagens">
         </div>
         <div class="buffer-filter-controls">
-          <select name="view" aria-label="Formato de exibição">
-            <option value="list" {% if filter_params.view == 'list' %}selected{% endif %}>📋 Lista detalhada</option>
-            <option value="grouped" {% if filter_params.view == 'grouped' %}selected{% endif %}>🧩 Agrupado por Postagem</option>
-            <option value="grid" {% if filter_params.view == 'grid' %}selected{% endif %}>🗂️ Grade visual</option>
-          </select>
-          <select name="sort" aria-label="Ordenação">
+          <div class="buffer-segmented" role="group" aria-label="Formato de exibição">
+            <label class="buffer-seg-option" title="Lista detalhada">
+              <input type="radio" name="view" value="list" data-autosubmit {% if filter_params.view == 'list' %}checked{% endif %}>
+              <span>📋 Lista</span>
+            </label>
+            <label class="buffer-seg-option" title="Comparar a mesma postagem entre redes">
+              <input type="radio" name="view" value="grouped" data-autosubmit {% if filter_params.view == 'grouped' %}checked{% endif %}>
+              <span>🧩 Agrupado</span>
+            </label>
+            <label class="buffer-seg-option" title="Visualização em grade de cards">
+              <input type="radio" name="view" value="grid" data-autosubmit {% if filter_params.view == 'grid' %}checked{% endif %}>
+              <span>🗂️ Grade</span>
+            </label>
+          </div>
+          <select class="input" name="sort" data-autosubmit aria-label="Ordenação">
             <option value="date_asc" {% if filter_params.sort == 'date_asc' %}selected{% endif %}>⏱️ Próximos primeiro</option>
-            <option value="date_desc" {% if filter_params.sort == 'date_desc' %}selected{% endif %}>📅 Mais distantes / recentes</option>
+            <option value="date_desc" {% if filter_params.sort == 'date_desc' %}selected{% endif %}>📅 Mais recentes / distantes</option>
             <option value="service" {% if filter_params.sort == 'service' %}selected{% endif %}>🌐 Por rede social</option>
             <option value="title" {% if filter_params.sort == 'title' %}selected{% endif %}>🔤 Alfabética (A–Z)</option>
           </select>
           <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
           {% if filter_params.has_active_filters or filter_params.view != 'list' or filter_params.sort != 'date_asc' %}
-            <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.index', status=tab) }}">Limpar filtros</a>
+            <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.index', status=tab) }}">Limpar</a>
           {% endif %}
         </div>
       </div>
 
       {% if available_services %}
         <div class="buffer-filter-pills">
-          <span class="buffer-filter-label">Redes:</span>
+          <span class="buffer-filter-label">Redes</span>
           {% for svc in available_services %}
             <label class="buffer-filter-chip">
               <input type="checkbox" name="service" value="{{ svc }}" {% if svc in filter_params.services %}checked{% endif %}>
+              <span class="buffer-chip-dot" aria-hidden="true"></span>
               <span>{{ service_label(svc) }}</span>
               <span class="buffer-chip-count">{{ total_service_counts.get(svc, 0) }}</span>
             </label>
@@ -312,7 +325,7 @@
         <div class="buffer-filter-grid">
           <div class="buffer-filter-field">
             <label for="f-source">Origem</label>
-            <select id="f-source" name="source">
+            <select class="input" id="f-source" name="source" data-autosubmit>
               <option value="">Todas as origens</option>
               <option value="queue" {% if filter_params.source == 'queue' %}selected{% endif %}>Fila do Sistema</option>
               <option value="buffer" {% if filter_params.source == 'buffer' %}selected{% endif %}>Buffer</option>
@@ -321,7 +334,7 @@
           </div>
           <div class="buffer-filter-field">
             <label for="f-media">Tipo de mídia</label>
-            <select id="f-media" name="media_type">
+            <select class="input" id="f-media" name="media_type" data-autosubmit>
               <option value="">Todos os formatos</option>
               <option value="video" {% if filter_params.media_type == 'video' %}selected{% endif %}>🎬 Vídeos</option>
               <option value="image" {% if filter_params.media_type == 'image' %}selected{% endif %}>🖼️ Imagens</option>
@@ -330,7 +343,7 @@
           </div>
           <div class="buffer-filter-field">
             <label for="f-status">Status</label>
-            <select id="f-status" name="post_status">
+            <select class="input" id="f-status" name="post_status" data-autosubmit>
               <option value="">Todos os status</option>
               <option value="scheduled" {% if filter_params.post_status == 'scheduled' %}selected{% endif %}>Agendado</option>
               <option value="pending" {% if filter_params.post_status == 'pending' %}selected{% endif %}>Pendente na Fila</option>
@@ -342,11 +355,11 @@
           </div>
           <div class="buffer-filter-field">
             <label for="f-from">De (data)</label>
-            <input id="f-from" type="date" name="date_from" value="{{ filter_params.date_from.isoformat() if filter_params.date_from else '' }}">
+            <input class="input" id="f-from" type="date" name="date_from" value="{{ filter_params.date_from.isoformat() if filter_params.date_from else '' }}">
           </div>
           <div class="buffer-filter-field">
             <label for="f-to">Até (data)</label>
-            <input id="f-to" type="date" name="date_to" value="{{ filter_params.date_to.isoformat() if filter_params.date_to else '' }}">
+            <input class="input" id="f-to" type="date" name="date_to" value="{{ filter_params.date_to.isoformat() if filter_params.date_to else '' }}">
           </div>
         </div>
       </details>
