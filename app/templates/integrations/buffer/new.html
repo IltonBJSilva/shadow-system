@@ -16,11 +16,13 @@
     <p class="system-label">[SYSTEM] Onde publicar</p>
     <div class="row">
       {% for ch in channels %}
-        <label class="check tag tag-blue" style="padding: .35rem .7rem">
-          <input type="checkbox" name="channels" value="{{ ch.id }}"> {{ ch.name }} · {{ ch.service }}
+        <label class="check tag tag-{{ ch.service }}" style="padding: .35rem .7rem">
+          <input type="checkbox" name="channels" value="{{ ch.id }}" {% if ch.service != 'youtube' %}checked{% endif %}> {{ ch.name }} · {{ ch.service }}
         </label>
       {% endfor %}
     </div>
+    <small class="muted">Todas as redes já vêm marcadas: o post vai para todas. Desmarque as que não quiser.
+      Se uma rede estiver sem vaga no Buffer, o post dela espera na Fila do Sistema e sai depois.</small>
   </section>
 
   <section class="panel">

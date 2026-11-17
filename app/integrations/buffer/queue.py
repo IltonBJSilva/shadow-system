@@ -37,6 +37,12 @@ MAX_SCHEDULED_PER_CHANNEL = 10
 DEFAULT_POST_TIME = "18:30"
 
 
+def is_limit_error(message: str) -> bool:
+    """O Buffer recusou por falta de vaga (limite de 10 agendados), não por problema no post."""
+    msg = (message or "").lower()
+    return "scheduled posts limit reached" in msg or "limit of 10" in msg
+
+
 def enqueue_post(
     *,
     channel_id: str,
@@ -236,7 +242,9 @@ def dispatch_next_batch(
     )
 
     dispatched: list[BufferQueuePost] = []
-    for post_item, target_dt in zip(pending_posts, forward_datetimes):
+    # O dia só avança quando um post entra: um post com erro não deixa buraco no calendário.
+    for post_item in pending_posts:
+        target_dt = forward_datetimes[len(dispatched)]
         # Ajusta horário se o post possuir target_time específico diferente
         if post_item.target_time:
             try:
@@ -269,16 +277,21 @@ def dispatch_next_batch(
                 post_item.id, post_item.channel_name, post_item.target_date, post_item.target_time,
             )
         except BufferError as exc:
+            if is_limit_error(str(exc)):
+                # Sem vaga no canal: o post continua pendente e o lote para aqui.
+                log.info("Canal %s sem vagas no Buffer; post #%d segue na fila.", post_item.channel_name, post_item.id)
+                break
+            # Erro do próprio post: marca e segue para o próximo. Antes o lote parava aqui e o post
+            # com erro, sempre o primeiro da fila, travava todos os outros posts daquela rede.
+            post_item.status = "error"
             post_item.error_message = str(exc)
             db.session.commit()
             log.warning("Falha ao despachar post #%d para o Buffer: %s", post_item.id, exc)
-            # Para o envio do restante do lote deste canal se o Buffer rejeitar
-            break
         except Exception as exc:
+            post_item.status = "error"
             post_item.error_message = str(exc)
             db.session.commit()
             log.exception("Erro inesperado ao despachar post #%d: %s", post_item.id, exc)
-            break
 
     return dispatched
 

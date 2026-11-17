@@ -211,8 +211,7 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
             when = post.get("dueAt") or "fila"
             return ChannelResult(channel.name, channel.service, True, f"{post.get('status', 'ok')} ({when})")
         except BufferError as exc:
-            exc_str = str(exc).lower()
-            if "scheduled posts limit reached" in exc_str or "limit of 10" in exc_str:
+            if queue.is_limit_error(str(exc)):
                 # A gravação no banco ocorre na thread da requisição abaixo; a
                 # thread de rede não pode compartilhar a sessão SQLAlchemy do Flask.
                 return None

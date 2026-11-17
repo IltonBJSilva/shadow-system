@@ -136,6 +136,8 @@ def index():
     force_refresh = request.args.get("refresh") == "1"
 
     error, chans = None, []
+    network_summary: list[filters.NetworkSummary] = []
+    coverage_gaps: list[filters.CoverageGap] = []
     all_queue_posts = list_queue_posts()
     queue_pending_count = sum(1 for p in all_queue_posts if p.status == "pending")
     video_total_count = sum(1 for p in all_queue_posts if p.is_video)
@@ -194,6 +196,13 @@ def index():
                 buf_items = [filters.from_buffer_post(p, "scheduled") for p in raw_buf]
                 yt_videos = [v for v in _youtube_post_items(yt_summary, force_refresh=force_refresh) if v.status == "scheduled"]
                 raw_items = buf_items + yt_videos
+                queue_items = [filters.from_queue_post(p) for p in all_queue_posts]
+                try:
+                    sent_items = [filters.from_buffer_post(p, "sent") for p in posts(["sent"], channels_list=chans)]
+                except BufferError:
+                    sent_items = []
+                network_summary = filters.network_summary(chans, buf_items, queue_items)
+                coverage_gaps = filters.coverage_gaps(chans, buf_items + sent_items + queue_items)
             elif tab == "sent":
                 buf_items = [filters.from_buffer_post(p, "sent") for p in raw_buf]
                 yt_videos = [v for v in _youtube_post_items(yt_summary, force_refresh=force_refresh) if v.status == "sent"]
@@ -264,6 +273,8 @@ def index():
         youtube_channel=yt_summary,
         error=error,
         token=token_store.status(),
+        network_summary=network_summary,
+        coverage_gaps=coverage_gaps,
     )
 
 
@@ -338,6 +349,34 @@ def serve_upload(token: str, filename: str):
     response.cache_control.public = True
     response.headers["Accept-Ranges"] = "bytes"
     return response
+
+
+@bp.post("/coverage/complete")
+def complete_coverage_route():
+    """Envia uma postagem que já existe em uma rede para as redes que ficaram sem ela."""
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    source = request.form.get("source", "")
+    channel_ids = request.form.getlist("channels")
+    origin, _, source_id = source.partition(":")
+    if origin == "buffer":
+        post = get_post(source_id)
+        text, media, due = post.text, list(post.image_urls), post.due_at
+    elif origin == "queue" and source_id.isdigit() and (item := get_queue_post(int(source_id))):
+        text, media, due = item.text, item.images, filters.from_queue_post(item).due_at
+    else:
+        raise PostValidationError("Postagem de origem não encontrada. Recarregue a página.")
+    # Mesmo dia e horário da original quando ainda está no futuro; senão, entra na Fila do Sistema,
+    # que agenda no próximo dia livre de cada rede.
+    in_future = due is not None and due > time.now() + timedelta(minutes=5)
+    results = schedule(
+        text=text, overrides={}, channel_ids=channel_ids, mode="customScheduled",
+        due_local=due if in_future else None, image_urls=media, uploads=[],
+        send_to_queue=not in_future,
+    )
+    for result in results:
+        flash(f"{result.channel} ({result.service}): {result.message}", "success" if result.ok else "error")
+    return redirect(url_for("buffer.index", status="scheduled"))
 
 
 @bp.post("/posts/<post_id>/delete")

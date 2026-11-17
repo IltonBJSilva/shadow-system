@@ -462,3 +462,73 @@ def count_by_service(items: list[PostItem]) -> dict[str, int]:
         counts[item.service] = counts.get(item.service, 0) + 1
     return counts
 
+
+
+# ---------- cobertura entre redes ----------
+
+# Redes que recebem o mesmo post pelo Buffer. YouTube fica de fora: tem fluxo próprio (título, só vídeo).
+COVERAGE_EXCLUDED_SERVICES = {"youtube"}
+
+
+@dataclass(frozen=True)
+class NetworkSummary:
+    service: str
+    channel_id: str
+    channel_name: str
+    scheduled: int
+    pending: int
+    errors: int
+
+
+@dataclass(frozen=True)
+class CoverageGap:
+    group: PostGroup
+    source: PostItem
+    present: tuple[PostItem, ...]
+    missing: tuple  # canais (client.Channel) que ainda não têm esta postagem
+
+
+def coverage_channels(channels: list) -> list:
+    return [ch for ch in channels if ch.usable and ch.service not in COVERAGE_EXCLUDED_SERVICES]
+
+
+def network_summary(channels: list, buffer_scheduled: list[PostItem],
+                    queue_items: list[PostItem]) -> list[NetworkSummary]:
+    """Quantos posts cada rede tem agendados no Buffer, pendentes na Fila e com erro."""
+    out = []
+    for ch in coverage_channels(channels):
+        out.append(NetworkSummary(
+            service=ch.service,
+            channel_id=ch.id,
+            channel_name=ch.name,
+            scheduled=sum(1 for i in buffer_scheduled if i.channel_id == ch.id and i.status == "scheduled"),
+            pending=sum(1 for i in queue_items if i.channel_id == ch.id and i.status == "pending"),
+            errors=sum(1 for i in buffer_scheduled + queue_items if i.channel_id == ch.id and i.status == "error"),
+        ))
+    return out
+
+
+def coverage_gaps(channels: list, items: list[PostItem]) -> list[CoverageGap]:
+    """Postagens que estão em alguma rede mas faltam em outra.
+
+    `items` deve juntar Buffer (agendados e enviados) e Fila do Sistema: um post que já saiu no
+    Instagram e ainda está agendado no TikTok não é falta. Só entram grupos com algo ainda por vir
+    (agendado ou pendente); postagens antigas, já publicadas em todo lugar, não aparecem.
+    """
+    targets = coverage_channels(channels)
+    if len(targets) < 2:
+        return []
+    relevant = [i for i in items if i.service not in COVERAGE_EXCLUDED_SERVICES and i.status != "error"]
+    gaps = []
+    for group in group_posts(relevant):
+        upcoming = [i for i in group.items if i.status in ("scheduled", "pending")]
+        if not upcoming:
+            continue
+        have = {i.channel_id for i in group.items}
+        missing = tuple(ch for ch in targets if ch.id not in have)
+        if not missing:
+            continue
+        # Fonte do conteúdo: prefere o que está no Buffer (texto e mídia já aceitos lá).
+        source = next((i for i in upcoming if i.origin == "buffer"), upcoming[0])
+        gaps.append(CoverageGap(group=group, source=source, present=group.items, missing=missing))
+    return gaps

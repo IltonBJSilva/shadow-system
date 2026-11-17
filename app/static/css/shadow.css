@@ -1352,3 +1352,29 @@ body::after {
   padding: 0.12rem 0.4rem;
   border-radius: 4px;
 }
+
+/* Buffer: resumo por rede e postagens que faltam em alguma rede (aba Agendados) */
+.buffer-network-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.buffer-network-card {
+  padding: 0.75rem 0.95rem;
+  background: rgba(8, 13, 30, 0.65);
+  border: 1px solid rgba(124, 92, 255, 0.18);
+  border-radius: 9px;
+}
+.buffer-network-name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.buffer-network-total { font-size: 1.9rem; font-weight: 700; line-height: 1.1; margin: 0.35rem 0 0.15rem; }
+.buffer-network-error { color: var(--danger); }
+.buffer-coverage {
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 9px;
+  background: rgba(248, 113, 113, 0.06);
+}
+.buffer-coverage > summary { cursor: pointer; font-weight: 600; }
+.buffer-coverage .list { margin-top: 0.6rem; }

@@ -446,6 +446,50 @@ def test_dispatch_next_batch_success(app, connected):
     assert all(c["dueAt"] is not None for c in created)
 
 
+def test_dispatch_error_does_not_block_the_rest_of_the_channel_queue(app, connected):
+    # O primeiro da fila do LinkedIn é recusado pelo Buffer (FakeBuffer recusa textos com FALHA no li1).
+    bad = buffer.enqueue_post(channel_id="li1", channel_name="ilton", service="linkedin",
+                              text="FALHA formato", image_urls=[])
+    for i in range(2):
+        buffer.enqueue_post(channel_id="li1", channel_name="ilton", service="linkedin",
+                            text=f"Post bom #{i}", image_urls=[])
+
+    dispatched = buffer.dispatch_next_batch("li1", batch_size=10, trigger_threshold=5)
+
+    assert [p.text for p in dispatched] == ["Post bom #0", "Post bom #1"]
+    assert buffer.get_queue_post(bad.id).status == "error"
+    # O dia só avança para quem entrou: os dois posts bons ficam em dias seguidos, sem buraco.
+    assert (dispatched[1].target_date - dispatched[0].target_date).days == 1
+
+
+def test_scheduled_tab_shows_counts_per_network_and_missing_networks(client, connected):
+    buffer.enqueue_post(channel_id="li1", channel_name="ilton", service="linkedin",
+                        text="Na fila do LinkedIn", image_urls=[])
+    html = client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)
+    assert "buffer-network-summary" in html
+    assert "agendado(s) no Buffer" in html
+    # "Depois" está só no Instagram (ig1): falta o LinkedIn. YouTube não entra na conta.
+    assert "não estão em todas as redes" in html
+    assert 'value="buffer:p2"' in html
+
+
+def test_complete_coverage_sends_post_to_missing_network(client, connected):
+    # A original (p2) já passou: o post para a rede que falta entra na Fila do Sistema.
+    res = client.post("/integrations/buffer/coverage/complete", data={"source": "buffer:p2", "channels": ["li1"]})
+    assert res.status_code == 302
+    queued = buffer.list_queue_posts(channel_id="li1")
+    assert len(queued) == 1
+    assert queued[0].text == "Post único"
+    assert queued[0].images == ["https://img/1.png"]
+
+
+def test_new_post_form_checks_all_networks_by_default(client, connected):
+    html = client.get("/integrations/buffer/new").get_data(as_text=True)
+    assert 'value="li1" checked' in html
+    assert 'value="ig1" checked' in html
+    assert 'value="yt1" checked' not in html
+
+
 def test_dispatch_next_batch_waits_if_scheduled_count_above_threshold(app, connected, monkeypatch):
     # Simula 6 posts já agendados no Buffer para ig1 (acima do limiar 5)
     six_posts = [

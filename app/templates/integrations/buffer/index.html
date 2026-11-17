@@ -275,6 +275,54 @@
       </div>
     </div>
 
+    {% if tab == 'scheduled' and network_summary %}
+      <div class="buffer-network-summary" aria-label="Resumo por rede">
+        {% for net in network_summary %}
+          <div class="buffer-network-card">
+            <div class="buffer-network-name"><span class="tag tag-{{ net.service }}">{{ service_label(net.service) }}</span> <span class="muted small">{{ net.channel_name }}</span></div>
+            <div class="buffer-network-total">{{ net.scheduled + net.pending }}</div>
+            <div class="buffer-network-detail muted small">
+              {{ net.scheduled }} agendado(s) no Buffer · {{ net.pending }} na fila
+              {% if net.errors %}· <span class="buffer-network-error">{{ net.errors }} com erro</span>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if coverage_gaps %}
+        <details class="buffer-coverage" open>
+          <summary>⚠️ {{ coverage_gaps | length }} postagem(ns) não estão em todas as redes</summary>
+          <ul class="list">
+            {% for gap in coverage_gaps %}
+              <li class="list-item">
+                {{ media_thumb(gap.source) }}
+                <div class="item-main">
+                  <div class="item-title">{{ gap.group.title }}</div>
+                  <div class="item-meta">
+                    <span>Está em:</span>
+                    {% for svc in gap.group.services %}<span class="tag tag-{{ svc }}">{{ service_label(svc) }}</span>{% endfor %}
+                    <span>· Falta:</span>
+                    {% for ch in gap.missing %}<span class="tag tag-danger">{{ service_label(ch.service) }}</span>{% endfor %}
+                    <span>{{ gap.source.due_at | datetime_br or "sem horário" }}</span>
+                  </div>
+                </div>
+                <div class="item-actions">
+                  <form method="post" action="{{ url_for('buffer.complete_coverage_route') }}" class="inline-form"
+                        data-confirm="Enviar esta postagem também para {{ gap.missing | map(attribute='service') | join(', ') }}?">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="source" value="{{ gap.source.uid }}">
+                    {% for ch in gap.missing %}<input type="hidden" name="channels" value="{{ ch.id }}">{% endfor %}
+                    <button type="submit" class="btn btn-sm btn-primary">➕ Enviar para as que faltam</button>
+                  </form>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="muted small">Mesmo dia e horário da postagem original quando ela ainda vai sair; se o Buffer estiver sem vaga, entra na Fila do Sistema.</p>
+        </details>
+      {% endif %}
+    {% endif %}
+
     <form method="get" action="{{ url_for('buffer.index') }}" class="buffer-filter-bar" aria-label="Filtros detalhados de postagens">
       <input type="hidden" name="status" value="{{ tab }}">
       {% if tab == 'videos' and video_sub != 'all' %}

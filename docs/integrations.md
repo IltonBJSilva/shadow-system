@@ -136,13 +136,26 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
 
 ### Novo post
 
-- Escolha os canais, um **texto padrão** e, se quiser, um **texto por rede** (ex.: LinkedIn mais longo,
+- **Todas as redes vêm marcadas** (menos YouTube, que pede vídeo): o post vai para todas. Desmarque as
+  que não quiser.
+- Escolha um **texto padrão** e, se quiser, um **texto por rede** (ex.: LinkedIn mais longo,
   Instagram com emojis e hashtags), como nos posts de `E:\Repositorio\postagens`.
 - **Imagens**: escolha arquivos do computador diretamente pela tela (com pré-visualização em tempo real das fotos e da ordem do carrossel) ou informe links públicos. O Buffer baixa as imagens por um link público direto gerado pelo Shadow System (ou pelo Supabase Storage, se configurado).
 - **Modo**: data e hora definidas (horário de Brasília), próximo horário da fila ou publicar agora.
 - É preciso marcar a **confirmação** antes de enviar (publicar é uma ação pública).
 - Tudo é validado **antes** de enviar qualquer coisa. Se um canal falhar (ex.: fila cheia do plano
   gratuito), os outros continuam e cada resultado aparece na tela.
+
+### Aba Agendados: resumo por rede e redes faltando
+
+- **Resumo por rede**: um cartão por rede (Instagram, LinkedIn, TikTok...) com quantos posts estão
+  agendados no Buffer, quantos esperam na Fila do Sistema e quantos estão com erro.
+- **Postagens que não estão em todas as redes**: junta Buffer (agendados e enviados) e Fila do
+  Sistema, agrupa a mesma postagem entre redes (pelo arquivo de mídia ou pela primeira linha do texto)
+  e lista as que faltam em alguma rede. O botão **Enviar para as que faltam** copia texto e mídia da
+  original: mesmo dia e horário se ela ainda vai sair; senão entra na Fila do Sistema.
+- Na Fila do Sistema, um post que o Buffer recusa vira **Com erro** e a fila daquela rede continua.
+  Antes ele ficava pendente no topo e travava todos os posts seguintes da rede.
 
 ### Regras por rede (já validadas na API real)
 
