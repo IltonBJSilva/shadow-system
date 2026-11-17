@@ -178,6 +178,8 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
 - A sincronização roda pelo cron-job.org a cada 30 minutos e ao abrir a aba Agendados, com no
   máximo **5 posts por rede em cada rodada**: o Buffer baixa a mídia de cada post do Shadow, e muitos
   downloads de vídeo de uma vez derrubavam o servidor gratuito (512 MB). A fila enche em poucas rodadas.
+- **Sem duplicados**: antes de enviar, a fila marca como já enviado todo post cuja mídia (mesmo link)
+  já está agendada ou publicada naquela rede, por exemplo quando o vídeo foi agendado direto no Buffer.
 - Os arquivos em `/integrations/buffer/uploads/...` são lidos do banco em pedaços de 1 MB (com suporte
   a `Range`), nunca o vídeo inteiro na memória.
 

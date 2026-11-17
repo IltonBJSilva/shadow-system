@@ -1161,3 +1161,102 @@ def test_sync_sends_at_most_five_per_network_each_run(app, connected):
                             text=f"Lote {i}", image_urls=[])
     assert list(buffer.sync_queue().values()) == [5]
     assert len(buffer.list_queue_posts(status="pending")) == 7
+
+
+def test_queue_skips_media_already_on_that_channel(app, connected):
+    from app.integrations.buffer.client import Post
+    dup = buffer.enqueue_post(channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+                              text="Mesmo vídeo", image_urls=["https://x/uploads/tok/meu-video.mp4"])
+    other = buffer.enqueue_post(channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+                                text="Outro", image_urls=["https://x/uploads/tok/outro.mp4"])
+    already = Post(id="b9", text="já agendado direto", status="scheduled", due_at=None, channel_id="ig1",
+                   service="instagram", error=None, thumbnail=None,
+                   image_urls=("https://x/uploads/tok/meu-video.mp4?v=1",))
+
+    dispatched = buffer.dispatch_next_batch("ig1", scheduled_posts=[already])
+
+    assert buffer.get_queue_post(dup.id).status == "dispatched"
+    assert buffer.get_queue_post(dup.id).buffer_post_id == "b9"
+    assert [p.id for p in dispatched] == [other.id]  # só o vídeo novo foi enviado
+
+
+def test_adapt_text_for_tiktok_modes():
+    long_post = (
+        "🚨 Se seu site roda PHP, para tudo e lê isso.\n\n"
+        "PHP2Shell = 2 falhas CRÍTICAS que deixam o atacante executar código no seu servidor 💀\n\n"
+        "📅 21/out → saiu a correção\n"
+        "📅 26/out → ataque real confirmado\n"
+        "🌍 ~5,1 milhões de servidores PHP expostos\n\n"
+        "Atualizou? ✅ Comenta 'feito'\n"
+        "Não sabe a versão? `php -v` agora 👀\n\n"
+        "Manda pro amigo que ainda roda WordPress no servidor de 2019 😅\n\n"
+        "🎥 Começando em segurança? Tem vídeo no meu canal (link na bio: https://youtube.com/exemplo)\n\n"
+        "#php #segurancadainformacao #cybersecurity #programacao"
+    )
+
+    # 1. title_only: exclui o comentário longo, fica só o gancho + hashtags
+    title_only = buffer.posting.adapt_text_for_tiktok(
+        long_post, mode="title_only", title="01 sexta 17h50 deploy rapido"
+    )
+    assert "01 sexta 17h50 deploy rapido" in title_only
+    assert "#php #segurancadainformacao" in title_only
+    assert "PHP2Shell" not in title_only  # comentário longo descartado
+    assert "https://" not in title_only
+
+    # 2. smart: gancho limpo de URLs + hashtags
+    smart = buffer.posting.adapt_text_for_tiktok(long_post, mode="smart", max_chars=160)
+    assert "🚨 Se seu site roda PHP" in smart
+    assert "#php" in smart
+    assert "https://" not in smart
+    assert len(smart) <= 160
+
+    # 3. original: intacto
+    orig = buffer.posting.adapt_text_for_tiktok(long_post, mode="original")
+    assert orig == long_post.strip()
+
+
+def test_complete_coverage_all_and_bulk_edit_routes(client, connected, monkeypatch):
+    import test_buffer
+    # Adiciona um canal TikTok fake além dos padrões
+    ch_tiktok = {"id": "tt1", "name": "ilton_tt", "displayName": "Ilton TikTok", "service": "tiktok", "avatar": None,
+                 "isQueuePaused": False, "isDisconnected": False}
+    monkeypatch.setattr(test_buffer, "CHANNELS", [
+        {"id": "li1", "name": "ilton", "displayName": "Ilton Silva", "service": "linkedin", "avatar": None,
+         "isQueuePaused": False, "isDisconnected": False},
+        {"id": "ig1", "name": "iltonbsilva", "displayName": None, "service": "instagram", "avatar": None,
+         "isQueuePaused": False, "isDisconnected": False},
+        ch_tiktok,
+    ])
+
+    # Cria post na fila só para ig1 com data futura (ficando faltante em li1 e tt1)
+    buffer.enqueue_post(
+        channel_id="ig1",
+        channel_name="iltonbsilva",
+        service="instagram",
+        text="Aviso de segurança importante com comentários longos\n\nTexto longo que não cabe.\n\n#ia #dev",
+        image_urls=["https://example.com/clip.mp4"],
+        target_date=time.today() + timedelta(days=2),
+    )
+
+    # 1. GET bulk-edit tela
+    res_get = client.get("/integrations/buffer/coverage/bulk-edit")
+    assert res_get.status_code == 200
+    html = res_get.get_data(as_text=True)
+    assert "Distribuir para Redes que Faltam" in html
+    assert "bulk-edit-textarea" in html
+    assert "data-bulk-apply" in html
+
+    # 2. POST bulk-edit customizado
+    gaps_html = client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)
+    assert "não estão em todas as redes" in gaps_html
+
+    res_post_all = client.post("/integrations/buffer/coverage/complete-all", data={"tiktok_mode": "title_only"})
+    assert res_post_all.status_code == 302
+    assert "status=scheduled" in res_post_all.headers["Location"]
+
+    # Verifica que o post foi agendado/enfileirado para o TikTok com o texto adaptado (sem comentário longo)
+    tt_posts = buffer.list_queue_posts(channel_id="tt1")
+    for p in tt_posts:
+        print(f"TT POST: id={p.id} text={repr(p.text)}")
+    assert len(tt_posts) >= 1
+

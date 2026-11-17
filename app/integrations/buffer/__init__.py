@@ -11,7 +11,7 @@ from datetime import date, datetime
 from ..registry import IntegrationStatus
 from . import posting, queue, storage, token_store
 from .client import BufferClient, BufferError, Channel, Post
-from .posting import PostValidationError
+from .posting import PostValidationError, adapt_text_for_tiktok
 from .queue import (
     calculate_forward_dates,
     delete_queue_post,
@@ -315,7 +315,7 @@ def update_post(post_id: str, text: str, due_local: datetime | None = None, serv
 
 __all__ = [
     "BufferClient", "BufferError", "Channel", "ChannelResult", "Post", "PostValidationError",
-    "StorageError", "Upload", "calculate_forward_dates", "channels", "delete_post",
+    "StorageError", "Upload", "adapt_text_for_tiktok", "calculate_forward_dates", "channels", "delete_post",
     "delete_queue_post", "dispatch_next_batch", "dispatch_single_post", "enqueue_post",
     "get_client", "get_post", "get_queue_post", "is_configured", "list_queue_posts",
     "posts", "save_token", "schedule", "scheduled_posts_safe", "share_post_now", "status",

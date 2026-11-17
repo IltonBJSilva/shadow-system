@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% import "partials/_macros.html" as ui %}
+{% block title %}Edição em Lote · Postagens Incompletas{% endblock %}
+{% block heading %}Edição em Lote{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='scheduled') }}">← Voltar para Agendados</a>
+{% endblock %}
+
+{% macro service_label(service) -%}
+  {% if service == 'instagram' %}📷 Instagram
+  {% elif service == 'tiktok' %}🎵 TikTok
+  {% elif service == 'linkedin' %}💼 LinkedIn
+  {% elif service == 'twitter' or service == 'x' %}𝕏 Twitter
+  {% elif service == 'facebook' %}👥 Facebook
+  {% elif service == 'youtube' %}▶ YouTube
+  {% else %}{{ service | capitalize }}
+  {% endif %}
+{%- endmacro %}
+
+{% macro media_thumb(post) -%}
+  {% set v_url = post.video_url %}
+  {% set p_url = post.poster_url %}
+  {% set thumb = post.thumbnail %}
+  {% if v_url %}
+    <div class="buffer-media-thumb">
+      {% if p_url %}
+        <img src="{{ p_url }}" alt="" loading="lazy">
+      {% elif thumb %}
+        <img src="{{ thumb }}" alt="" loading="lazy">
+      {% else %}
+        <div class="buffer-video-placeholder" aria-hidden="true">
+          <span class="buffer-video-placeholder-icon">🎬</span>
+          <span class="buffer-video-placeholder-text">VÍDEO</span>
+        </div>
+      {% endif %}
+      <span class="buffer-video-badge" aria-hidden="true">▶</span>
+    </div>
+  {% elif post.media_type == 'video' %}
+    <div class="buffer-media-thumb">
+      {% if p_url or thumb %}
+        <img src="{{ p_url or thumb }}" alt="" loading="lazy">
+        <span class="buffer-video-badge" aria-hidden="true">▶</span>
+      {% else %}
+        <div class="buffer-media-fallback">🎬</div>
+      {% endif %}
+    </div>
+  {% elif thumb %}
+    <div class="buffer-media-thumb">
+      <img src="{{ thumb }}" alt="" loading="lazy">
+    </div>
+  {% else %}
+    <div class="buffer-media-thumb buffer-media-fallback">📝</div>
+  {% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="stack">
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Distribuir para Redes que Faltam</h2>
+        <p class="muted small" style="margin: 0.25rem 0 0;">
+          {{ items | length }} postagem(ns) selecionada(s). Você pode adaptar ou editar os textos de cada uma antes de despachar.
+        </p>
+      </div>
+    </div>
+
+    {% if items %}
+      <div class="buffer-bulk-toolbar">
+        <span class="buffer-bulk-toolbar-label">Ações rápidas para todos os textos:</span>
+        <div class="row">
+          <button type="button" class="btn btn-sm btn-ghost" data-bulk-apply="title_only" title="Mantém só o título/primeira frase e as hashtags, removendo comentários explicativos longos">
+            ✂️ Só Título + Hashtags (Exclui comentários)
+          </button>
+          <button type="button" class="btn btn-sm btn-ghost" data-bulk-apply="smart" title="Reduz para gancho curto de até 150 caracteres + hashtags">
+            ⚡ Gancho curto (max 150 carac.)
+          </button>
+          <button type="button" class="btn btn-sm btn-ghost" data-bulk-apply="original" title="Restaura a legenda completa original de cada postagem">
+            📄 Restaurar texto original completo
+          </button>
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('buffer.coverage_bulk_edit_route') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="buffer-bulk-list">
+          {% for item in items %}
+            <article class="buffer-bulk-item">
+              <div class="buffer-bulk-item-head">
+                {{ media_thumb(item.gap.source) }}
+                <div class="buffer-bulk-item-info">
+                  <h3 class="buffer-bulk-item-title">{{ item.gap.group.title }}</h3>
+                  <div class="item-meta">
+                    <span>Está em:</span>
+                    {% for svc in item.gap.group.services %}
+                      <span class="tag tag-{{ svc }}">{{ service_label(svc) }}</span>
+                    {% endfor %}
+                    <span>· Falta em:</span>
+                    {% for ch in item.gap.missing %}
+                      <span class="tag tag-danger">{{ service_label(ch.service) }}</span>
+                    {% endfor %}
+                    <span>{{ item.gap.source.due_at | datetime_br or "sem horário" }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field" style="margin-top: 0.85rem;">
+                <div class="buffer-bulk-textarea-header">
+                  <label class="label" for="text_{{ loop.index }}">
+                    Texto a enviar para as redes que faltam:
+                  </label>
+                  <span class="buffer-char-counter small muted" data-target="text_{{ loop.index }}">
+                    {{ item.default_text | length }} caracteres
+                  </span>
+                </div>
+                <textarea id="text_{{ loop.index }}"
+                          name="text_{{ item.source_uid }}"
+                          class="input bulk-edit-textarea"
+                          rows="4"
+                          data-title-only="{{ item.title_only_text }}"
+                          data-smart="{{ item.smart_text }}"
+                          data-original="{{ item.original_text }}"
+                          placeholder="Digite ou adapte o texto deste post...">{{ item.default_text }}</textarea>
+                {% if item.has_tiktok and item.default_text | length > 150 %}
+                  <div class="buffer-bulk-hint small warning">
+                    ⚠️ Atenção: Para o TikTok, textos acima de 150 caracteres podem sofrer corte no aplicativo mobile.
+                  </div>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+
+        <div class="form-actions" style="margin-top: 1.5rem; justify-content: space-between; align-items: center;">
+          <a class="btn btn-ghost" href="{{ url_for('buffer.index', status='scheduled') }}">Cancelar</a>
+          <button type="submit" class="btn btn-primary" data-confirm="Deseja enviar agora todas as {{ items | length }} postagens editadas para as redes que faltam?">
+            🚀 Salvar e Enviar Todas para as Redes que Faltam ({{ items | length }})
+          </button>
+        </div>
+      </form>
+    {% else %}
+      {{ ui.empty("Nenhuma postagem pendente para outras redes no momento.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

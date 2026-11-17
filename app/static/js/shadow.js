@@ -70,6 +70,48 @@ function initPage() {
 
   // Pré-visualização de imagens selecionadas no Buffer (postagens)
   initBufferImagePreviews();
+
+  // Edição em lote de postagens incompletas
+  initBufferBulkEdit();
+}
+
+function initBufferBulkEdit() {
+  const textareas = Array.from(document.querySelectorAll(".bulk-edit-textarea"));
+  if (textareas.length === 0) return;
+
+  const updateCounter = (ta) => {
+    const counter = document.querySelector(`.buffer-char-counter[data-target="${ta.id}"]`);
+    if (counter) {
+      const len = ta.value.length;
+      counter.textContent = `${len} caracteres`;
+      if (len > 150) {
+        counter.classList.add("warning");
+      } else {
+        counter.classList.remove("warning");
+      }
+    }
+  };
+
+  textareas.forEach((ta) => {
+    ta.addEventListener("input", () => updateCounter(ta));
+  });
+
+  document.querySelectorAll("[data-bulk-apply]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.bulkApply;
+      textareas.forEach((ta) => {
+        if (mode === "title_only" && ta.dataset.titleOnly) {
+          ta.value = ta.dataset.titleOnly;
+        } else if (mode === "smart" && ta.dataset.smart) {
+          ta.value = ta.dataset.smart;
+        } else if (mode === "original" && ta.dataset.original) {
+          ta.value = ta.dataset.original;
+        }
+        updateCounter(ta);
+      });
+      if (window.ShadowSound) window.ShadowSound.play("notify");
+    });
+  });
 }
 
 function initBufferImagePreviews() {

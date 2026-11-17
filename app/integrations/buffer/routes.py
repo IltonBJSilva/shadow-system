@@ -14,6 +14,7 @@ from . import (
     PostValidationError,
     StorageError,
     Upload,
+    adapt_text_for_tiktok,
     channels,
     delete_post,
     delete_queue_post,
@@ -386,6 +387,10 @@ def complete_coverage_route():
         return redirect(url_for("buffer.token"))
     source = request.form.get("source", "")
     channel_ids = request.form.getlist("channels")
+    tiktok_mode = request.form.get("tiktok_mode", "title_only")
+    custom_text = (request.form.get("custom_text") or "").strip()
+    title = (request.form.get("title") or "").strip()
+
     origin, _, source_id = source.partition(":")
     if origin == "buffer":
         post = get_post(source_id)
@@ -397,14 +402,204 @@ def complete_coverage_route():
     # Mesmo dia e horário da original quando ainda está no futuro; senão, entra na Fila do Sistema,
     # que agenda no próximo dia livre de cada rede.
     in_future = due is not None and due > time.now() + timedelta(minutes=5)
+    overrides: dict[str, str] = {}
+    if custom_text:
+        overrides["tiktok"] = custom_text
+    elif tiktok_mode in ("title_only", "smart"):
+        overrides["tiktok"] = adapt_text_for_tiktok(text, mode=tiktok_mode, title=title)
+
     results = schedule(
-        text=text, overrides={}, channel_ids=channel_ids, mode="customScheduled",
+        text=text, overrides=overrides, channel_ids=channel_ids, mode="customScheduled",
         due_local=due if in_future else None, image_urls=media, uploads=[],
         send_to_queue=not in_future,
     )
     for result in results:
         flash(f"{result.channel} ({result.service}): {result.message}", "success" if result.ok else "error")
     return redirect(url_for("buffer.index", status="scheduled"))
+
+
+@bp.post("/coverage/complete-all")
+def complete_coverage_all_route():
+    """Envia todas as postagens incompletas para as redes que faltam de uma só vez."""
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+    tiktok_mode = request.form.get("tiktok_mode", "title_only")
+
+    chans = channels()
+    all_queue_posts = list_queue_posts()
+    queue_items = [filters.from_queue_post(p) for p in all_queue_posts]
+    try:
+        buf_sched = posts(["scheduled"], channels_list=chans)
+        buf_items = [filters.from_buffer_post(p, "scheduled") for p in buf_sched]
+    except BufferError:
+        buf_items = []
+    try:
+        sent_items = [filters.from_buffer_post(p, "sent") for p in posts(["sent"], channels_list=chans)]
+    except BufferError:
+        sent_items = []
+
+    gaps = filters.coverage_gaps(chans, buf_items + sent_items + queue_items)
+    if not gaps:
+        flash("Nenhuma postagem pendente para outras redes.", "info")
+        return redirect(url_for("buffer.index", status="scheduled"))
+
+    success_count = 0
+    error_count = 0
+    error_msgs = []
+
+    for gap in gaps:
+        source = gap.source.uid
+        origin, _, source_id = source.partition(":")
+        try:
+            if origin == "buffer":
+                post = get_post(source_id)
+                text, media, due = post.text, list(post.image_urls), post.due_at
+            elif origin == "queue" and source_id.isdigit() and (item := get_queue_post(int(source_id))):
+                text, media, due = item.text, item.images, filters.from_queue_post(item).due_at
+            else:
+                continue
+
+            channel_ids = [ch.id for ch in gap.missing]
+            in_future = due is not None and due > time.now() + timedelta(minutes=5)
+
+            overrides: dict[str, str] = {}
+            if any(ch.service == "tiktok" for ch in gap.missing):
+                overrides["tiktok"] = adapt_text_for_tiktok(
+                    text, mode=tiktok_mode, title=gap.group.title
+                )
+
+            results = schedule(
+                text=text, overrides=overrides, channel_ids=channel_ids, mode="customScheduled",
+                due_local=due if in_future else None, image_urls=media, uploads=[],
+                send_to_queue=not in_future,
+            )
+            for r in results:
+                if r.ok:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    error_msgs.append(f"{gap.group.title} ({r.service}): {r.message}")
+        except Exception as exc:
+            error_count += len(gap.missing)
+            error_msgs.append(f"{gap.group.title}: {exc}")
+
+    if success_count > 0 and error_count == 0:
+        flash(f"🎉 Sucesso total! {len(gaps)} postagens foram distribuídas para todas as redes que faltavam ({success_count} agendamento(s) criados).", "success")
+    elif success_count > 0:
+        err_preview = "; ".join(error_msgs[:3])
+        flash(f"⚠️ Parcialmente concluído: {success_count} agendamento(s) criados com sucesso, mas {error_count} falharam ({err_preview}).", "warning")
+    else:
+        err_preview = "; ".join(error_msgs[:3])
+        flash(f"Não foi possível enviar as postagens: {err_preview}", "error")
+
+    return redirect(url_for("buffer.index", status="scheduled"))
+
+
+@bp.route("/coverage/bulk-edit", methods=["GET", "POST"])
+def coverage_bulk_edit_route():
+    """Tela de edição em lote para revisar, adaptar ou editar o texto de cada postagem antes de enviar."""
+    if not is_configured():
+        return redirect(url_for("buffer.token"))
+
+    chans = channels()
+    all_queue_posts = list_queue_posts()
+    queue_items = [filters.from_queue_post(p) for p in all_queue_posts]
+    try:
+        buf_sched = posts(["scheduled"], channels_list=chans)
+        buf_items = [filters.from_buffer_post(p, "scheduled") for p in buf_sched]
+    except BufferError:
+        buf_items = []
+    try:
+        sent_items = [filters.from_buffer_post(p, "sent") for p in posts(["sent"], channels_list=chans)]
+    except BufferError:
+        sent_items = []
+
+    gaps = filters.coverage_gaps(chans, buf_items + sent_items + queue_items)
+
+    if request.method == "POST":
+        if not gaps:
+            flash("Nenhuma postagem pendente para envio.", "info")
+            return redirect(url_for("buffer.index", status="scheduled"))
+
+        success_count = 0
+        error_count = 0
+        error_msgs = []
+
+        for gap in gaps:
+            source = gap.source.uid
+            origin, _, source_id = source.partition(":")
+            try:
+                if origin == "buffer":
+                    post = get_post(source_id)
+                    text, media, due = post.text, list(post.image_urls), post.due_at
+                elif origin == "queue" and source_id.isdigit() and (item := get_queue_post(int(source_id))):
+                    text, media, due = item.text, item.images, filters.from_queue_post(item).due_at
+                else:
+                    continue
+
+                custom_text = request.form.get(f"text_{source}", "").strip()
+                post_text = custom_text or text
+
+                channel_ids = [ch.id for ch in gap.missing]
+                in_future = due is not None and due > time.now() + timedelta(minutes=5)
+
+                results = schedule(
+                    text=post_text, overrides={}, channel_ids=channel_ids, mode="customScheduled",
+                    due_local=due if in_future else None, image_urls=media, uploads=[],
+                    send_to_queue=not in_future,
+                )
+                for r in results:
+                    if r.ok:
+                        success_count += 1
+                    else:
+                        error_count += 1
+                        error_msgs.append(f"{gap.group.title} ({r.service}): {r.message}")
+            except Exception as exc:
+                error_count += len(gap.missing)
+                error_msgs.append(f"{gap.group.title}: {exc}")
+
+        if error_count == 0:
+            flash(f"🎉 Sucesso! Todas as {len(gaps)} postagens editadas foram enviadas para as redes que faltavam ({success_count} agendamentos).", "success")
+        else:
+            flash(f"Concluído com avisos: {success_count} agendamentos criados, {error_count} erros ({'; '.join(error_msgs[:3])}).", "warning")
+        return redirect(url_for("buffer.index", status="scheduled"))
+
+    prepared_items = []
+    for gap in gaps:
+        source = gap.source.uid
+        origin, _, source_id = source.partition(":")
+        text = gap.source.text
+        if origin == "buffer":
+            try:
+                p = get_post(source_id)
+                text = p.text
+            except Exception:
+                pass
+        elif origin == "queue" and source_id.isdigit():
+            q = get_queue_post(int(source_id))
+            if q:
+                text = q.text
+
+        title_only = adapt_text_for_tiktok(text, mode="title_only", title=gap.group.title)
+        smart_text = adapt_text_for_tiktok(text, mode="smart", title=gap.group.title)
+        has_tiktok = any(ch.service == "tiktok" for ch in gap.missing)
+
+        prepared_items.append({
+            "gap": gap,
+            "source_uid": source,
+            "original_text": text,
+            "title_only_text": title_only,
+            "smart_text": smart_text,
+            "default_text": title_only if has_tiktok else text,
+            "has_tiktok": has_tiktok,
+        })
+
+    return render_template(
+        "integrations/buffer/coverage_bulk_edit.html",
+        items=prepared_items,
+        channels=chans,
+        gaps=gaps,
+    )
 
 
 @bp.post("/posts/<post_id>/delete")

@@ -300,6 +300,31 @@
       {% if coverage_gaps %}
         <details class="buffer-coverage" open>
           <summary>⚠️ {{ coverage_gaps | length }} postagem(ns) não estão em todas as redes</summary>
+          <div class="buffer-coverage-toolbar">
+            <div class="buffer-coverage-desc">
+              <span class="muted small">Distribua todas em lote com texto otimizado para TikTok ou revise antes:</span>
+            </div>
+            <div class="buffer-coverage-actions">
+              <form method="post" action="{{ url_for('buffer.complete_coverage_all_route') }}" class="inline-form"
+                    data-confirm="Enviar todas as {{ coverage_gaps | length }} postagens para as redes que faltam agora?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="buffer-coverage-controls">
+                  <label for="cov-tt-mode" class="small muted">Legenda TikTok:</label>
+                  <select id="cov-tt-mode" name="tiktok_mode" class="input input-sm">
+                    <option value="title_only" selected>✂️ Só Título + Hashtags (Exclui comentários)</option>
+                    <option value="smart">⚡ Gancho curto + Tags (até 150 carac.)</option>
+                    <option value="original">📄 Manter texto original completo</option>
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-primary">
+                    🚀 Enviar todas para as que faltam ({{ coverage_gaps | length }})
+                  </button>
+                </div>
+              </form>
+              <a class="btn btn-sm btn-ghost" href="{{ url_for('buffer.coverage_bulk_edit_route') }}">
+                ✏️ Editar todas em lote
+              </a>
+            </div>
+          </div>
           <ul class="list">
             {% for gap in coverage_gaps %}
               <li class="list-item">
@@ -319,6 +344,8 @@
                         data-confirm="Enviar esta postagem também para {{ gap.missing | map(attribute='service') | join(', ') }}?">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="source" value="{{ gap.source.uid }}">
+                    <input type="hidden" name="title" value="{{ gap.group.title }}">
+                    <input type="hidden" name="tiktok_mode" value="title_only">
                     {% for ch in gap.missing %}<input type="hidden" name="channels" value="{{ ch.id }}">{% endfor %}
                     <button type="submit" class="btn btn-sm btn-primary">➕ Enviar para as que faltam</button>
                   </form>

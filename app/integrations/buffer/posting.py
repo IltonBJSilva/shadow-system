@@ -116,6 +116,66 @@ def limit_instagram_hashtags(text: str, limit: int = INSTAGRAM_MAX_HASHTAGS) -> 
     return "\n".join(line.rstrip() for line in out.splitlines()).strip()
 
 
+def extract_hashtags(text: str) -> list[str]:
+    """Retorna lista de hashtags únicas encontradas no texto, preservando a ordem."""
+    tags = _HASHTAG.findall(text or "")
+    return list(dict.fromkeys(tags))
+
+
+def adapt_text_for_tiktok(
+    text: str,
+    *,
+    mode: str = "title_only",
+    title: str = "",
+    max_chars: int = 150,
+) -> str:
+    """Adapta textos longos (ex.: de LinkedIn ou Instagram) para o formato do TikTok.
+
+    modos:
+    - 'title_only': descarta todo o comentário/corpo longo e mantém apenas o título (ou 1ª linha) + hashtags.
+    - 'smart': gancho/primeira frase limpa de URLs + hashtags, até `max_chars`.
+    - 'original': retorna o texto original sem alterações.
+    """
+    raw_text = (text or "").strip()
+    if not raw_text and not title:
+        return ""
+    if mode == "original":
+        return raw_text
+
+    tags = extract_hashtags(raw_text)
+    tag_str = " ".join(tags[:4]) if tags else ""
+
+    if mode == "title_only":
+        hook = (title or "").strip()
+        if not hook and raw_text:
+            hook = raw_text.splitlines()[0].strip()
+        hook = _HASHTAG.sub("", hook).strip()
+        hook = re.sub(r"https?://\S+", "", hook).strip()
+        hook = re.sub(r"[ \t]+", " ", hook).strip()
+        if not hook and raw_text:
+            hook = raw_text[:80].strip()
+        if tag_str:
+            return f"{hook}\n\n{tag_str}".strip()
+        return hook
+
+    # mode == "smart": limpa URLs e reduz tamanho preservando gancho e hashtags
+    clean = re.sub(r"https?://\S+", "", raw_text)
+    clean = _HASHTAG.sub("", clean)
+    clean = re.sub(r"[ \t]+", " ", clean).strip()
+
+    first_part = (title or (clean.splitlines()[0] if clean else "")).strip()
+    budget = max_chars - (len(tag_str) + 2 if tag_str else 0)
+    if budget <= 10:
+        budget = max_chars
+
+    if len(first_part) > budget:
+        first_part = first_part[: budget - 1].rstrip() + "…"
+
+    if tag_str:
+        return f"{first_part}\n\n{tag_str}".strip()
+    return first_part
+
+
 def parse_image_urls(raw: str) -> list[str]:
     """Uma URL por linha. Só http(s): o Buffer busca a imagem por um link público."""
     urls = [line.strip() for line in raw.splitlines() if line.strip()]

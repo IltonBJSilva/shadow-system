@@ -240,6 +240,7 @@ def dispatch_next_batch(
     organization_id: str | None = None,
     scheduled_posts: list[Post] | None = None,
     max_posts: int | None = None,
+    sent_posts: list[Post] | None = None,
 ) -> list[BufferQueuePost]:
     """Verifica e despacha até `batch_size` posts para o canal se o total de agendados <= `trigger_threshold`.
 
@@ -253,6 +254,7 @@ def dispatch_next_batch(
     # 1. Busca posts agendados no Buffer
     all_scheduled = scheduled_posts if scheduled_posts is not None else buffer_client.posts(org_id, statuses=["scheduled"], first=100)
     channel_scheduled = [p for p in all_scheduled if p.channel_id == channel_id]
+    skip_duplicates(channel_id, channel_scheduled + [p for p in (sent_posts or []) if p.channel_id == channel_id])
 
     # 2. Obrigatório: sempre pelo menos 10 agendados por rede, 1 por dia, a partir do último agendado.
     dispatched: list[BufferQueuePost] = []
@@ -270,6 +272,41 @@ def dispatch_next_batch(
             dues = [p.due_at for p in channel_scheduled if p.due_at] + [_queue_due(p) for p in dispatched]
             dispatched += _dispatch_boost(channel_id, dues, boost, bonus_room, buffer_client)
     return dispatched
+
+
+def _media_name(url: str) -> str:
+    """Link da mídia sem query string: o mesmo upload tem sempre o mesmo link (token + nome)."""
+    return (url or "").split("?")[0].rstrip("/").lower()
+
+
+def skip_duplicates(channel_id: str, channel_posts: list[Post]) -> int:
+    """Tira da fila os posts cuja mídia já está agendada ou publicada nesse canal do Buffer.
+
+    Acontece quando o mesmo vídeo é agendado direto no Buffer (ou por outra rodada da fila): sem isso,
+    a fila mandaria o mesmo vídeo de novo para a mesma rede. Retorna quantos foram marcados.
+    """
+    known: dict[str, str] = {}
+    for post in channel_posts:
+        for url in (*post.image_urls, post.thumbnail or ""):
+            name = _media_name(url)
+            if name.startswith("http"):
+                known.setdefault(name, post.id)
+    if not known:
+        return 0
+    marked = 0
+    for item in db.session.scalars(
+        db.select(BufferQueuePost).where(BufferQueuePost.channel_id == channel_id, BufferQueuePost.status == "pending")
+    ):
+        match = next((known[n] for n in map(_media_name, item.images) if n in known), None)
+        if match:
+            item.status = "dispatched"
+            item.buffer_post_id = match
+            item.dispatched_at = time.now()
+            marked += 1
+            log.info("Post #%d da fila já está no Buffer (post %s): não será enviado de novo.", item.id, match)
+    if marked:
+        db.session.commit()
+    return marked
 
 
 def _queue_due(post_item: BufferQueuePost) -> datetime:
@@ -428,6 +465,12 @@ def sync_queue(
             log.warning("sync_queue: não foi possível listar posts agendados do Buffer: %s", exc)
             return {}
 
+    try:
+        sent_posts = buffer_client.posts(org_id, statuses=["sent"], first=100)
+    except Exception as exc:
+        log.warning("sync_queue: não foi possível listar posts enviados do Buffer: %s", exc)
+        sent_posts = []
+
     results: dict[str, int] = {}
     for ch in eligible_chans:
         dispatched = dispatch_next_batch(
@@ -438,6 +481,7 @@ def sync_queue(
             organization_id=org_id,
             scheduled_posts=scheduled_posts,
             max_posts=SYNC_MAX_PER_CHANNEL,
+            sent_posts=sent_posts,
         )
         if dispatched:
             results[ch.name] = len(dispatched)
