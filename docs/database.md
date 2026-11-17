@@ -105,7 +105,9 @@ Em produção o banco é o PostgreSQL do Supabase (ver [deployment.md](deploymen
 - Com PostgreSQL o app usa `pool_pre_ping` e `pool_recycle=300`: conexões paradas (app dormindo,
   pooler do Supabase) são testadas e renovadas antes do uso.
 - Depois de `flask db upgrade`, rode `flask --app wsgi security lock-db` para ligar RLS em todas as
-  tabelas (o build do Render já faz isso). Necessário sempre que uma migration criar tabela nova.
+  tabelas (o build do Render já faz isso). Necessário sempre que uma migration criar tabela nova. Só
+  altera as tabelas que ainda estão sem RLS, com `lock_timeout` curto: se a tabela estiver em uso pela
+  instância no ar, avisa e segue sem derrubar o deploy (o próximo build tenta de novo).
 - `flask --app wsgi db check` confere se os modelos e o banco batem. As migrations foram validadas num
   PostgreSQL real, não só no SQLite.
 

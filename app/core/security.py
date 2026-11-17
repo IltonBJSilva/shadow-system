@@ -116,18 +116,43 @@ def register(app: Flask) -> None:
         policy, essa API não lê nem grava nada; o app continua funcionando porque conecta como dono
         das tabelas. No SQLite não faz nada.
         """
+        from sqlalchemy.exc import OperationalError
+
         from app.extensions import db
 
         if db.engine.dialect.name != "postgresql":
             click.echo("Banco não é PostgreSQL: nada a fazer.")
             return
+        # Só toca nas tabelas que ainda estão sem RLS. O ALTER TABLE pede lock exclusivo, e a instância
+        # que está no ar usa as tabelas o tempo todo (ex.: buffer_uploads servindo vídeos); refazer o
+        # ALTER em toda tabela a cada deploy travava o build até o statement timeout.
         with db.engine.begin() as conn:
-            tables = conn.exec_driver_sql(
-                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+            pending = conn.exec_driver_sql(
+                "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND NOT c.relrowsecurity"
             ).scalars().all()
-            for table in tables:
-                conn.exec_driver_sql(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY')
-        click.echo(f"RLS ligado em {len(tables)} tabelas.")
+        if not pending:
+            click.echo("RLS já está ligado em todas as tabelas.")
+            return
+        failed = []
+        for table in pending:
+            for attempt in range(3):
+                try:
+                    with db.engine.begin() as conn:
+                        # Desiste rápido se a tabela estiver em uso, em vez de enfileirar todo mundo atrás.
+                        conn.exec_driver_sql("SET LOCAL lock_timeout = '5s'")
+                        conn.exec_driver_sql(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY')
+                    break
+                except OperationalError:
+                    if attempt == 2:
+                        failed.append(table)
+                    else:
+                        time.sleep(2)
+        click.echo(f"RLS ligado em {len(pending) - len(failed)} de {len(pending)} tabelas pendentes.")
+        if failed:
+            # Não derruba o deploy: o próximo build tenta de novo. Mas avisa alto, porque a tabela fica
+            # exposta na API REST do Supabase até lá.
+            click.echo(f"AVISO: tabelas em uso, RLS não ligado (rode de novo): {', '.join(failed)}", err=True)
 
 
 @bp.route("/login", methods=["GET", "POST"])
