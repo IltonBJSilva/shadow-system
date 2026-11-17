@@ -173,6 +173,15 @@ automáticas; `workflow_dispatch` são as manuais).
 O Render gratuito dá 750 horas por mês somadas entre os serviços gratuitos. Um serviço ligado o mês
 inteiro usa cerca de 744 h, então **não crie outro serviço gratuito** na mesma conta.
 
+### Sincronização automática da fila do Buffer
+
+O workflow `.github/workflows/sync-buffer-queue.yml` verifica a cada 30 minutos se o Buffer abriu
+vagas e envia os posts pendentes. Cadastre a mesma chave secreta nos dois lados:
+
+1. No Render, defina `BUFFER_SYNC_KEY` (o `render.yaml` a cria em um deploy novo).
+2. No GitHub, crie o secret Actions `BUFFER_SYNC_KEY` com exatamente o mesmo valor.
+3. Mantenha `APP_URL` configurada como no keep-alive e execute **Actions > sync-buffer-queue > Run workflow** uma vez para conferir.
+
 ### Atualizar
 
 Cada `git push` na `main` faz deploy sozinho (`autoDeploy`), já rodando as migrations.

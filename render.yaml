@@ -33,6 +33,8 @@ services:
         sync: false
       - key: DATABASE_URL            # Supabase > Connect > Session pooler
         sync: false
+      - key: BUFFER_SYNC_KEY
+        generateValue: true
       # Google: envie o JSON do cliente OAuth como Secret File com este nome.
       - key: GOOGLE_CLIENT_SECRETS_FILE
         value: /etc/secrets/google_client_secret.json

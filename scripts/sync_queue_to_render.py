@@ -1,14 +1,17 @@
 """Sincroniza uploads de vídeos e posts da fila do banco local para o Render (produção)."""
+import os
 import time
 import httpx
 from app import create_app
 from app.core.models import BufferQueuePost, BufferUpload
 
 RENDER_URL = "https://shadow-system-5v0w.onrender.com"
-SYNC_KEY = "shadow-system-sync-2026-sec"
+SYNC_KEY = os.environ.get("BUFFER_SYNC_KEY", "").strip()
 
 
 def run():
+    if not SYNC_KEY:
+        raise RuntimeError("Defina BUFFER_SYNC_KEY antes de executar a sincronizacao.")
     app = create_app()
     with app.app_context():
         # 1. Enviar os 11 arquivos de vídeo para buffer_uploads no Render
@@ -37,20 +40,22 @@ def run():
 
         # 2. Enviar os posts de vídeo da fila para buffer_queue_posts no Render
         all_posts = BufferQueuePost.query.all()
-        video_posts = [p for p in all_posts if p.is_video]
-        print(f"\n=== Sincronizando {len(video_posts)} posts de vídeo da fila para o Render ===")
+        # Itens jÃ¡ despachados existem somente como histÃ³rico; transferir apenas
+        # os pendentes evita criar registros remotos que nÃ£o precisam ser enviados.
+        posts_to_sync = [p for p in all_posts if p.status == "pending"]
+        print(f"\n=== Sincronizando {len(posts_to_sync)} posts pendentes da fila para o Render ===")
         payload = [
             {
                 "channel_id": p.channel_id,
                 "channel_name": p.channel_name,
                 "service": p.service,
                 "text": p.text,
-                "thumbnail": p.thumbnail,
+                "image_urls": p.images,
                 "target_date": p.target_date.isoformat() if p.target_date else None,
                 "target_time": p.target_time,
                 "status": p.status,
             }
-            for p in video_posts
+            for p in posts_to_sync
         ]
 
         with httpx.Client(timeout=60.0) as client:

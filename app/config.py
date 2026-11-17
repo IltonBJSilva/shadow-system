@@ -77,6 +77,8 @@ class Config:
     # BUFFER_API_KEY no .env é a alternativa, e vale só quando não há token salvo pela tela.
     BUFFER_API_KEY = os.getenv("BUFFER_API_KEY", "").strip()
     BUFFER_KEY_CREATED_AT = os.getenv("BUFFER_KEY_CREATED_AT", "").strip()
+    # Chave exclusiva para os endpoints de sincronização local -> produção. Nunca use o token do Buffer aqui.
+    BUFFER_SYNC_KEY = os.getenv("BUFFER_SYNC_KEY", "").strip()
     BUFFER_TOKEN_FILE = str(INSTANCE_DIR / "buffer_token.json")
 
     CREDENTIALS_DIR = str(INSTANCE_DIR / "credentials")
@@ -114,6 +116,7 @@ class TestingConfig(Config):
     CREDENTIALS_DIR = str(_TEST_DIR / "credentials")
     BUFFER_API_KEY = ""
     BUFFER_KEY_CREATED_AT = ""
+    BUFFER_SYNC_KEY = "test-buffer-sync-key"
     SUPABASE_URL = ""
     SUPABASE_SECRET_KEY = ""
     SUPABASE_BUCKET = ""

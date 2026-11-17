@@ -30,7 +30,10 @@ from .posting import PostValidationError
 log = logging.getLogger(__name__)
 
 DEFAULT_TRIGGER_THRESHOLD = 5
-DEFAULT_BATCH_SIZE = 5
+# O plano gratuito permite até 10 posts agendados por canal. Quando houver vagas,
+# preenchemos todas elas em vez de exigir duas sincronizações manuais de +5.
+DEFAULT_BATCH_SIZE = 10
+MAX_SCHEDULED_PER_CHANNEL = 10
 DEFAULT_POST_TIME = "18:30"
 
 
@@ -198,7 +201,14 @@ def dispatch_next_batch(
         )
         return []
 
-    # 2. Busca posts pendentes da fila local para este canal
+    # 2. Busca apenas o que cabe. Por exemplo: com 5 posts no Buffer, despacha
+    # 5; com a fila vazia no Buffer, despacha 10. Isso evita uma rejeição na
+    # sexta tentativa e deixa o restante da fila pendente corretamente.
+    available_slots = max(0, MAX_SCHEDULED_PER_CHANNEL - len(channel_scheduled))
+    dispatch_count = min(batch_size, available_slots)
+    if dispatch_count == 0:
+        return []
+
     stmt = (
         db.select(BufferQueuePost)
         .where(BufferQueuePost.channel_id == channel_id, BufferQueuePost.status == "pending")
@@ -207,7 +217,7 @@ def dispatch_next_batch(
             BufferQueuePost.target_time.asc().nulls_last(),
             BufferQueuePost.id.asc(),
         )
-        .limit(batch_size)
+        .limit(dispatch_count)
     )
     pending_posts = list(db.session.scalars(stmt).all())
     if not pending_posts:

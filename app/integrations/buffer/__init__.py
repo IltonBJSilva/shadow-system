@@ -4,6 +4,7 @@ Funções de alto nível usadas pelas telas e pelo dashboard. O cliente HTTP fic
 as regras de montagem dos posts em posting.py e o token em token_store.py.
 """
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date, datetime
 
@@ -25,6 +26,10 @@ from .queue import (
 from .storage import StorageError
 
 log = logging.getLogger(__name__)
+
+# Evita transformar uma publicação em lote em uma rajada grande contra a API do Buffer,
+# mas deixa de somar a latência de cada rede uma a uma.
+MAX_CONCURRENT_POSTS = 4
 
 # Testes trocam isto por um httpx.MockTransport.
 _transport = None
@@ -178,6 +183,7 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
         urls.append(storage.upload(item.filename, item.content, item.content_type))
 
     results: list[ChannelResult] = []
+    post_requests: list[tuple[Channel, dict, str]] = []
     for channel in targets:
         channel_text = overrides.get(channel.service) or text
         if send_to_queue:
@@ -197,28 +203,43 @@ def schedule(*, text: str, overrides: dict[str, str], channel_ids: list[str], mo
             channel_id=channel.id, service=channel.service, text=channel_text,
             image_urls=urls, mode=mode, due_at=due,
         )
+        post_requests.append((channel, body, channel_text))
+
+    def send(channel: Channel, body: dict, channel_text: str) -> ChannelResult | None:
         try:
             post = client.create_post(body)
             when = post.get("dueAt") or "fila"
-            results.append(ChannelResult(channel.name, channel.service, True, f"{post.get('status', 'ok')} ({when})"))
+            return ChannelResult(channel.name, channel.service, True, f"{post.get('status', 'ok')} ({when})")
         except BufferError as exc:
             exc_str = str(exc).lower()
             if "scheduled posts limit reached" in exc_str or "limit of 10" in exc_str:
-                q_item = enqueue_post(
-                    channel_id=channel.id,
-                    channel_name=channel.name,
-                    service=channel.service,
-                    text=channel_text,
-                    image_urls=urls,
-                    target_date=due_local.date() if due_local else None,
-                    target_time=due_local.strftime("%H:%M") if due_local else "18:30",
-                )
-                results.append(ChannelResult(
-                    channel.name, channel.service, True,
-                    f"Limite do Buffer atingido. Salvo na Fila do Sistema (#{q_item.id}) para envio em lote (+5).",
-                ))
-            else:
-                results.append(ChannelResult(channel.name, channel.service, False, str(exc)))
+                # A gravação no banco ocorre na thread da requisição abaixo; a
+                # thread de rede não pode compartilhar a sessão SQLAlchemy do Flask.
+                return None
+            return ChannelResult(channel.name, channel.service, False, str(exc))
+
+    # O resultado continua na mesma ordem dos canais selecionados, mesmo que as chamadas terminem em outra ordem.
+    if post_requests:
+        workers = min(MAX_CONCURRENT_POSTS, len(post_requests))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="buffer-post") as executor:
+            outcomes = list(executor.map(lambda request: send(*request), post_requests))
+        for (channel, _body, channel_text), outcome in zip(post_requests, outcomes):
+            if outcome is not None:
+                results.append(outcome)
+                continue
+            q_item = enqueue_post(
+                channel_id=channel.id,
+                channel_name=channel.name,
+                service=channel.service,
+                text=channel_text,
+                image_urls=urls,
+                target_date=due_local.date() if due_local else None,
+                target_time=due_local.strftime("%H:%M") if due_local else "18:30",
+            )
+            results.append(ChannelResult(
+                channel.name, channel.service, True,
+                f"Limite do Buffer atingido. Salvo na Fila do Sistema (#{q_item.id}) para envio em lote (+10).",
+            ))
     return results
 
 

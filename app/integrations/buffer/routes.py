@@ -1,9 +1,10 @@
 """Telas do Buffer: visão geral, cadastro do token e novo post."""
 import io
+import hmac
 import time as pytime
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, send_file, url_for
 
 from app.core import time
 from app.extensions import csrf
@@ -487,7 +488,11 @@ def _due_from_form() -> datetime:
 
 # ---------- Sincronização Local -> Produção (Render) ----------
 
-SYNC_KEY = "shadow-system-sync-2026-sec"
+def _sync_key_is_valid() -> bool:
+    """Autoriza a sincronização entre a instalação local e a produção."""
+    expected = current_app.config.get("BUFFER_SYNC_KEY", "")
+    supplied = request.headers.get("X-Sync-Key") or request.form.get("sync_key", "")
+    return bool(expected) and hmac.compare_digest(supplied, expected)
 
 
 @bp.post("/api/sync-upload")
@@ -496,7 +501,7 @@ def sync_upload():
     from app.extensions import db
     from app.core.models import BufferUpload
 
-    if request.headers.get("X-Sync-Key") != SYNC_KEY and request.form.get("sync_key") != SYNC_KEY:
+    if not _sync_key_is_valid():
         abort(403)
     token = request.form.get("token")
     filename = request.form.get("filename")
@@ -519,7 +524,7 @@ def sync_queue_api():
     from app.extensions import db
     from app.core.models import BufferQueuePost
 
-    if request.headers.get("X-Sync-Key") != SYNC_KEY and request.form.get("sync_key") != SYNC_KEY:
+    if not _sync_key_is_valid():
         abort(403)
     data = request.get_json(silent=True) or {}
     posts = data.get("posts", [])
@@ -541,11 +546,22 @@ def sync_queue_api():
                 target_time=p["target_time"],
                 status=p.get("status", "pending"),
             )
-            if p.get("thumbnail"):
-                row.images = [p["thumbnail"]]
+            row.images = p.get("image_urls") or ([] if not p.get("thumbnail") else [p["thumbnail"]])
             db.session.add(row)
             added += 1
     if added > 0:
         db.session.commit()
-    return {"status": "ok", "added": added}
+    # Também verifica filas já existentes: uma execução anterior pode ter
+    # transferido os itens quando ainda não havia vagas no Buffer.
+    dispatched = sync_queue()
+    return {"status": "ok", "added": added, "dispatched": dispatched}
+
+
+@bp.post("/api/dispatch-queue")
+@csrf.exempt
+def dispatch_queue_api():
+    """Ponto de entrada para o agendador remoto verificar e preencher vagas."""
+    if not _sync_key_is_valid():
+        abort(403)
+    return {"status": "ok", "dispatched": sync_queue()}
 

@@ -268,7 +268,7 @@
           <form method="post" action="{{ url_for('buffer.sync_queue_route') }}" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="tab" value="queue">
-            <button type="submit" class="btn btn-sm btn-primary" title="Verifica se há vagas no Buffer e despacha novo lote de 5">⚡ Sincronizar Fila (+5)</button>
+            <button type="submit" class="btn btn-sm btn-primary" title="Verifica se há vagas no Buffer e preenche até 10 vagas por canal">⚡ Sincronizar Fila (até 10)</button>
           </form>
         {% endif %}
         <span class="muted small">{{ items | length }} post(s)</span>
@@ -480,7 +480,7 @@
               <form method="post" action="{{ url_for('buffer.sync_queue_route') }}" class="inline-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="tab" value="videos">
-                <button type="submit" class="btn btn-xs btn-primary" title="Sincronizar lote de vídeos para o Buffer">⚡ Sincronizar Fila (+5)</button>
+                <button type="submit" class="btn btn-xs btn-primary" title="Sincronizar lote de vídeos para o Buffer">⚡ Sincronizar Fila (até 10)</button>
               </form>
             {% endif %}
           </div>

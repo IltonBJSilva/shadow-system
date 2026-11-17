@@ -1,0 +1,33 @@
+# Verifica periodicamente se o Buffer abriu vagas e preenche a fila local.
+# Configure APP_URL e BUFFER_SYNC_KEY em GitHub > Settings > Secrets and variables > Actions.
+name: sync-buffer-queue
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync-buffer-queue
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preencher vagas da fila do Buffer
+        env:
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          BUFFER_SYNC_KEY: ${{ secrets.BUFFER_SYNC_KEY }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$BUFFER_SYNC_KEY" ]; then
+            echo "APP_URL ou BUFFER_SYNC_KEY nao configurada; nada a fazer."
+            exit 0
+          fi
+          curl --fail --silent --show-error --max-time 90 \
+            --retry 2 --retry-delay 10 --retry-all-errors \
+            -X POST -H "X-Sync-Key: $BUFFER_SYNC_KEY" \
+            "${APP_URL%/}/integrations/buffer/api/dispatch-queue"

@@ -21,11 +21,11 @@ Criamos a **Fila do Sistema** no Shadow System:
 1. **Sem Polling Excessivo:**
    O sistema não fica consultando a API do Buffer a cada minuto. A verificação é realizada:
    - Ao acessar a aba de postagens no painel `/integrations/buffer/`.
-   - Ao clicar no botão `⚡ Sincronizar Fila (+5)`.
+   - Ao clicar no botão `⚡ Sincronizar Fila (até 10)`.
    - Ao criar novos agendamentos via interface ou script.
-2. **Gatilho de Despacho (+5 quando postar 5):**
+2. **Gatilho de Despacho (até 10 quando houver vaga):**
    - Para cada canal, o sistema conta quantos posts ainda estão com status `scheduled` no Buffer.
-   - Quando restarem **5 ou menos posts agendados** (ou seja, 5 já foram publicados e abriram vaga), o sistema puxa automaticamente os próximos **5 posts** pendentes daquela rede na Fila do Sistema e os envia ao Buffer.
+   - Quando restarem **5 ou menos posts agendados** (ou seja, 5 já foram publicados e abriram vaga), o sistema puxa automaticamente até **10 posts** pendentes daquela rede na Fila do Sistema, respeitando o limite que o Buffer aceitar.
 3. **Cronologia Progressiva para Frente:**
    - O sistema detecta a data/hora do **último post agendado** atualmente no Buffer para aquele canal (ex.: se o último post for no dia 20 às 18:30).
    - O novo lote de 5 posts é agendado sequencialmente a partir do dia seguinte: **dias 21, 22, 23, 24 e 25**.
@@ -171,7 +171,7 @@ Criamos a **Fila do Sistema** no Shadow System:
 | Ação | Método / Rota | Descrição |
 | :--- | :--- | :--- |
 | **Aba da Fila** | `GET /integrations/buffer/?status=queue` | Lista todos os posts na fila com previsão e ações |
-| **Sincronizar Lote (+5)** | `POST /integrations/buffer/queue/sync` | Verifica canais com &le; 5 agendados e despacha o próximo lote |
+| **Sincronizar Fila (até 10)** | `POST /integrations/buffer/queue/sync` | Verifica canais com &le; 5 agendados e despacha até 10 posts |
 | **Despachar Post Único** | `POST /integrations/buffer/queue/<id>/dispatch` | Envia imediatamente o post específico para o Buffer |
 | **Editar Post da Fila** | `GET/POST /integrations/buffer/queue/<id>/edit` | Edita texto, data ou horário previstos |
 | **Excluir Post da Fila** | `POST /integrations/buffer/queue/<id>/delete` | Remove o item da fila local |

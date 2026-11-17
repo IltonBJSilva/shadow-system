@@ -578,6 +578,54 @@ def test_sync_queue_route(client, connected):
     assert queued[0].status == "dispatched"
 
 
+def test_default_queue_batch_fills_ten_slots(app, connected):
+    for i in range(12):
+        buffer.enqueue_post(
+            channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+            text=f"Post {i}", image_urls=["https://img.com/1.png"],
+        )
+
+    dispatched = buffer.dispatch_next_batch("ig1", scheduled_posts=[])
+    assert len(dispatched) == 10
+    assert len(buffer.list_queue_posts(status="pending")) == 2
+
+
+def test_sync_queue_api_transfers_all_media_and_dispatches(client, connected):
+    denied = client.post("/integrations/buffer/api/sync-queue", json={"posts": []})
+    assert denied.status_code == 403
+
+    response = client.post(
+        "/integrations/buffer/api/sync-queue",
+        headers={"X-Sync-Key": "test-buffer-sync-key"},
+        json={"posts": [{
+            "channel_id": "ig1", "channel_name": "iltonbsilva", "service": "instagram",
+            "text": "Fila recebida", "image_urls": ["https://img.com/a.png", "https://img.com/b.png"],
+            "target_date": "2026-12-15", "target_time": "18:30", "status": "pending",
+        }]},
+    )
+    assert response.status_code == 200
+    assert response.json["added"] == 1
+    queued = buffer.list_queue_posts()
+    assert queued[0].images == ["https://img.com/a.png", "https://img.com/b.png"]
+    assert queued[0].status == "dispatched"
+
+
+def test_dispatch_queue_api_requires_key_and_syncs(client, connected):
+    denied = client.post("/integrations/buffer/api/dispatch-queue")
+    assert denied.status_code == 403
+
+    buffer.enqueue_post(
+        channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+        text="Disparo agendado", image_urls=["https://img.com/a.png"],
+    )
+    response = client.post(
+        "/integrations/buffer/api/dispatch-queue",
+        headers={"X-Sync-Key": "test-buffer-sync-key"},
+    )
+    assert response.status_code == 200
+    assert response.json["dispatched"] == {"iltonbsilva": 1}
+
+
 def test_video_asset_support():
     # Instagram com vídeo é formatado como Reel
     body_ig = posting.build_post_input(
