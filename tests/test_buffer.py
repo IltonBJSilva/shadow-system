@@ -1135,3 +1135,29 @@ def test_scheduled_tab_shows_boost_banner_only_while_active(app, client, connect
     assert "Bônus do teste grátis até" in client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)
     app.config["BUFFER_BOOST_UNTIL"] = ""
     assert "Bônus do teste grátis até" not in client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)
+
+
+def test_serve_upload_streams_in_chunks_and_supports_range(client, monkeypatch):
+    from app.integrations.buffer import storage
+    monkeypatch.setattr(storage, "UPLOAD_CHUNK_BYTES", 4)
+    url = storage.upload("clip.mp4", b"0123456789", "video/mp4")
+    path = "/" + url.split("/", 3)[-1]
+
+    full = client.get(path)
+    assert full.status_code == 200 and full.data == b"0123456789"
+    assert full.headers["Content-Length"] == "10"
+
+    part = client.get(path, headers={"Range": "bytes=2-5"})
+    assert part.status_code == 206 and part.data == b"2345"
+    assert part.headers["Content-Range"] == "bytes 2-5/10"
+
+    assert client.get(path, headers={"If-None-Match": full.headers["ETag"]}).status_code == 304
+    assert client.get("/integrations/buffer/uploads/nao-existe/x.mp4").status_code == 404
+
+
+def test_sync_sends_at_most_five_per_network_each_run(app, connected):
+    for i in range(12):
+        buffer.enqueue_post(channel_id="li1", channel_name="ilton", service="linkedin",
+                            text=f"Lote {i}", image_urls=[])
+    assert list(buffer.sync_queue().values()) == [5]
+    assert len(buffer.list_queue_posts(status="pending")) == 7

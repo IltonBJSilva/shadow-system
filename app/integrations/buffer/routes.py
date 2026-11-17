@@ -1,10 +1,10 @@
 """Telas do Buffer: visão geral, cadastro do token e novo post."""
-import io
 import hmac
 import time as pytime
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, send_file, url_for
+from flask import (Blueprint, Response, abort, current_app, flash, g, redirect, render_template, request,
+                   stream_with_context, url_for)
 
 from app.core import time
 from app.extensions import csrf
@@ -338,19 +338,45 @@ def new_post():
 
 @bp.get("/uploads/<token>/<filename>")
 def serve_upload(token: str, filename: str):
-    """Serve uma imagem enviada do computador para post no Buffer."""
-    asset = storage.get_upload(token)
-    if asset is None:
+    """Serve uma imagem ou vídeo enviado do computador para post no Buffer, em pedaços (aceita Range)."""
+    info = storage.upload_info(token)
+    if info is None:
         abort(404)
-    response = send_file(
-        io.BytesIO(asset.data),
-        mimetype=asset.mimetype,
-        conditional=True,
-        max_age=30 * 24 * 3600,
-    )
-    response.cache_control.public = True
-    response.headers["Accept-Ranges"] = "bytes"
-    return response
+    _name, mimetype, size = info
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": f"public, max-age={30 * 24 * 3600}",
+        "ETag": f'"{token[:32]}"',
+    }
+    if request.if_none_match and request.if_none_match.contains(token[:32]):
+        return Response(status=304, headers=headers)
+
+    start, stop, status = 0, size, 200
+    byte_range = request.range
+    if byte_range is not None:
+        bounds = byte_range.range_for_length(size)
+        if bounds is None:
+            return Response(status=416, headers={**headers, "Content-Range": f"bytes */{size}"})
+        start, stop = bounds
+        status = 206
+        headers["Content-Range"] = f"bytes {start}-{stop - 1}/{size}"
+    headers["Content-Length"] = str(stop - start)
+
+    if request.method == "HEAD":
+        return Response(status=status, headers=headers, mimetype=mimetype)
+
+    def chunks():
+        offset = start
+        while offset < stop:
+            length = min(storage.UPLOAD_CHUNK_BYTES, stop - offset)
+            data = storage.read_upload_chunk(token, offset, length)
+            if not data:
+                break
+            yield data
+            offset += len(data)
+
+    return Response(stream_with_context(chunks()), status=status, headers=headers, mimetype=mimetype,
+                    direct_passthrough=True)
 
 
 @bp.post("/coverage/complete")

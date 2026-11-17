@@ -175,7 +175,11 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
   o que já está agendado, e nada fica a menos de 1 hora de um post existente.
 - Depois da data final a fila fica só com os 10 obrigatórios. Para mudar a data: variável
   `BUFFER_BOOST_UNTIL` no Render (vazia desliga). A aba Agendados mostra um aviso enquanto vale.
-- A sincronização roda pelo cron-job.org a cada 30 minutos e ao abrir a aba Agendados.
+- A sincronização roda pelo cron-job.org a cada 30 minutos e ao abrir a aba Agendados, com no
+  máximo **5 posts por rede em cada rodada**: o Buffer baixa a mídia de cada post do Shadow, e muitos
+  downloads de vídeo de uma vez derrubavam o servidor gratuito (512 MB). A fila enche em poucas rodadas.
+- Os arquivos em `/integrations/buffer/uploads/...` são lidos do banco em pedaços de 1 MB (com suporte
+  a `Range`), nunca o vídeo inteiro na memória.
 
 ### Regras por rede (já validadas na API real)
 

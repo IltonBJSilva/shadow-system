@@ -43,6 +43,9 @@ BOOST_SLOTS = {
     "instagram": ("12:00", "19:00"),
     "tiktok": ("12:30", "18:30", "21:30"),
 }
+# Cada post despachado faz o Buffer baixar a mídia do Shadow. Poucos por rede a cada sincronização
+# (cron a cada 30 min) espalham esses downloads e não sobrecarregam o servidor gratuito.
+SYNC_MAX_PER_CHANNEL = 5
 BOOST_BONUS = 5  # posts a mais por rede, além dos 10 obrigatórios, enquanto o teste grátis vale
 BOOST_MIN_LEAD = timedelta(minutes=30)
 BOOST_MIN_GAP = timedelta(hours=1)
@@ -236,6 +239,7 @@ def dispatch_next_batch(
     client: BufferClient | None = None,
     organization_id: str | None = None,
     scheduled_posts: list[Post] | None = None,
+    max_posts: int | None = None,
 ) -> list[BufferQueuePost]:
     """Verifica e despacha até `batch_size` posts para o canal se o total de agendados <= `trigger_threshold`.
 
@@ -253,13 +257,15 @@ def dispatch_next_batch(
     # 2. Obrigatório: sempre pelo menos 10 agendados por rede, 1 por dia, a partir do último agendado.
     dispatched: list[BufferQueuePost] = []
     base_room = max(0, MAX_SCHEDULED_PER_CHANNEL - len(channel_scheduled))
+    limit = max_posts if max_posts is not None else batch_size + BOOST_BONUS
     if base_room and len(channel_scheduled) <= trigger_threshold:
-        dispatched = _dispatch_daily(channel_id, channel_scheduled, min(batch_size, base_room), buffer_client)
+        dispatched = _dispatch_daily(channel_id, channel_scheduled, min(batch_size, base_room, limit), buffer_client)
 
     # 3. Bônus do teste grátis: até BOOST_BONUS posts a mais em horários de pico, só até a data final.
     boost = boost_until()
     if boost:
-        bonus_room = MAX_SCHEDULED_PER_CHANNEL + BOOST_BONUS - len(channel_scheduled) - len(dispatched)
+        bonus_room = min(MAX_SCHEDULED_PER_CHANNEL + BOOST_BONUS - len(channel_scheduled) - len(dispatched),
+                         limit - len(dispatched))
         if bonus_room > 0:
             dues = [p.due_at for p in channel_scheduled if p.due_at] + [_queue_due(p) for p in dispatched]
             dispatched += _dispatch_boost(channel_id, dues, boost, bonus_room, buffer_client)
@@ -431,6 +437,7 @@ def sync_queue(
             client=buffer_client,
             organization_id=org_id,
             scheduled_posts=scheduled_posts,
+            max_posts=SYNC_MAX_PER_CHANNEL,
         )
         if dispatched:
             results[ch.name] = len(dispatched)

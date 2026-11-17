@@ -42,8 +42,31 @@ def is_configured() -> bool:
 
 
 def get_upload(token: str) -> BufferUpload | None:
-    """Busca um arquivo salvo no banco pelo token público."""
+    """Busca um arquivo salvo no banco pelo token público (com o conteúdo inteiro na memória)."""
     return db.session.get(BufferUpload, token)
+
+
+# Vídeos chegam a 100 MB e o Buffer baixa o arquivo de cada post: carregar o arquivo inteiro na
+# memória a cada download derrubava o servidor (512 MB no plano gratuito do Render) quando a fila
+# despachava vários posts de uma vez. Por isso o arquivo é lido do banco em pedaços.
+UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
+def upload_info(token: str) -> tuple[str, str, int] | None:
+    """(nome, tipo, tamanho) do arquivo, sem ler o conteúdo."""
+    row = db.session.execute(
+        db.select(BufferUpload.filename, BufferUpload.mimetype, BufferUpload.size).where(BufferUpload.token == token)
+    ).first()
+    return tuple(row) if row else None
+
+
+def read_upload_chunk(token: str, offset: int, length: int) -> bytes:
+    """Lê só um trecho do arquivo no banco, numa conexão curta (não segura transação durante o download)."""
+    with db.engine.connect() as conn:
+        chunk = conn.execute(
+            db.select(db.func.substr(BufferUpload.data, offset + 1, length)).where(BufferUpload.token == token)
+        ).scalar()
+    return bytes(chunk or b"")
 
 
 def upload(filename: str, content: bytes, content_type: str, transport: httpx.BaseTransport | None = None) -> str:
