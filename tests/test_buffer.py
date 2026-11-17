@@ -626,6 +626,19 @@ def test_dispatch_queue_api_requires_key_and_syncs(client, connected):
     assert response.json["dispatched"] == {"iltonbsilva": 1}
 
 
+def test_sync_apis_work_without_login_or_csrf(app, client, connected):
+    # Em produção login e CSRF ficam ligados; agendadores externos (cron-job.org, GitHub Actions)
+    # só têm a X-Sync-Key. Sem estar em PUBLIC_ENDPOINTS a rota redirecionava para /login.
+    app.config["WTF_CSRF_ENABLED"] = True
+    app.config["AUTH_ENABLED"] = True
+    for path in ("dispatch-queue", "sync-queue"):
+        response = client.post(
+            f"/integrations/buffer/api/{path}",
+            headers={"X-Sync-Key": "test-buffer-sync-key", "Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 200, (path, response.data[:200])
+
+
 def test_video_asset_support():
     # Instagram com vídeo é formatado como Reel
     body_ig = posting.build_post_input(
