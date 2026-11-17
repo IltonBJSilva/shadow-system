@@ -80,6 +80,10 @@ class Config:
     # Chave exclusiva para os endpoints de sincronização local -> produção. Nunca use o token do Buffer aqui.
     BUFFER_SYNC_KEY = os.getenv("BUFFER_SYNC_KEY", "").strip()
     BUFFER_TOKEN_FILE = str(INSTANCE_DIR / "buffer_token.json")
+    # Bônus da Fila do Sistema enquanto o teste grátis do Buffer libera mais de 10 agendados por rede:
+    # até 5 posts extras por rede em horários de pico, só com datas até este dia (AAAA-MM-DD, inclusive).
+    # Depois dele fica só o normal do plano gratuito (10 por rede, 1 por dia). Vazio desliga.
+    BUFFER_BOOST_UNTIL = os.getenv("BUFFER_BOOST_UNTIL", "2026-11-26").strip()
 
     CREDENTIALS_DIR = str(INSTANCE_DIR / "credentials")
 
@@ -117,6 +121,7 @@ class TestingConfig(Config):
     BUFFER_API_KEY = ""
     BUFFER_KEY_CREATED_AT = ""
     BUFFER_SYNC_KEY = "test-buffer-sync-key"
+    BUFFER_BOOST_UNTIL = ""  # testes ligam o modo turbo quando é ele que se testa
     SUPABASE_URL = ""
     SUPABASE_SECRET_KEY = ""
     SUPABASE_BUCKET = ""

@@ -34,7 +34,7 @@ from . import (
     update_post,
     update_queue_post,
 )
-from . import filters
+from . import filters, queue
 from .posting import MODES, parse_image_urls
 
 bp = Blueprint("buffer", __name__, url_prefix="/integrations/buffer")
@@ -275,6 +275,8 @@ def index():
         token=token_store.status(),
         network_summary=network_summary,
         coverage_gaps=coverage_gaps,
+        boost_until=queue.boost_until(),
+        boost_slots=queue.BOOST_SLOTS,
     )
 
 

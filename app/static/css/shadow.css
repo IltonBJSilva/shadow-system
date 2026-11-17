@@ -1378,3 +1378,11 @@ body::after {
 }
 .buffer-coverage > summary { cursor: pointer; font-weight: 600; }
 .buffer-coverage .list { margin-top: 0.6rem; }
+.buffer-boost-banner {
+  margin-bottom: 1rem;
+  padding: 0.7rem 1rem;
+  border-left: 3px solid #22d3ee;
+  border-radius: 4px;
+  background: rgba(34, 211, 238, 0.08);
+  font-size: 0.85rem;
+}

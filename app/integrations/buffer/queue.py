@@ -3,15 +3,13 @@
 Permite gerenciar uma fila local de postagens no Shadow System sem estourar o limite
 de 10 posts por canal do plano gratuito do Buffer.
 
-Regra de envio em lotes (definida pelo usuário):
-- O sistema não faz polling contínuo desnecessário.
-- Quando 5 posts já tiverem sido publicados no Buffer (ou seja, restam <= 5 posts
-  com status 'scheduled' no canal), o sistema despacha o próximo lote de 5 posts
-  da fila local para o Buffer.
-- Datas sempre projetadas para a frente:
-  Se o último post agendado no Buffer para o canal for no dia 20, os próximos
-  5 posts serão agendados sequencialmente a partir do dia 21 (dias 21, 22, 23, 24, 25).
-  Se não houver posts agendados no Buffer, as datas começam no dia seguinte a hoje.
+Regras de envio (definidas pelo usuário):
+- Obrigatório: cada rede tem sempre pelo menos 10 posts agendados no Buffer (limite do plano
+  gratuito), 1 por dia. Assim que abre vaga, a fila repõe.
+- Datas sempre projetadas para a frente: se o último post agendado no canal for no dia 20, os
+  próximos saem nos dias 21, 22, 23... Sem nada agendado, começa amanhã.
+- Bônus do teste grátis (BUFFER_BOOST_UNTIL): até 5 posts a mais por rede em horários de pico, só
+  com datas até o fim do teste, para que tudo acima de 10 saia antes do plano gratuito voltar.
 """
 from __future__ import annotations
 
@@ -29,12 +27,65 @@ from .posting import PostValidationError
 
 log = logging.getLogger(__name__)
 
-DEFAULT_TRIGGER_THRESHOLD = 5
+# Repõe assim que abrir qualquer vaga: a regra é ter sempre 10 agendados por rede.
+DEFAULT_TRIGGER_THRESHOLD = 9
 # O plano gratuito permite até 10 posts agendados por canal. Quando houver vagas,
 # preenchemos todas elas em vez de exigir duas sincronizações manuais de +5.
 DEFAULT_BATCH_SIZE = 10
 MAX_SCHEDULED_PER_CHANNEL = 10
 DEFAULT_POST_TIME = "18:30"
+
+
+# Bônus do teste grátis (BUFFER_BOOST_UNTIL): horários de pico por rede, no horário de Brasília,
+# para os posts extras. Cada dia recebe no máximo len(horários) posts contando os já agendados.
+BOOST_SLOTS = {
+    "linkedin": ("08:30", "12:30"),
+    "instagram": ("12:00", "19:00"),
+    "tiktok": ("12:30", "18:30", "21:30"),
+}
+BOOST_BONUS = 5  # posts a mais por rede, além dos 10 obrigatórios, enquanto o teste grátis vale
+BOOST_MIN_LEAD = timedelta(minutes=30)
+BOOST_MIN_GAP = timedelta(hours=1)
+
+
+def boost_until() -> date | None:
+    """Último dia do modo turbo, ou None se estiver desligado ou já tiver passado."""
+    from flask import current_app
+
+    raw = (current_app.config.get("BUFFER_BOOST_UNTIL") or "").strip()
+    try:
+        until = date.fromisoformat(raw) if raw else None
+    except ValueError:
+        log.warning("BUFFER_BOOST_UNTIL inválido: %r", raw)
+        return None
+    return until if until and time.today() <= until else None
+
+
+def boost_slots(service: str, scheduled_dues: list[datetime], until: date,
+                now: datetime | None = None) -> list[datetime]:
+    """Horários livres de hoje até `until` para a rede, respeitando o que já está agendado.
+
+    Cada dia recebe no máximo len(BOOST_SLOTS[rede]) posts contando os já agendados, e nenhum horário
+    novo fica a menos de 1 hora de um post existente.
+    """
+    now = now or time.now()
+    times = BOOST_SLOTS.get(service, (DEFAULT_POST_TIME,))
+    out: list[datetime] = []
+    day = now.date()
+    while day <= until:
+        taken = [d for d in scheduled_dues if d.date() == day]
+        room = len(times) - len(taken)
+        for t in times:
+            if room <= 0:
+                break
+            h, m = [int(x) for x in t.split(":")]
+            slot = datetime.combine(day, dtime(h, m))
+            if slot <= now + BOOST_MIN_LEAD or any(abs(slot - d) < BOOST_MIN_GAP for d in taken):
+                continue
+            out.append(slot)
+            room -= 1
+        day += timedelta(days=1)
+    return out
 
 
 def is_limit_error(message: str) -> bool:
@@ -196,25 +247,61 @@ def dispatch_next_batch(
     org_id = organization_id or get_org_id(buffer_client)
 
     # 1. Busca posts agendados no Buffer
-    all_scheduled = scheduled_posts if scheduled_posts is not None else buffer_client.posts(org_id, statuses=["scheduled"])
+    all_scheduled = scheduled_posts if scheduled_posts is not None else buffer_client.posts(org_id, statuses=["scheduled"], first=100)
     channel_scheduled = [p for p in all_scheduled if p.channel_id == channel_id]
 
-    # Se ainda tem mais que o limiar (ex.: > 5 posts na fila), aguarda
-    if len(channel_scheduled) > trigger_threshold:
-        log.info(
-            "Canal %s tem %d posts agendados no Buffer (limiar de disparo: <= %d). Não despacha lote agora.",
-            channel_id, len(channel_scheduled), trigger_threshold,
-        )
+    # 2. Obrigatório: sempre pelo menos 10 agendados por rede, 1 por dia, a partir do último agendado.
+    dispatched: list[BufferQueuePost] = []
+    base_room = max(0, MAX_SCHEDULED_PER_CHANNEL - len(channel_scheduled))
+    if base_room and len(channel_scheduled) <= trigger_threshold:
+        dispatched = _dispatch_daily(channel_id, channel_scheduled, min(batch_size, base_room), buffer_client)
+
+    # 3. Bônus do teste grátis: até BOOST_BONUS posts a mais em horários de pico, só até a data final.
+    boost = boost_until()
+    if boost:
+        bonus_room = MAX_SCHEDULED_PER_CHANNEL + BOOST_BONUS - len(channel_scheduled) - len(dispatched)
+        if bonus_room > 0:
+            dues = [p.due_at for p in channel_scheduled if p.due_at] + [_queue_due(p) for p in dispatched]
+            dispatched += _dispatch_boost(channel_id, dues, boost, bonus_room, buffer_client)
+    return dispatched
+
+
+def _queue_due(post_item: BufferQueuePost) -> datetime:
+    h, m = [int(x) for x in (post_item.target_time or DEFAULT_POST_TIME).split(":")[:2]]
+    return datetime.combine(post_item.target_date, dtime(h, m))
+
+
+def _dispatch_daily(channel_id: str, channel_scheduled: list[Post], count: int,
+                    buffer_client: BufferClient) -> list[BufferQueuePost]:
+    """Ritmo normal: 1 post por dia, a partir do dia seguinte ao último agendado no canal."""
+    pending_posts = _pending_for(channel_id, count)
+    if not pending_posts:
         return []
 
-    # 2. Busca apenas o que cabe. Por exemplo: com 5 posts no Buffer, despacha
-    # 5; com a fila vazia no Buffer, despacha 10. Isso evita uma rejeição na
-    # sexta tentativa e deixa o restante da fila pendente corretamente.
-    available_slots = max(0, MAX_SCHEDULED_PER_CHANNEL - len(channel_scheduled))
-    dispatch_count = min(batch_size, available_slots)
-    if dispatch_count == 0:
-        return []
+    scheduled_due_dates = [p.due_at for p in channel_scheduled if p.due_at]
+    latest_due = max(scheduled_due_dates) if scheduled_due_dates else None
+    forward_datetimes = calculate_forward_dates(
+        last_due_at=latest_due,
+        count=len(pending_posts),
+        default_time=pending_posts[0].target_time or DEFAULT_POST_TIME,
+        start_date=pending_posts[0].target_date,
+    )
 
+    def when(post_item: BufferQueuePost, index: int) -> datetime:
+        target_dt = forward_datetimes[index]
+        # Ajusta horário se o post possuir target_time específico diferente
+        if post_item.target_time:
+            try:
+                h, m = [int(x) for x in post_item.target_time.split(":")[:2]]
+                target_dt = target_dt.replace(hour=h, minute=m)
+            except Exception:
+                pass
+        return target_dt
+
+    return _send_items(pending_posts, when, buffer_client)
+
+
+def _pending_for(channel_id: str, limit: int) -> list[BufferQueuePost]:
     stmt = (
         db.select(BufferQueuePost)
         .where(BufferQueuePost.channel_id == channel_id, BufferQueuePost.status == "pending")
@@ -223,35 +310,29 @@ def dispatch_next_batch(
             BufferQueuePost.target_time.asc().nulls_last(),
             BufferQueuePost.id.asc(),
         )
-        .limit(dispatch_count)
+        .limit(limit)
     )
-    pending_posts = list(db.session.scalars(stmt).all())
+    return list(db.session.scalars(stmt).all())
+
+
+def _dispatch_boost(channel_id: str, dues: list[datetime], until: date, room: int,
+                    buffer_client: BufferClient) -> list[BufferQueuePost]:
+    """Bônus: preenche horários de pico livres até `until`, no máximo `room` posts."""
+    pending_posts = _pending_for(channel_id, room)
     if not pending_posts:
         return []
+    slots = boost_slots(pending_posts[0].service, dues, until)[:len(pending_posts)]
+    if not slots:
+        return []
+    return _send_items(pending_posts[:len(slots)], lambda _item, index: slots[index], buffer_client)
 
-    # 3. Calcula datas futuras a partir do último post agendado no canal
-    scheduled_due_dates = [p.due_at for p in channel_scheduled if p.due_at]
-    latest_due = max(scheduled_due_dates) if scheduled_due_dates else None
 
-    # Projeta as datas para cada post do lote
-    forward_datetimes = calculate_forward_dates(
-        last_due_at=latest_due,
-        count=len(pending_posts),
-        default_time=pending_posts[0].target_time or DEFAULT_POST_TIME,
-        start_date=pending_posts[0].target_date,
-    )
-
+def _send_items(pending_posts: list[BufferQueuePost], when, buffer_client: BufferClient) -> list[BufferQueuePost]:
+    """Envia os posts em ordem. `when(post, n)` dá o horário do n-ésimo post que entrar no Buffer."""
     dispatched: list[BufferQueuePost] = []
-    # O dia só avança quando um post entra: um post com erro não deixa buraco no calendário.
+    # O horário só avança quando um post entra: um post com erro não deixa buraco no calendário.
     for post_item in pending_posts:
-        target_dt = forward_datetimes[len(dispatched)]
-        # Ajusta horário se o post possuir target_time específico diferente
-        if post_item.target_time:
-            try:
-                h, m = [int(x) for x in post_item.target_time.split(":")[:2]]
-                target_dt = target_dt.replace(hour=h, minute=m)
-            except Exception:
-                pass
+        target_dt = when(post_item, len(dispatched))
 
         try:
             due_utc = posting.due_at_utc(target_dt)
@@ -336,7 +417,7 @@ def sync_queue(
 
     if scheduled_posts is None:
         try:
-            scheduled_posts = buffer_client.posts(org_id, statuses=["scheduled"])
+            scheduled_posts = buffer_client.posts(org_id, statuses=["scheduled"], first=100)
         except Exception as exc:
             log.warning("sync_queue: não foi possível listar posts agendados do Buffer: %s", exc)
             return {}
@@ -388,7 +469,7 @@ def dispatch_single_post(
         target_d = post_item.target_date or (today + timedelta(days=1))
         if target_d <= today:
             # Busca último post agendado no Buffer para projetar para frente
-            all_scheduled = buffer_client.posts(org_id, statuses=["scheduled"])
+            all_scheduled = buffer_client.posts(org_id, statuses=["scheduled"], first=100)
             channel_scheduled = [p for p in all_scheduled if p.channel_id == post_item.channel_id and p.due_at]
             latest_due = max([p.due_at for p in channel_scheduled], default=None)
             dates = calculate_forward_dates(latest_due, 1, default_time=post_item.target_time or DEFAULT_POST_TIME)

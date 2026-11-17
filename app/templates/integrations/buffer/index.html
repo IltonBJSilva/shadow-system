@@ -275,6 +275,14 @@
       </div>
     </div>
 
+    {% if tab == 'scheduled' and boost_until %}
+      <div class="buffer-boost-banner">
+        🚀 <strong>Bônus do teste grátis até {{ boost_until.strftime('%d/%m') }}</strong>: além dos 10 obrigatórios
+        por rede (1 por dia), até 5 posts extras por rede em horários de pico —
+        {% for svc, times in boost_slots.items() %}{{ service_label(svc) }} {{ times | join(' · ') }}{% if not loop.last %}; {% endif %}{% endfor %}.
+        Depois dessa data fica só o normal do plano gratuito.
+      </div>
+    {% endif %}
     {% if tab == 'scheduled' and network_summary %}
       <div class="buffer-network-summary" aria-label="Resumo por rede">
         {% for net in network_summary %}

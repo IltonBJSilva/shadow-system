@@ -157,6 +157,26 @@ Alternativa: `BUFFER_API_KEY` e `BUFFER_KEY_CREATED_AT` no `.env`. O token da te
 - Na Fila do Sistema, um post que o Buffer recusa vira **Com erro** e a fila daquela rede continua.
   Antes ele ficava pendente no topo e travava todos os posts seguintes da rede.
 
+### Fila do Sistema: 10 obrigatórios + bônus do teste grátis
+
+- **Obrigatório**: cada rede fica sempre com pelo menos **10 posts agendados** no Buffer (limite do
+  plano gratuito), **1 por dia**, a partir do último agendado. Assim que abre vaga, a fila repõe.
+- **Bônus** enquanto o teste grátis vale (`BUFFER_BOOST_UNTIL`, padrão `2026-11-26`): até **5 posts a
+  mais por rede** em horários de pico (Brasília), só com datas até essa data, para que tudo acima de
+  10 saia antes de o plano gratuito voltar.
+
+| Rede | Horários de pico do bônus |
+|---|---|
+| LinkedIn | 08:30 · 12:30 |
+| Instagram | 12:00 · 19:00 |
+| TikTok | 12:30 · 18:30 · 21:30 |
+
+- O bônus só usa horários livres: cada dia recebe no máximo a quantidade de horários da rede contando
+  o que já está agendado, e nada fica a menos de 1 hora de um post existente.
+- Depois da data final a fila fica só com os 10 obrigatórios. Para mudar a data: variável
+  `BUFFER_BOOST_UNTIL` no Render (vazia desliga). A aba Agendados mostra um aviso enquanto vale.
+- A sincronização roda pelo cron-job.org a cada 30 minutos e ao abrir a aba Agendados.
+
 ### Regras por rede (já validadas na API real)
 
 - **Instagram**: `metadata.instagram = {type: "post", shouldShareToFeed: true}`; várias imagens viram

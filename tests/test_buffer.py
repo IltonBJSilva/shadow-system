@@ -462,6 +462,52 @@ def test_dispatch_error_does_not_block_the_rest_of_the_channel_queue(app, connec
     assert (dispatched[1].target_date - dispatched[0].target_date).days == 1
 
 
+def test_boost_slots_use_peak_hours_and_respect_existing_posts():
+    from app.integrations.buffer.queue import boost_slots
+
+    now = datetime(2026, 11, 17, 13, 0)
+    until = date(2026, 11, 18)
+    # TikTok: 3 horários por dia. Hoje 12:30 já passou; amanhã 18:30 está a menos de 1h de um post existente.
+    existing = [datetime(2026, 11, 18, 18, 0)]
+    slots = boost_slots("tiktok", existing, until, now=now)
+    assert slots == [
+        datetime(2026, 11, 17, 18, 30), datetime(2026, 11, 17, 21, 30),
+        datetime(2026, 11, 18, 12, 30), datetime(2026, 11, 18, 21, 30),
+    ]
+    # LinkedIn: 2 por dia contando o que já existe; o dia que já tem post recebe só mais um.
+    assert boost_slots("linkedin", [datetime(2026, 11, 18, 18, 30)], until, now=datetime(2026, 11, 17, 6, 0)) == [
+        datetime(2026, 11, 17, 8, 30), datetime(2026, 11, 17, 12, 30), datetime(2026, 11, 18, 8, 30),
+    ]
+
+
+def test_keeps_ten_per_network_plus_five_bonus_during_trial(app, connected):
+    # FakeBuffer já tem 1 post agendado no ig1.
+    for i in range(30):
+        buffer.enqueue_post(channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+                            text=f"Turbo #{i}", image_urls=["https://img.com/1.png"])
+    until = time.today() + timedelta(days=7)
+    app.config["BUFFER_BOOST_UNTIL"] = until.isoformat()
+
+    dispatched = buffer.dispatch_next_batch("ig1")
+
+    # 9 obrigatórios (completa 10, 1 por dia) + 5 de bônus em horário de pico até a data final.
+    assert len(dispatched) == 14
+    base, bonus = dispatched[:9], dispatched[9:]
+    assert len({p.target_date for p in base}) == 9
+    assert all(p.target_date <= until and p.target_time in ("12:00", "19:00") for p in bonus)
+
+
+def test_without_trial_only_the_ten_required_go_out(app, connected):
+    for i in range(30):
+        buffer.enqueue_post(channel_id="ig1", channel_name="iltonbsilva", service="instagram",
+                            text=f"Normal #{i}", image_urls=["https://img.com/1.png"])
+    assert len(buffer.dispatch_next_batch("ig1")) == 9  # 1 já agendado + 9 = 10
+
+    app.config["BUFFER_BOOST_UNTIL"] = (time.today() - timedelta(days=1)).isoformat()
+    from app.integrations.buffer.queue import boost_until
+    assert boost_until() is None
+
+
 def test_scheduled_tab_shows_counts_per_network_and_missing_networks(client, connected):
     buffer.enqueue_post(channel_id="li1", channel_name="ilton", service="linkedin",
                         text="Na fila do LinkedIn", image_urls=[])
@@ -1082,3 +1128,10 @@ def test_youtube_client_recent_videos_populates_publish_at():
 
 
 
+
+
+def test_scheduled_tab_shows_boost_banner_only_while_active(app, client, connected):
+    app.config["BUFFER_BOOST_UNTIL"] = (time.today() + timedelta(days=3)).isoformat()
+    assert "Bônus do teste grátis até" in client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)
+    app.config["BUFFER_BOOST_UNTIL"] = ""
+    assert "Bônus do teste grátis até" not in client.get("/integrations/buffer/?status=scheduled").get_data(as_text=True)

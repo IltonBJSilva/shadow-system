@@ -109,7 +109,7 @@ def channels() -> list[Channel]:
 def posts(
     statuses: list[str] | None,
     channels_list: list[Channel] | None = None,
-    first: int = 50,
+    first: int = 100,
 ) -> list[Post]:
     """Posts com o nome do canal preenchido, ordenados por data."""
     client = get_client()
